@@ -69,7 +69,7 @@ export default function CollectionMap() {
     };
     
     // Load the Google Maps API
-    const googleMapsApiKey = process.env.VITE_GOOGLE_MAPS_API_KEY;
+    const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
     if (!googleMapsApiKey) {
       setError("Google Maps API key is missing");
       return;
