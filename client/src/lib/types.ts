@@ -10,65 +10,76 @@ import {
   EcoTip,
   Activity
 } from "@shared/schema";
+import { 
+  Trash2, 
+  Recycle, 
+  Newspaper, 
+  Wine, 
+  ShoppingBag, 
+  Cpu, 
+  Apple, 
+  FlaskConical, 
+  Package 
+} from "lucide-react";
 
 // Map of waste types to their display config
 export const wasteTypeConfig: Record<WasteTypeValue, { 
   label: string; 
-  icon: string; 
+  icon: any; // Using any temporarily to resolve type issues with Lucide icons
   bgColor: string;
   textColor: string;
 }> = {
   general: { 
     label: 'General Waste', 
-    icon: 'trash-alt',
+    icon: Trash2,
     bgColor: 'bg-primary/20',
     textColor: 'text-primary'
   },
   plastic: { 
     label: 'Plastic', 
-    icon: 'prescription-bottle',
+    icon: Recycle,
     bgColor: 'bg-blue-100',
     textColor: 'text-blue-600'
   },
   paper: { 
     label: 'Paper', 
-    icon: 'newspaper',
+    icon: Newspaper,
     bgColor: 'bg-yellow-100',
     textColor: 'text-yellow-600'
   },
   glass: { 
     label: 'Glass', 
-    icon: 'wine-bottle',
+    icon: Wine,
     bgColor: 'bg-blue-100',
     textColor: 'text-blue-600'
   },
   metal: { 
     label: 'Metal', 
-    icon: 'utensils',
+    icon: ShoppingBag,
     bgColor: 'bg-gray-200',
     textColor: 'text-gray-600'
   },
   electronic: { 
     label: 'Electronic', 
-    icon: 'laptop',
+    icon: Cpu,
     bgColor: 'bg-purple-100',
     textColor: 'text-purple-600'
   },
   organic: { 
     label: 'Organic', 
-    icon: 'apple-alt',
+    icon: Apple,
     bgColor: 'bg-green-100',
     textColor: 'text-green-600'
   },
   hazardous: { 
     label: 'Hazardous', 
-    icon: 'exclamation-triangle',
+    icon: FlaskConical,
     bgColor: 'bg-red-100',
     textColor: 'text-red-600'
   },
   cardboard: { 
     label: 'Cardboard', 
-    icon: 'box',
+    icon: Package,
     bgColor: 'bg-orange-100',
     textColor: 'text-orange-600'
   }

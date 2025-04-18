@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import { LucideIcon } from "lucide-react";
 
 type IconBadgeProps = {
-  icon: LucideIcon;
+  icon: React.ElementType; // Changed to React.ElementType to support Lucide icons
   bgColor: string;
   textColor: string;
   size?: "sm" | "md" | "lg";

@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { IconBadge } from "@/components/ui/icon-badge";
-import { Collection } from "@shared/schema";
+import { Collection, WasteTypeValue, CollectionStatusType } from "@shared/schema";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { EllipsisVertical, Eye, CalendarClock, X, Loader2, Plus } from "lucide-react";
 import { collectionStatusConfig, wasteTypeConfig } from "@/lib/types";
@@ -63,8 +63,7 @@ export default function UpcomingCollections() {
   });
 
   function handleViewDetails(collection: Collection) {
-    setSelectedCollection(collection);
-    setShowDetailsDialog(true);
+    navigate(`/collections/${collection.id}`);
   }
   
   function handleReschedule(collection: Collection) {
@@ -101,8 +100,8 @@ export default function UpcomingCollections() {
           ) : collections && collections.length > 0 ? (
             <>
               {collections.map((collection) => {
-                const wasteConfig = wasteTypeConfig[collection.wasteType as keyof typeof wasteTypeConfig] || wasteTypeConfig.general;
-                const statusConfig = collectionStatusConfig[collection.status as keyof typeof collectionStatusConfig];
+                const wasteConfig = wasteTypeConfig[collection.wasteType as WasteTypeValue] || wasteTypeConfig.general;
+                const statusConfig = collectionStatusConfig[collection.status as CollectionStatusType];
                 const formattedDate = format(
                   new Date(collection.scheduledDate),
                   "EEEE, d MMMM - h:mm a"
@@ -190,7 +189,7 @@ export default function UpcomingCollections() {
               <div className="flex flex-col space-y-1">
                 <span className="text-sm font-medium text-gray-500">Waste Type</span>
                 <span className="font-medium">
-                  {wasteTypeConfig[selectedCollection.wasteType as keyof typeof wasteTypeConfig]?.label || 'Unknown'}
+                  {wasteTypeConfig[selectedCollection.wasteType as WasteTypeValue]?.label || 'Unknown'}
                 </span>
               </div>
               <div className="flex flex-col space-y-1">
