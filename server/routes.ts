@@ -62,7 +62,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Parsed collection data:", JSON.stringify(collectionData));
       
       const collection = await storage.createCollection(collectionData);
-      res.status(201).json(collection);
+      
+      // Award points based on the waste type (different points for different types)
+      const pointsMap = {
+        'general': 5,
+        'plastic': 10,
+        'paper': 8,
+        'glass': 10,
+        'metal': 12,
+        'electronic': 15,
+        'organic': 8,
+        'hazardous': 20,
+        'cardboard': 8
+      };
+      
+      // Award default points if waste type is not in the map
+      const pointsToAward = pointsMap[collectionData.wasteType] || 5;
+      
+      // Update user's sustainability score
+      const updatedUser = await storage.updateUser(req.user.id, {
+        sustainabilityScore: (req.user.sustainabilityScore || 0) + pointsToAward
+      });
+      
+      // Create activity for points earned
+      await storage.createActivity({
+        userId: req.user.id,
+        activityType: 'points_earned',
+        description: `Earned ${pointsToAward} points for scheduling a ${collectionData.wasteType} waste collection`,
+        points: pointsToAward,
+        timestamp: new Date()
+      });
+      
+      res.status(201).json({
+        ...collection,
+        pointsEarned: pointsToAward,
+        newTotalPoints: updatedUser?.sustainabilityScore
+      });
     } catch (error) {
       console.error("Collection creation error:", error);
       if (error instanceof z.ZodError) {
