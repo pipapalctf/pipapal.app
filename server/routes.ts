@@ -41,7 +41,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     // In a real app, this would filter by collectorId = req.user.id
     // For demo purposes, we'll return all collections to simulate assignments
-    const collections = await storage.getCollectionsByUser(req.user.id);
+    const collections = await storage.getAllCollections();
     res.json(collections);
   });
   

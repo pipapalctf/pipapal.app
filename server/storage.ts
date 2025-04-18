@@ -506,6 +506,11 @@ export class DatabaseStorage implements IStorage {
       .orderBy(collections.scheduledDate);
   }
   
+  async getAllCollections(): Promise<Collection[]> {
+    return db.select().from(collections)
+      .orderBy(desc(collections.scheduledDate));
+  }
+  
   async createCollection(insertCollection: InsertCollection): Promise<Collection> {
     const [collection] = await db.insert(collections)
       .values(insertCollection)

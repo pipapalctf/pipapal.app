@@ -115,7 +115,7 @@ export default function CollectorDashboardPage() {
   };
 
   // Format date to readable format
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | Date) => {
     const options: Intl.DateTimeFormatOptions = { 
       weekday: 'short', 
       month: 'short', 
