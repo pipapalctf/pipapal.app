@@ -1,6 +1,7 @@
 import { pgTable, text, serial, integer, boolean, timestamp, json, real } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { relations } from "drizzle-orm";
 
 // User roles
 export const UserRole = {
@@ -175,6 +176,50 @@ export const insertActivitySchema = createInsertSchema(activities)
     activityType: true,
     description: true,
   });
+
+// Relations
+export const usersRelations = relations(users, ({ many }) => ({
+  collections: many(collections),
+  impacts: many(impacts),
+  badges: many(badges),
+  activities: many(activities),
+}));
+
+export const collectionsRelations = relations(collections, ({ one }) => ({
+  user: one(users, {
+    fields: [collections.userId],
+    references: [users.id],
+  }),
+  collector: one(users, {
+    fields: [collections.collectorId],
+    references: [users.id],
+  }),
+}));
+
+export const impactsRelations = relations(impacts, ({ one }) => ({
+  user: one(users, {
+    fields: [impacts.userId],
+    references: [users.id],
+  }),
+  collection: one(collections, {
+    fields: [impacts.collectionId],
+    references: [collections.id],
+  }),
+}));
+
+export const badgesRelations = relations(badges, ({ one }) => ({
+  user: one(users, {
+    fields: [badges.userId],
+    references: [users.id],
+  }),
+}));
+
+export const activitiesRelations = relations(activities, ({ one }) => ({
+  user: one(users, {
+    fields: [activities.userId],
+    references: [users.id],
+  }),
+}));
 
 // Export types
 export type InsertUser = z.infer<typeof insertUserSchema>;
