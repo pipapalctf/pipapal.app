@@ -11,8 +11,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Bell, Menu } from "lucide-react";
+import { Menu } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { NotificationBell } from "@/components/shared/notification-bell";
 
 export default function Navbar() {
   const [location] = useLocation();
@@ -55,25 +56,9 @@ export default function Navbar() {
         </div>
         
         <div className="flex items-center space-x-3">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="hidden md:inline-flex">
-                <Bell className="h-5 w-5 text-secondary" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Notifications</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="flex flex-col items-start">
-                <span className="font-medium">Collection reminder</span>
-                <span className="text-xs text-muted-foreground">Your pickup is scheduled for tomorrow</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem className="flex flex-col items-start">
-                <span className="font-medium">New badge earned!</span>
-                <span className="text-xs text-muted-foreground">You've earned the Water Saver badge</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="hidden md:block">
+            <NotificationBell />
+          </div>
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

@@ -4,11 +4,13 @@ import { storage } from "./storage";
 import { 
   insertCollectionSchema, 
   insertEcoTipSchema, 
-  CollectionStatus 
+  CollectionStatus,
+  Collection 
 } from "@shared/schema";
 import { z } from "zod";
 import { setupAuth } from "./auth";
 import { generateEcoTip } from "./openai";
+import { WebSocketServer, WebSocket } from 'ws';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication
@@ -167,6 +169,115 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
+  
+  // WebSocket server for real-time notifications
+  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+  
+  // Keep track of connected clients by user ID
+  const clients = new Map<number, WebSocket[]>();
+  
+  wss.on('connection', (ws: WebSocket) => {
+    console.log('WebSocket client connected');
+    
+    // Authenticate the WebSocket connection
+    let userId: number | null = null;
+    
+    ws.on('message', (message: string) => {
+      try {
+        const data = JSON.parse(message.toString());
+        
+        if (data.type === 'auth' && data.userId) {
+          userId = parseInt(data.userId);
+          
+          // Add this client to the clients map
+          if (!clients.has(userId)) {
+            clients.set(userId, []);
+          }
+          clients.get(userId)?.push(ws);
+          
+          console.log(`WebSocket authenticated for user ${userId}`);
+          
+          // Send a welcome message
+          ws.send(JSON.stringify({
+            type: 'notification',
+            message: 'Connected to real-time notifications'
+          }));
+        }
+      } catch (error) {
+        console.error('Error parsing WebSocket message:', error);
+      }
+    });
+    
+    ws.on('close', () => {
+      console.log('WebSocket client disconnected');
+      if (userId) {
+        // Remove this client from the clients map
+        const userClients = clients.get(userId) || [];
+        const index = userClients.indexOf(ws);
+        if (index !== -1) {
+          userClients.splice(index, 1);
+        }
+        if (userClients.length === 0) {
+          clients.delete(userId);
+        }
+      }
+    });
+  });
+  
+  // Update patch route to send notifications
+  const originalPatch = app._router.stack.find(
+    (layer: any) => layer.route && layer.route.path === '/api/collections/:id' && layer.route.methods.patch
+  );
+  
+  if (originalPatch) {
+    const originalHandler = originalPatch.route.stack[0].handle;
+    
+    originalPatch.route.stack[0].handle = async (req: any, res: any) => {
+      const originalEnd = res.end;
+      
+      res.end = function(...args: any[]) {
+        if (res.statusCode >= 200 && res.statusCode < 300 && req.body.status) {
+          // Get the collection that was updated
+          const collectionId = parseInt(req.params.id);
+          storage.getCollection(collectionId).then((collection) => {
+            if (collection) {
+              // Send notification to the user
+              const userClients = clients.get(collection.userId) || [];
+              
+              if (userClients.length > 0) {
+                const statusConfig = {
+                  [CollectionStatus.PENDING]: 'scheduled',
+                  [CollectionStatus.CONFIRMED]: 'confirmed',
+                  [CollectionStatus.IN_PROGRESS]: 'in progress',
+                  [CollectionStatus.COMPLETED]: 'completed',
+                  [CollectionStatus.CANCELLED]: 'cancelled'
+                };
+                
+                const notification = {
+                  type: 'collection_update',
+                  collectionId: collection.id,
+                  status: collection.status,
+                  message: `Your collection has been ${statusConfig[collection.status as keyof typeof statusConfig]}`
+                };
+                
+                userClients.forEach(client => {
+                  if (client.readyState === WebSocket.OPEN) {
+                    client.send(JSON.stringify(notification));
+                  }
+                });
+              }
+            }
+          }).catch(err => {
+            console.error('Error sending WebSocket notification:', err);
+          });
+        }
+        
+        originalEnd.apply(res, args);
+      };
+      
+      return originalHandler(req, res);
+    };
+  }
 
   return httpServer;
 }
