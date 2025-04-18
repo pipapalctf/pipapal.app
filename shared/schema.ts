@@ -143,6 +143,16 @@ export const insertCollectionSchema = createInsertSchema(collections)
     address: true,
     location: true,
     notes: true,
+  })
+  .transform((data) => {
+    // Convert scheduledDate from ISO string to Date if it's a string
+    if (typeof data.scheduledDate === 'string') {
+      return {
+        ...data,
+        scheduledDate: new Date(data.scheduledDate)
+      };
+    }
+    return data;
   });
 
 export const insertImpactSchema = createInsertSchema(impacts)

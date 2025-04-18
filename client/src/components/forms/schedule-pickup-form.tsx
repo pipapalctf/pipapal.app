@@ -64,9 +64,13 @@ export default function SchedulePickupForm() {
   
   const schedulePickupMutation = useMutation({
     mutationFn: async (values: FormValues) => {
-      const res = await apiRequest("POST", "/api/collections", {
+      // Ensure the date is passed as a string in ISO format
+      const formattedValues = {
         ...values,
-      });
+        scheduledDate: values.scheduledDate.toISOString(),
+      };
+      
+      const res = await apiRequest("POST", "/api/collections", formattedValues);
       return await res.json();
     },
     onSuccess: () => {
