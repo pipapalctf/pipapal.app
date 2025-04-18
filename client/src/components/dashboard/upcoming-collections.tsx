@@ -61,9 +61,10 @@ export default function UpcomingCollections() {
       });
     }
   });
-
+  
   function handleViewDetails(collection: Collection) {
-    navigate(`/collections/${collection.id}`);
+    setSelectedCollection(collection);
+    setShowDetailsDialog(true);
   }
   
   function handleReschedule(collection: Collection) {
@@ -178,59 +179,130 @@ export default function UpcomingCollections() {
       {/* Collection Details Dialog */}
       {selectedCollection && (
         <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-          <DialogContent className="sm:max-w-[425px]">
+          <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
-              <DialogTitle>Collection Details</DialogTitle>
-              <DialogDescription>
-                View the details of your scheduled waste collection
-              </DialogDescription>
+              <div className="flex items-start gap-4">
+                <IconBadge 
+                  icon={wasteTypeConfig[selectedCollection.wasteType as WasteTypeValue]?.icon || 'trash'} 
+                  bgColor={wasteTypeConfig[selectedCollection.wasteType as WasteTypeValue]?.bgColor || 'bg-gray-100'}
+                  textColor={wasteTypeConfig[selectedCollection.wasteType as WasteTypeValue]?.textColor || 'text-gray-900'}
+                  size="lg"
+                />
+                <div>
+                  <DialogTitle className="text-xl">
+                    {wasteTypeConfig[selectedCollection.wasteType as WasteTypeValue]?.label || 'Unknown'} Collection
+                  </DialogTitle>
+                  <DialogDescription>
+                    Scheduled for {format(new Date(selectedCollection.scheduledDate), "EEEE, MMMM d, yyyy")}
+                  </DialogDescription>
+                </div>
+              </div>
             </DialogHeader>
+            
             <div className="grid gap-4 py-4">
-              <div className="flex flex-col space-y-1">
-                <span className="text-sm font-medium text-gray-500">Waste Type</span>
-                <span className="font-medium">
-                  {wasteTypeConfig[selectedCollection.wasteType as WasteTypeValue]?.label || 'Unknown'}
-                </span>
-              </div>
-              <div className="flex flex-col space-y-1">
-                <span className="text-sm font-medium text-gray-500">Status</span>
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  collectionStatusConfig[selectedCollection.status as keyof typeof collectionStatusConfig].bgColor
+              <div className="rounded-lg bg-gray-50 p-3">
+                <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                  collectionStatusConfig[selectedCollection.status as CollectionStatusType].bgColor
                 } ${
-                  collectionStatusConfig[selectedCollection.status as keyof typeof collectionStatusConfig].textColor
+                  collectionStatusConfig[selectedCollection.status as CollectionStatusType].textColor
                 }`}>
-                  {collectionStatusConfig[selectedCollection.status as keyof typeof collectionStatusConfig].label}
+                  {collectionStatusConfig[selectedCollection.status as CollectionStatusType].label}
                 </span>
               </div>
-              <div className="flex flex-col space-y-1">
-                <span className="text-sm font-medium text-gray-500">Scheduled Date</span>
-                <span className="font-medium">
-                  {format(new Date(selectedCollection.scheduledDate), "EEEE, MMMM d, yyyy")}
-                </span>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col space-y-1">
+                  <span className="text-xs font-medium text-gray-500">Date</span>
+                  <span className="font-medium">
+                    {format(new Date(selectedCollection.scheduledDate), "MMMM d, yyyy")}
+                  </span>
+                </div>
+                <div className="flex flex-col space-y-1">
+                  <span className="text-xs font-medium text-gray-500">Time</span>
+                  <span className="font-medium">
+                    {format(new Date(selectedCollection.scheduledDate), "h:mm a")}
+                  </span>
+                </div>
               </div>
+              
               <div className="flex flex-col space-y-1">
-                <span className="text-sm font-medium text-gray-500">Time</span>
-                <span className="font-medium">
-                  {format(new Date(selectedCollection.scheduledDate), "h:mm a")}
-                </span>
-              </div>
-              <div className="flex flex-col space-y-1">
-                <span className="text-sm font-medium text-gray-500">Address</span>
+                <span className="text-xs font-medium text-gray-500">Pickup Address</span>
                 <span className="font-medium">{selectedCollection.address}</span>
               </div>
+              
               {selectedCollection.notes && (
                 <div className="flex flex-col space-y-1">
-                  <span className="text-sm font-medium text-gray-500">Notes</span>
+                  <span className="text-xs font-medium text-gray-500">Additional Notes</span>
                   <span className="font-medium">{selectedCollection.notes}</span>
                 </div>
               )}
+              
+              {selectedCollection.collectorId && (
+                <div className="flex flex-col space-y-1">
+                  <span className="text-xs font-medium text-gray-500">Collector</span>
+                  <span className="font-medium">ID: {selectedCollection.collectorId}</span>
+                </div>
+              )}
+              
+              {/* Timeline */}
+              <div className="mt-4">
+                <h4 className="text-sm font-medium mb-2">Status Timeline</h4>
+                <div className="space-y-2">
+                  <div className="relative pl-6 border-l-2 border-primary pb-4">
+                    <div className="absolute left-[-5px] top-0 h-3 w-3 rounded-full bg-primary"></div>
+                    <p className="text-sm font-medium">Collection Scheduled</p>
+                    <p className="text-xs text-gray-500">
+                      {format(new Date(selectedCollection.createdAt || selectedCollection.scheduledDate), "MMM d, yyyy - h:mm a")}
+                    </p>
+                  </div>
+                  
+                  {selectedCollection.status !== 'pending' && (
+                    <div className="relative pl-6 border-l-2 border-primary pb-4">
+                      <div className="absolute left-[-5px] top-0 h-3 w-3 rounded-full bg-primary"></div>
+                      <p className="text-sm font-medium">Status Updated</p>
+                      <p className="text-xs text-gray-500">
+                        {collectionStatusConfig[selectedCollection.status as CollectionStatusType].label}
+                      </p>
+                    </div>
+                  )}
+                  
+                  {selectedCollection.status === 'completed' && selectedCollection.completedDate && (
+                    <div className="relative pl-6">
+                      <div className="absolute left-[-5px] top-0 h-3 w-3 rounded-full bg-primary"></div>
+                      <p className="text-sm font-medium">Collection Completed</p>
+                      <p className="text-xs text-gray-500">
+                        {format(new Date(selectedCollection.completedDate), "MMM d, yyyy - h:mm a")}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowDetailsDialog(false)}>Close</Button>
-              <Button onClick={() => {
-                setShowDetailsDialog(false);
-                handleReschedule(selectedCollection);
-              }}>Reschedule</Button>
+            
+            <DialogFooter className="flex gap-2">
+              <Button variant="outline" onClick={() => setShowDetailsDialog(false)}>
+                Close
+              </Button>
+              <Button 
+                variant="secondary" 
+                onClick={() => {
+                  setShowDetailsDialog(false);
+                  handleReschedule(selectedCollection);
+                }}
+              >
+                <CalendarClock className="mr-2 h-4 w-4" />
+                Reschedule
+              </Button>
+              <Button 
+                variant="destructive" 
+                onClick={() => {
+                  setShowDetailsDialog(false);
+                  handleCancelRequest(selectedCollection);
+                }}
+              >
+                <X className="mr-2 h-4 w-4" />
+                Cancel
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -250,13 +322,13 @@ export default function UpcomingCollections() {
               <div className="bg-gray-50 p-4 rounded-md">
                 <div className="flex items-center mb-2">
                   <IconBadge 
-                    icon={wasteTypeConfig[selectedCollection.wasteType as keyof typeof wasteTypeConfig]?.icon || 'trash'} 
-                    bgColor={wasteTypeConfig[selectedCollection.wasteType as keyof typeof wasteTypeConfig]?.bgColor || 'bg-gray-100'}
-                    textColor={wasteTypeConfig[selectedCollection.wasteType as keyof typeof wasteTypeConfig]?.textColor || 'text-gray-900'}
+                    icon={wasteTypeConfig[selectedCollection.wasteType as WasteTypeValue]?.icon || 'trash'} 
+                    bgColor={wasteTypeConfig[selectedCollection.wasteType as WasteTypeValue]?.bgColor || 'bg-gray-100'}
+                    textColor={wasteTypeConfig[selectedCollection.wasteType as WasteTypeValue]?.textColor || 'text-gray-900'}
                     size="sm"
                   />
                   <span className="ml-2 font-medium">
-                    {wasteTypeConfig[selectedCollection.wasteType as keyof typeof wasteTypeConfig]?.label || 'Unknown'}
+                    {wasteTypeConfig[selectedCollection.wasteType as WasteTypeValue]?.label || 'Unknown'}
                   </span>
                 </div>
                 <p className="text-sm text-gray-600">
