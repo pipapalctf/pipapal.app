@@ -115,4 +115,72 @@ export function setupAuth(app: Express) {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     res.json(req.user);
   });
+  
+  app.patch("/api/user", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      // Only allow certain fields to be updated
+      const allowedFields = ['fullName', 'email', 'address', 'phone'];
+      const updates: Record<string, any> = {};
+      
+      allowedFields.forEach(field => {
+        if (req.body[field] !== undefined) {
+          updates[field] = req.body[field];
+        }
+      });
+      
+      // If user is changing email, check if it's already taken
+      if (updates.email && updates.email !== req.user.email) {
+        const existingUser = await storage.getUserByEmail(updates.email);
+        if (existingUser && existingUser.id !== req.user.id) {
+          return res.status(400).json({ message: "Email already in use" });
+        }
+      }
+      
+      // Update user in database
+      const updatedUser = await storage.updateUser(req.user.id, updates);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating user profile:", error);
+      res.status(500).json({ message: "Failed to update profile" });
+    }
+  });
+  
+  // Update password endpoint
+  app.post("/api/user/password", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const { currentPassword, newPassword } = req.body;
+      
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ message: "Current and new password are required" });
+      }
+      
+      // Verify current password
+      const passwordValid = await comparePasswords(currentPassword, req.user.password);
+      if (!passwordValid) {
+        return res.status(400).json({ message: "Current password is incorrect" });
+      }
+      
+      // Update password
+      const hashedPassword = await hashPassword(newPassword);
+      const updatedUser = await storage.updateUser(req.user.id, { password: hashedPassword });
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      res.json({ message: "Password updated successfully" });
+    } catch (error) {
+      console.error("Error updating password:", error);
+      res.status(500).json({ message: "Failed to update password" });
+    }
+  });
 }

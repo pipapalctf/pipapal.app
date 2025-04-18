@@ -9,6 +9,7 @@ import AuthPage from "@/pages/auth-page";
 import SchedulePickupPage from "@/pages/schedule-pickup-page";
 import EcoTipsPage from "@/pages/eco-tips-page";
 import ImpactPage from "@/pages/impact-page";
+import ProfilePage from "@/pages/profile-page";
 import CollectionDetailsPage from "@/pages/collection-details-page";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";

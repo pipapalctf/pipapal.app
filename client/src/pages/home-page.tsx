@@ -23,7 +23,7 @@ export default function HomePage() {
     queryKey: ["/api/impact"],
   });
   
-  const { data: collections } = useQuery<any[]>({
+  const { data: collections = [] } = useQuery<any[]>({
     queryKey: ["/api/collections"],
   });
   
@@ -61,7 +61,7 @@ export default function HomePage() {
             <StatCard
               title="Total Collections"
               value={collections?.length || 0}
-              subtitle={collections?.length > 0 ? "Keep up the good work!" : "Schedule your first collection"}
+              subtitle={(collections && collections.length > 0) ? "Keep up the good work!" : "Schedule your first collection"}
               icon="recycle"
               gradient="bg-gradient-to-br from-green-500 to-green-700"
             />
