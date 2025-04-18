@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 
 // Map of string icon names to Lucide components
-const iconMap: Record<string, React.ComponentType<LucideProps>> = {
+export const iconMap: Record<string, React.ComponentType<LucideProps>> = {
   award: Award,
   check: Check,
   droplet: Droplet,

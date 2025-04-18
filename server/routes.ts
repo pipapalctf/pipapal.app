@@ -63,7 +63,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const collection = await storage.createCollection(collectionData);
       
-      // Award points based on the waste type (different points for different types)
+      // Award points based on the waste type (matching client configuration)
       const pointsMap: Record<string, number> = {
         'general': 5,
         'plastic': 10,
