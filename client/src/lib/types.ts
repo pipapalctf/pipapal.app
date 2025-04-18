@@ -19,9 +19,14 @@ import {
   Cpu, 
   Apple, 
   FlaskConical, 
-  Package 
+  Package,
+  Award,
+  Medal,
+  Leaf,
+  Heart,
+  Star,
+  Zap
 } from "lucide-react";
-import { BadgeIcons } from "@/components/ui/badge-icons";
 import type { ElementType } from "react";
 
 // Map of waste types to their display config
@@ -125,9 +130,6 @@ export const collectionStatusConfig: Record<CollectionStatusType, {
   }
 };
 
-import { BadgeIcons } from "@/components/ui/badge-icons";
-import type { ElementType } from "react";
-
 // Map of badges to their display config
 export const badgeConfig: Record<BadgeTypeValue, {
   label: string;
@@ -138,42 +140,42 @@ export const badgeConfig: Record<BadgeTypeValue, {
 }> = {
   eco_starter: {
     label: 'Eco Starter',
-    icon: BadgeIcons.seedling,
+    icon: Leaf,
     description: 'Awarded for joining the PipaPal platform',
     bgColor: 'bg-green-100',
     textColor: 'text-primary'
   },
   water_saver: {
     label: 'Water Saver',
-    icon: BadgeIcons.saver,
+    icon: Zap,
     description: 'Awarded for saving more than 500 liters of water',
     bgColor: 'bg-blue-100',
     textColor: 'text-blue-600'
   },
   energy_pro: {
     label: 'Energy Pro',
-    icon: BadgeIcons.saver,
+    icon: Zap,
     description: 'Awarded for conserving more than 200 kWh of energy',
     bgColor: 'bg-yellow-100',
     textColor: 'text-yellow-600'
   },
   recycling_champion: {
     label: 'Recycling Champion',
-    icon: BadgeIcons.recycler,
+    icon: Recycle,
     description: 'Awarded for recycling more than 100kg of waste',
     bgColor: 'bg-green-100',
     textColor: 'text-green-700'
   },
   zero_waste_hero: {
     label: 'Zero Waste Hero',
-    icon: BadgeIcons.hero,
+    icon: Heart,
     description: 'Awarded for completing 20 waste collections',
     bgColor: 'bg-purple-100',
     textColor: 'text-purple-600'
   },
   community_leader: {
     label: 'Community Leader',
-    icon: BadgeIcons.champion,
+    icon: Medal,
     description: 'Awarded for inviting 5 friends to join PipaPal',
     bgColor: 'bg-indigo-100',
     textColor: 'text-indigo-600'

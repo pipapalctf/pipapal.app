@@ -1,17 +1,15 @@
 import React from "react";
-import { Award, Medal, Leaf, Heart, Star, Zap } from "lucide-react";
+import { Award, Medal, Leaf, Heart, Star, Zap, Trash2 } from "lucide-react";
 
+// Custom recycle icon using trash2 as base
 export const BadgeIcons = {
   seedling: Leaf,
-  recycler: Recycle,
   saver: Zap,
   environmentalist: Star,
   champion: Medal,
-  hero: Heart
+  hero: Heart,
+  recycler: Recycle,
 };
-
-// Import the base recycle icon to implement our custom recycler icon
-import { Trash2 } from "lucide-react";
 
 export function Recycle(props: React.ComponentProps<typeof Trash2>) {
   return (
