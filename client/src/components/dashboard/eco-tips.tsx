@@ -250,8 +250,8 @@ export default function EcoTips() {
                       <div className="flex items-center">
                         <IconBadge 
                           icon={category.icon} 
-                          size="xs" 
-                          className="mr-2"
+                          size="sm" 
+                          className="mr-2 h-5 w-5"
                           bgColor={
                             category.value === 'water' ? 'bg-blue-100' : 
                             category.value === 'energy' ? 'bg-yellow-100' : 

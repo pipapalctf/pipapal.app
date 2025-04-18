@@ -82,8 +82,12 @@ export default function HomePage() {
             
             <StatCard
               title="Recycling Rate"
-              value="74%"
-              subtitle={"+5% from average"}
+              value={
+                impact?.wasteAmount && collections?.length
+                  ? `${Math.round((impact.wasteAmount / (collections.length * 10)) * 100)}%`
+                  : "0%"
+              }
+              subtitle="Based on total collections"
               icon="chart-line"
               gradient="bg-gradient-to-br from-blue-400 to-blue-600"
             />
