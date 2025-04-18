@@ -1,0 +1,44 @@
+import { Switch, Route } from "wouter";
+import { queryClient } from "./lib/queryClient";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { Toaster } from "@/components/ui/toaster";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import NotFound from "@/pages/not-found";
+import HomePage from "@/pages/home-page";
+import AuthPage from "@/pages/auth-page";
+import SchedulePickupPage from "@/pages/schedule-pickup-page";
+import EcoTipsPage from "@/pages/eco-tips-page";
+import ImpactPage from "@/pages/impact-page";
+import { AuthProvider } from "@/hooks/use-auth";
+import { ProtectedRoute } from "@/lib/protected-route";
+import { ThemeProvider } from "next-themes";
+
+function Router() {
+  return (
+    <Switch>
+      <ProtectedRoute path="/" component={HomePage} />
+      <ProtectedRoute path="/schedule" component={SchedulePickupPage} />
+      <ProtectedRoute path="/ecotips" component={EcoTipsPage} />
+      <ProtectedRoute path="/impact" component={ImpactPage} />
+      <Route path="/auth" component={AuthPage} />
+      <Route component={NotFound} />
+    </Switch>
+  );
+}
+
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider attribute="class" defaultTheme="light">
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Router />
+          </TooltipProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
+}
+
+export default App;
