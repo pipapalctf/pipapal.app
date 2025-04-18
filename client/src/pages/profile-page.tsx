@@ -1,22 +1,28 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+
+// UI Components
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AlertCircle, Check, Loader2, UserIcon, KeyIcon, MapPinIcon, PhoneIcon, AtSign } from "lucide-react";
-import { useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+
+// Layout Components
 import Navbar from "@/components/shared/navbar";
 import Footer from "@/components/shared/footer";
 import MobileNavigation from "@/components/shared/mobile-navigation";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+
+// Icons
+import { Check, Loader2, UserIcon, KeyIcon, MapPinIcon, PhoneIcon, AtSign, AlertCircle } from "lucide-react";
 
 // Profile form schema
 const profileFormSchema = z.object({
@@ -273,7 +279,7 @@ export default function ProfilePage() {
               <CardContent>
                 <Form {...passwordForm}>
                   <form id="password-form" onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-6">
-                    <Alert variant="outline" className="bg-muted/50">
+                    <Alert className="bg-muted/50">
                       <AlertCircle className="h-4 w-4" />
                       <AlertTitle>Password requirements</AlertTitle>
                       <AlertDescription>

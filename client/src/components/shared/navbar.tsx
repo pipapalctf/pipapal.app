@@ -78,7 +78,7 @@ export default function Navbar() {
               <DropdownMenuItem>
                 <span className="capitalize">{user.role} Account</span>
               </DropdownMenuItem>
-              <DropdownMenuItem>Profile Settings</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => window.location.href = "/profile"}>Profile Settings</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout}>Log out</DropdownMenuItem>
             </DropdownMenuContent>

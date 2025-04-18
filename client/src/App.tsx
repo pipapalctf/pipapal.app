@@ -24,6 +24,7 @@ function Router() {
       <ProtectedRoute path="/ecotips" component={EcoTipsPage} />
       <ProtectedRoute path="/impact" component={ImpactPage} />
       <ProtectedRoute path="/collections/:id" component={CollectionDetailsPage} />
+      <ProtectedRoute path="/profile" component={ProfilePage} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
     </Switch>

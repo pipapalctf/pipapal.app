@@ -8,6 +8,7 @@ export default function MobileNavigation() {
     { href: "/schedule", label: "Schedule", icon: "calendar-alt", active: location === "/schedule" },
     { href: "/ecotips", label: "Tips", icon: "lightbulb", active: location === "/ecotips" },
     { href: "/impact", label: "Impact", icon: "chart-pie", active: location === "/impact" },
+    { href: "/profile", label: "Profile", icon: "user", active: location === "/profile" },
   ];
   
   return (
