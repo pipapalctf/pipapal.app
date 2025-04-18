@@ -178,17 +178,23 @@ export default function SchedulePickupForm() {
                 <SelectContent>
                   {Object.entries(WasteType).map(([key, value]) => {
                     const wasteConfig = wasteTypeConfig[value];
+                    const IconComponent = iconMap[wasteConfig.icon] || Trash2;
+                    
                     return (
                       <SelectItem key={value} value={value}>
-                        <div className="flex items-center">
-                          {value === 'general' ? <Trash2 className="mr-2 h-4 w-4 text-primary" /> :
-                           value === 'plastic' ? <SquareCode className="mr-2 h-4 w-4 text-blue-600" /> :
-                           value === 'paper' ? <Newspaper className="mr-2 h-4 w-4 text-yellow-600" /> :
-                           value === 'glass' ? <Wine className="mr-2 h-4 w-4 text-blue-600" /> :
-                           value === 'metal' ? <Utensils className="mr-2 h-4 w-4 text-gray-600" /> :
-                           value === 'organic' ? <Recycle className="mr-2 h-4 w-4 text-green-600" /> :
-                           <Trash2 className="mr-2 h-4 w-4 text-primary" />}
-                          {wasteConfig.label}
+                        <div className="flex items-center justify-between w-full">
+                          <div className="flex items-center">
+                            <IconComponent className="mr-2 h-4 w-4" 
+                              style={{ color: wasteConfig.textColor.replace('text-', '').includes('-') 
+                                ? `var(--${wasteConfig.textColor.replace('text-', '')})` 
+                                : `var(--${wasteConfig.textColor.replace('text-', '')}-500)` 
+                              }} 
+                            />
+                            {wasteConfig.label}
+                          </div>
+                          <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                            +{wasteConfig.points} pts
+                          </span>
                         </div>
                       </SelectItem>
                     );

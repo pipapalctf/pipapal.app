@@ -32,7 +32,8 @@ const iconMap: Record<string, React.ComponentType<LucideProps>> = {
   apple: Apple,
   flask: FlaskConical,
   package: Package,
-  settings: Settings
+  settings: Settings,
+  car: Car
 };
 
 type IconBadgeProps = {
