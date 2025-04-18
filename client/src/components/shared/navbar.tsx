@@ -111,9 +111,14 @@ export default function Navbar() {
                 {link.label}
               </Link>
             ))}
-            <Button variant="outline" className="mt-2" onClick={handleLogout}>
-              Log out
-            </Button>
+            <div className="flex items-center justify-between mt-2 border-t border-gray-100 pt-2">
+              <div className="py-2">
+                <NotificationBell />
+              </div>
+              <Button variant="outline" onClick={handleLogout}>
+                Log out
+              </Button>
+            </div>
           </div>
         </div>
       )}

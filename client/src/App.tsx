@@ -12,6 +12,7 @@ import ImpactPage from "@/pages/impact-page";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 import { ThemeProvider } from "next-themes";
+import { NotificationsProvider } from "@/hooks/notifications-provider";
 
 function Router() {
   return (
@@ -31,10 +32,12 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="light">
         <AuthProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Router />
-          </TooltipProvider>
+          <NotificationsProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Router />
+            </TooltipProvider>
+          </NotificationsProvider>
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
