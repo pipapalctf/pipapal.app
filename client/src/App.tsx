@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import HomePage from "@/pages/home-page";
 import AuthPage from "@/pages/auth-page";
+import LandingPage from "@/pages/landing-page";
 import SchedulePickupPage from "@/pages/schedule-pickup-page";
 import EcoTipsPage from "@/pages/eco-tips-page";
 import ImpactPage from "@/pages/impact-page";
@@ -19,7 +20,8 @@ import { NotificationsProvider } from "@/hooks/notifications-provider";
 function Router() {
   return (
     <Switch>
-      <ProtectedRoute path="/" component={HomePage} />
+      <Route path="/" component={LandingPage} />
+      <ProtectedRoute path="/dashboard" component={HomePage} />
       <ProtectedRoute path="/schedule" component={SchedulePickupPage} />
       <ProtectedRoute path="/ecotips" component={EcoTipsPage} />
       <ProtectedRoute path="/impact" component={ImpactPage} />
