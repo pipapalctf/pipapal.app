@@ -14,6 +14,7 @@ import EcoTips from "@/components/dashboard/eco-tips";
 import RecentActivity from "@/components/dashboard/recent-activity";
 import { useQuery } from "@tanstack/react-query";
 import { TotalImpact } from "@/lib/types";
+import { ChevronRight, CalendarClock } from "lucide-react";
 
 export default function HomePage() {
   const { user } = useAuth();
@@ -48,14 +49,15 @@ export default function HomePage() {
             <div className="mt-4 md:mt-0">
               <Link href="/schedule">
                 <Button>
-                  <i className="fas fa-calendar-plus mr-2"></i>Schedule Pickup
+                  <CalendarClock className="mr-2 h-4 w-4" />
+                  Schedule Pickup
                 </Button>
               </Link>
             </div>
           </div>
 
           {/* Stats Overview */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
             <StatCard
               title="Total Collections"
               value={collections?.length || 0}
@@ -79,50 +81,16 @@ export default function HomePage() {
               icon="leaf"
               gradient="bg-gradient-to-br from-amber-500 to-amber-700"
             />
-            
-            <StatCard
-              title="Recycling Rate"
-              value={
-                impact?.wasteAmount && collections?.length
-                  ? `${Math.round((impact.wasteAmount / (collections.length * 10)) * 100)}%`
-                  : "0%"
-              }
-              subtitle="Based on total collections"
-              icon="chart-line"
-              gradient="bg-gradient-to-br from-blue-500 to-blue-700"
-            />
-            
-            <StatCard
-              title="Water Saved"
-              value={`${formatNumber(impact?.waterSaved || 0)} L`}
-              subtitle="Through waste recycling"
-              icon="droplet"
-              gradient="bg-gradient-to-br from-cyan-500 to-cyan-700"
-            />
-            
-            <StatCard
-              title="Energy Conserved"
-              value={`${formatNumber(impact?.energyConserved || 0)} kWh`}
-              subtitle="From waste processing"
-              icon="energy"
-              gradient="bg-gradient-to-br from-orange-500 to-orange-700"
-            />
-            
-            <StatCard
-              title="Badge Progress"
-              value="2/6"
-              subtitle="Achievements earned"
-              icon="gallery"
-              gradient="bg-gradient-to-br from-purple-500 to-purple-700"
-            />
-            
-            <StatCard
-              title="Your Rank"
-              value="Eco Starter"
-              subtitle="Keep going for 'Eco Master'"
-              icon="area-chart"
-              gradient="bg-gradient-to-br from-rose-500 to-rose-700"
-            />
+          </div>
+          
+          {/* Link to full impact page */}
+          <div className="flex justify-end mb-8">
+            <Link href="/impact">
+              <Button variant="outline" size="sm" className="text-sm">
+                View detailed impact metrics
+                <ChevronRight className="ml-1.5 h-4 w-4" />
+              </Button>
+            </Link>
           </div>
 
           {/* Main Content Area */}
