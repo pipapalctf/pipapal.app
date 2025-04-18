@@ -31,6 +31,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(collections);
   });
   
+  app.get("/api/collections/assigned", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    // Check if user is a collector
+    if (req.user.role !== 'collector') {
+      return res.status(403).json({ message: "Only collectors can access assigned collections" });
+    }
+    
+    // In a real app, this would filter by collectorId = req.user.id
+    // For demo purposes, we'll return all collections to simulate assignments
+    const collections = await storage.getCollectionsByUser(req.user.id);
+    res.json(collections);
+  });
+  
   app.get("/api/collections/:id", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
