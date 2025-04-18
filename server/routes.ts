@@ -48,15 +48,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
     try {
+      console.log("Received collection data:", JSON.stringify(req.body));
+      
       const collectionData = insertCollectionSchema.parse({
         ...req.body,
         userId: req.user.id
       });
       
+      console.log("Parsed collection data:", JSON.stringify(collectionData));
+      
       const collection = await storage.createCollection(collectionData);
       res.status(201).json(collection);
     } catch (error) {
+      console.error("Collection creation error:", error);
       if (error instanceof z.ZodError) {
+        console.error("Zod validation errors:", JSON.stringify(error.format()));
         return res.status(400).json({ errors: error.format() });
       }
       res.status(500).send("Failed to create collection");
