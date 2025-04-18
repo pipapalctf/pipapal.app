@@ -38,8 +38,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const collection = await storage.getCollection(id);
     if (!collection) return res.status(404).send("Collection not found");
     
-    // Verify user owns this collection
-    if (collection.userId !== req.user.id) return res.sendStatus(403);
+    // Verify user owns this collection or is a collector
+    if (collection.userId !== req.user.id && req.user.role !== 'collector') {
+      return res.sendStatus(403);
+    }
     
     res.json(collection);
   });

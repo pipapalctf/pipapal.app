@@ -28,13 +28,14 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { format } from "date-fns";
 import { CalendarIcon, Loader2, Trash2, SquareCode, Newspaper, Wine, Utensils, Recycle, BadgeCheck } from "lucide-react";
-import { WasteType } from "@shared/schema";
+import { WasteType, Collection } from "@shared/schema";
 import { wasteTypeConfig } from "@/lib/types";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
+import { useState, useEffect } from "react";
 
 const formSchema = z.object({
   wasteType: z.string({
@@ -52,7 +53,15 @@ type FormValues = z.infer<typeof formSchema>;
 export default function SchedulePickupForm() {
   const { toast } = useToast();
   const { user } = useAuth();
-  const [_, navigate] = useLocation();
+  const [location, navigate] = useLocation();
+  
+  // Get collection ID from URL if we're rescheduling
+  const editId = location.includes('?edit=') ? 
+    parseInt(location.split('?edit=')[1]) : 
+    null;
+  
+  // Form states
+  const [isRescheduling, setIsRescheduling] = useState<boolean>(false);
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -62,6 +71,26 @@ export default function SchedulePickupForm() {
     },
   });
   
+  // Fetch collection data if in edit mode
+  const { data: editCollection, isLoading: isLoadingCollection } = useQuery<Collection>({
+    queryKey: ['/api/collections', editId],
+    enabled: !!editId,
+  });
+  
+  // Update form when collection data is loaded
+  useEffect(() => {
+    if (editCollection) {
+      setIsRescheduling(true);
+      form.reset({
+        wasteType: editCollection.wasteType,
+        scheduledDate: new Date(editCollection.scheduledDate),
+        address: editCollection.address,
+        notes: editCollection.notes || "",
+      });
+    }
+  }, [editCollection, form]);
+  
+  // Create new collection
   const schedulePickupMutation = useMutation({
     mutationFn: async (values: FormValues) => {
       // Ensure the date is passed as a string in ISO format
@@ -91,8 +120,44 @@ export default function SchedulePickupForm() {
     }
   });
   
+  // Update existing collection
+  const reschedulePickupMutation = useMutation({
+    mutationFn: async (values: FormValues & { id: number }) => {
+      const { id, ...formValues } = values;
+      
+      // Ensure the date is passed as a string in ISO format
+      const formattedValues = {
+        ...formValues,
+        scheduledDate: values.scheduledDate.toISOString(),
+      };
+      
+      const res = await apiRequest("PATCH", `/api/collections/${id}`, formattedValues);
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Pickup rescheduled",
+        description: "Your waste collection has been rescheduled successfully"
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/collections"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/collections/upcoming"] });
+      navigate("/");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to reschedule pickup",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  });
+  
   function onSubmit(values: FormValues) {
-    schedulePickupMutation.mutate(values);
+    if (isRescheduling && editCollection) {
+      reschedulePickupMutation.mutate({ ...values, id: editCollection.id });
+    } else {
+      schedulePickupMutation.mutate(values);
+    }
   }
   
   return (
@@ -263,14 +328,14 @@ export default function SchedulePickupForm() {
         <Button 
           type="submit" 
           className="w-full"
-          disabled={schedulePickupMutation.isPending}
+          disabled={schedulePickupMutation.isPending || reschedulePickupMutation.isPending || isLoadingCollection}
         >
-          {schedulePickupMutation.isPending ? (
+          {schedulePickupMutation.isPending || reschedulePickupMutation.isPending ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (
             <BadgeCheck className="mr-2 h-4 w-4" />
           )}
-          Schedule Pickup
+          {isRescheduling ? 'Reschedule Pickup' : 'Schedule Pickup'}
         </Button>
       </form>
     </Form>
