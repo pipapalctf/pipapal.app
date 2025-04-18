@@ -71,9 +71,12 @@ export default function ProfileBadges() {
               <div className="flex items-center mt-1">
                 <div className="text-2xl font-bold text-primary">{user.sustainabilityScore || 0}</div>
                 {user.sustainabilityScore > 0 && (
-                  <div className="ml-2 px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">+12</div>
+                  <div className="ml-2 px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Points</div>
                 )}
               </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Earn points by scheduling pickups and recycling waste
+              </p>
             </div>
             <Button variant="ghost" size="sm" className="text-primary">
               <ChevronRight className="h-5 w-5" />
