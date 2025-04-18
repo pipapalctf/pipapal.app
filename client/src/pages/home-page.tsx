@@ -61,23 +61,23 @@ export default function HomePage() {
               value={collections?.length || 0}
               subtitle={"+2 from last month"}
               icon="recycle"
-              gradient="bg-gradient-to-br from-primary-light to-primary"
+              gradient="bg-gradient-to-br from-green-500 to-green-700"
             />
             
             <StatCard
               title="Waste Diverted"
-              value={`${formatNumber(impact?.wasteAmount)} kg`}
+              value={`${formatNumber(impact?.wasteAmount || 0)} kg`}
               subtitle={"+18 kg this month"}
               icon="dumpster"
-              gradient="bg-gradient-to-br from-secondary-light to-secondary"
+              gradient="bg-gradient-to-br from-indigo-500 to-indigo-700"
             />
             
             <StatCard
               title="CO₂ Reduced"
-              value={`${formatNumber(impact?.co2Reduced)} kg`}
-              subtitle={`Equivalent to ${formatNumber(impact?.treesEquivalent)} trees`}
+              value={`${formatNumber(impact?.co2Reduced || 0)} kg`}
+              subtitle={`Equivalent to ${formatNumber(impact?.treesEquivalent || 0)} trees`}
               icon="leaf"
-              gradient="bg-gradient-to-br from-yellow-400 to-accent"
+              gradient="bg-gradient-to-br from-amber-500 to-amber-700"
             />
             
             <StatCard
@@ -89,7 +89,39 @@ export default function HomePage() {
               }
               subtitle="Based on total collections"
               icon="chart-line"
-              gradient="bg-gradient-to-br from-blue-400 to-blue-600"
+              gradient="bg-gradient-to-br from-blue-500 to-blue-700"
+            />
+            
+            <StatCard
+              title="Water Saved"
+              value={`${formatNumber(impact?.waterSaved || 0)} L`}
+              subtitle="Through waste recycling"
+              icon="droplet"
+              gradient="bg-gradient-to-br from-cyan-500 to-cyan-700"
+            />
+            
+            <StatCard
+              title="Energy Conserved"
+              value={`${formatNumber(impact?.energyConserved || 0)} kWh`}
+              subtitle="From waste processing"
+              icon="energy"
+              gradient="bg-gradient-to-br from-orange-500 to-orange-700"
+            />
+            
+            <StatCard
+              title="Badge Progress"
+              value="2/6"
+              subtitle="Achievements earned"
+              icon="gallery"
+              gradient="bg-gradient-to-br from-purple-500 to-purple-700"
+            />
+            
+            <StatCard
+              title="Your Rank"
+              value="Eco Starter"
+              subtitle="Keep going for 'Eco Master'"
+              icon="area-chart"
+              gradient="bg-gradient-to-br from-rose-500 to-rose-700"
             />
           </div>
 

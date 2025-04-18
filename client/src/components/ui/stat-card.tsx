@@ -11,6 +11,8 @@ import {
   Zap,
   Wine,
   ScrollText,
+  AreaChart,
+  GalleryVerticalEnd,
   LucideProps
 } from "lucide-react";
 
@@ -21,10 +23,12 @@ const iconMap: Record<string, React.ComponentType<LucideProps>> = {
   leaf: Leaf,
   "chart-line": LineChart,
   "chart-bar": BarChart,
+  "area-chart": AreaChart,
   droplet: Droplet,
   energy: Zap,
   "wine-glass": Wine,
-  receipt: ScrollText
+  receipt: ScrollText,
+  gallery: GalleryVerticalEnd
 };
 
 interface StatCardProps {
