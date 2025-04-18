@@ -9,6 +9,7 @@ import AuthPage from "@/pages/auth-page";
 import SchedulePickupPage from "@/pages/schedule-pickup-page";
 import EcoTipsPage from "@/pages/eco-tips-page";
 import ImpactPage from "@/pages/impact-page";
+import CollectionDetailsPage from "@/pages/collection-details-page";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 import { ThemeProvider } from "next-themes";
@@ -21,6 +22,7 @@ function Router() {
       <ProtectedRoute path="/schedule" component={SchedulePickupPage} />
       <ProtectedRoute path="/ecotips" component={EcoTipsPage} />
       <ProtectedRoute path="/impact" component={ImpactPage} />
+      <ProtectedRoute path="/collections/:id" component={CollectionDetailsPage} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
     </Switch>

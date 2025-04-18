@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams, useLocation } from "wouter";
-import { Collection } from "@shared/schema";
+import { Collection, WasteType, CollectionStatus, WasteTypeValue, CollectionStatusType } from "@shared/schema";
 import { format } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { wasteTypeConfig, collectionStatusConfig } from "@/lib/types";
@@ -64,8 +64,8 @@ export default function CollectionDetailsPage() {
     );
   }
   
-  const wasteConfig = wasteTypeConfig[collection.wasteType] || wasteTypeConfig.general;
-  const statusConfig = collectionStatusConfig[collection.status];
+  const wasteConfig = wasteTypeConfig[collection.wasteType as WasteTypeValue] || wasteTypeConfig.general;
+  const statusConfig = collectionStatusConfig[collection.status as CollectionStatusType];
   const formattedDate = format(new Date(collection.scheduledDate), "EEEE, MMMM d, yyyy");
   const formattedTime = format(new Date(collection.scheduledDate), "h:mm a");
 
