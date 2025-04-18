@@ -21,7 +21,7 @@ export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const navLinks = [
-    { href: "/", label: "Dashboard", active: location === "/" },
+    { href: "/dashboard", label: "Dashboard", active: location === "/dashboard" },
     { href: "/schedule", label: "Schedule Collection", active: location === "/schedule" },
     { href: "/ecotips", label: "EcoTips", active: location === "/ecotips" },
     { href: "/impact", label: "Impact", active: location === "/impact" },

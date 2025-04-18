@@ -4,7 +4,7 @@ export default function MobileNavigation() {
   const [location] = useLocation();
   
   const navLinks = [
-    { href: "/", label: "Home", icon: "home", active: location === "/" },
+    { href: "/dashboard", label: "Home", icon: "home", active: location === "/dashboard" },
     { href: "/schedule", label: "Schedule", icon: "calendar-alt", active: location === "/schedule" },
     { href: "/ecotips", label: "Tips", icon: "lightbulb", active: location === "/ecotips" },
     { href: "/impact", label: "Impact", icon: "chart-pie", active: location === "/impact" },
