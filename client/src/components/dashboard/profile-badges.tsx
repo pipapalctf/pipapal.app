@@ -70,7 +70,7 @@ export default function ProfileBadges() {
               <h4 className="font-medium text-secondary">Sustainability Score</h4>
               <div className="flex items-center mt-1">
                 <div className="text-2xl font-bold text-primary">{user.sustainabilityScore || 0}</div>
-                {user.sustainabilityScore > 0 && (
+                {(user.sustainabilityScore || 0) > 0 && (
                   <div className="ml-2 px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Points</div>
                 )}
               </div>
