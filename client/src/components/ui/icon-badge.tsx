@@ -1,9 +1,42 @@
 import React from "react";
 import { cn } from "@/lib/utils";
-import { LucideIcon } from "lucide-react";
+import { 
+  Check, Award, Droplet, Heart, Leaf, Medal, Recycle, Zap, 
+  LifeBuoy, Star, ShieldCheck, LucideProps
+} from "lucide-react";
+
+// Import additional icons that we need
+import { 
+  Trash2, Newspaper, Wine, ShoppingBag, Cpu, Apple, 
+  FlaskConical, Package, File, Settings, Car
+} from "lucide-react";
+
+// Map of string icon names to Lucide components
+const iconMap: Record<string, React.ComponentType<LucideProps>> = {
+  award: Award,
+  check: Check,
+  droplet: Droplet,
+  heart: Heart,
+  leaf: Leaf,
+  medal: Medal,
+  recycle: Recycle,
+  zap: Zap,
+  shield: ShieldCheck,
+  star: Star,
+  lifebuoy: LifeBuoy,
+  trash: Trash2,
+  file: File,
+  "wine-glass": Wine,
+  "shopping-bag": ShoppingBag,
+  cpu: Cpu,
+  apple: Apple,
+  flask: FlaskConical,
+  package: Package,
+  settings: Settings
+};
 
 type IconBadgeProps = {
-  icon: React.ElementType; // Changed to React.ElementType to support Lucide icons
+  icon: string; // Icon name that corresponds to a Lucide icon
   bgColor: string;
   textColor: string;
   size?: "sm" | "md" | "lg";
@@ -11,7 +44,7 @@ type IconBadgeProps = {
 };
 
 export function IconBadge({ 
-  icon: Icon, 
+  icon, 
   bgColor, 
   textColor, 
   size = "md", 
@@ -29,6 +62,9 @@ export function IconBadge({
     lg: 24,
   };
   
+  // Use a fallback icon if the name doesn't exist in our map
+  const IconComponent = iconMap[icon] || Award;
+  
   return (
     <div 
       className={cn(
@@ -38,7 +74,7 @@ export function IconBadge({
         className
       )}
     >
-      <Icon className={cn("text-current", textColor)} size={iconSizes[size]} />
+      <IconComponent className={cn("text-current", textColor)} size={iconSizes[size]} />
     </div>
   );
 }

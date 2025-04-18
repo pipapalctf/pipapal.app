@@ -10,85 +10,79 @@ import {
   EcoTip,
   Activity
 } from "@shared/schema";
-import { 
-  Trash2, 
-  Recycle, 
-  Newspaper, 
-  Wine, 
-  ShoppingBag, 
-  Cpu, 
-  Apple, 
-  FlaskConical, 
-  Package,
-  Award,
-  Medal,
-  Leaf,
-  Heart,
-  Star,
-  Zap
-} from "lucide-react";
-import type { ElementType } from "react";
+// No longer need imports since we're using string icons
+
 
 // Map of waste types to their display config
 export const wasteTypeConfig: Record<WasteTypeValue, { 
   label: string; 
-  icon: any; // Using any temporarily to resolve type issues with Lucide icons
+  icon: string;
   bgColor: string;
   textColor: string;
+  points: number; // Points awarded for this waste type
 }> = {
   general: { 
     label: 'General Waste', 
-    icon: Trash2,
+    icon: 'trash',
     bgColor: 'bg-primary/20',
-    textColor: 'text-primary'
+    textColor: 'text-primary',
+    points: 5
   },
   plastic: { 
     label: 'Plastic', 
-    icon: Recycle,
+    icon: 'recycle',
     bgColor: 'bg-blue-100',
-    textColor: 'text-blue-600'
+    textColor: 'text-blue-600',
+    points: 10
   },
   paper: { 
     label: 'Paper', 
-    icon: Newspaper,
+    icon: 'file',
     bgColor: 'bg-yellow-100',
-    textColor: 'text-yellow-600'
+    textColor: 'text-yellow-600',
+    points: 8
   },
   glass: { 
     label: 'Glass', 
-    icon: Wine,
+    icon: 'wine-glass',
     bgColor: 'bg-blue-100',
-    textColor: 'text-blue-600'
+    textColor: 'text-blue-600',
+    points: 10
   },
   metal: { 
     label: 'Metal', 
-    icon: ShoppingBag,
+    icon: 'shopping-bag',
     bgColor: 'bg-gray-200',
-    textColor: 'text-gray-600'
+    textColor: 'text-gray-600',
+    points: 12
   },
   electronic: { 
     label: 'Electronic', 
-    icon: Cpu,
+    icon: 'cpu',
     bgColor: 'bg-purple-100',
-    textColor: 'text-purple-600'
+    textColor: 'text-purple-600',
+    points: 15
   },
   organic: { 
     label: 'Organic', 
-    icon: Apple,
+    icon: 'apple',
     bgColor: 'bg-green-100',
-    textColor: 'text-green-600'
+    textColor: 'text-green-600',
+    points: 8
   },
   hazardous: { 
     label: 'Hazardous', 
-    icon: FlaskConical,
+    icon: 'flask',
     bgColor: 'bg-red-100',
-    textColor: 'text-red-600'
+    textColor: 'text-red-600',
+    points: 20
   },
   cardboard: { 
     label: 'Cardboard', 
-    icon: Package,
+    icon: 'package',
     bgColor: 'bg-orange-100',
-    textColor: 'text-orange-600'
+    textColor: 'text-orange-600',
+    points: 8
   }
 };
 
@@ -133,64 +127,64 @@ export const collectionStatusConfig: Record<CollectionStatusType, {
 // Map of badges to their display config
 export const badgeConfig: Record<BadgeTypeValue, {
   label: string;
-  icon: ElementType;
+  icon: string;
   description: string;
   bgColor: string;
   textColor: string;
 }> = {
   eco_starter: {
     label: 'Eco Starter',
-    icon: Leaf,
+    icon: 'leaf',
     description: 'Awarded for joining the PipaPal platform',
     bgColor: 'bg-green-100',
     textColor: 'text-primary'
   },
   water_saver: {
     label: 'Water Saver',
-    icon: Zap,
+    icon: 'droplet',
     description: 'Awarded for saving more than 500 liters of water',
     bgColor: 'bg-blue-100',
     textColor: 'text-blue-600'
   },
   energy_pro: {
     label: 'Energy Pro',
-    icon: Zap,
+    icon: 'zap',
     description: 'Awarded for conserving more than 200 kWh of energy',
     bgColor: 'bg-yellow-100',
     textColor: 'text-yellow-600'
   },
   recycling_champion: {
     label: 'Recycling Champion',
-    icon: Recycle,
+    icon: 'recycle',
     description: 'Awarded for recycling more than 100kg of waste',
     bgColor: 'bg-green-100',
     textColor: 'text-green-700'
   },
   zero_waste_hero: {
     label: 'Zero Waste Hero',
-    icon: Heart,
+    icon: 'heart',
     description: 'Awarded for completing 20 waste collections',
     bgColor: 'bg-purple-100',
     textColor: 'text-purple-600'
   },
   community_leader: {
     label: 'Community Leader',
-    icon: Medal,
+    icon: 'medal',
     description: 'Awarded for inviting 5 friends to join PipaPal',
     bgColor: 'bg-indigo-100',
     textColor: 'text-indigo-600'
   }
 };
 
-// Eco tip categories with icons
+// Eco tip categories with icons (using Lucide icon names)
 export const ecoTipCategories = [
-  { value: 'water', label: 'Water Conservation', icon: 'tint' },
-  { value: 'energy', label: 'Energy Saving', icon: 'bolt' },
-  { value: 'waste', label: 'Waste Reduction', icon: 'trash-alt' },
-  { value: 'plastic', label: 'Plastic-Free Living', icon: 'ban' },
-  { value: 'composting', label: 'Composting', icon: 'seedling' },
+  { value: 'water', label: 'Water Conservation', icon: 'droplet' },
+  { value: 'energy', label: 'Energy Saving', icon: 'zap' },
+  { value: 'waste', label: 'Waste Reduction', icon: 'trash' },
+  { value: 'plastic', label: 'Plastic-Free Living', icon: 'recycle' },
+  { value: 'composting', label: 'Composting', icon: 'leaf' },
   { value: 'recycling', label: 'Recycling', icon: 'recycle' },
-  { value: 'transportation', label: 'Green Transportation', icon: 'bicycle' }
+  { value: 'transportation', label: 'Green Transportation', icon: 'car' }
 ];
 
 export type TotalImpact = {
