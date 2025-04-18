@@ -134,7 +134,14 @@ export const insertUserSchema = createInsertSchema(users)
     phone: true,
   });
 
-export const insertCollectionSchema = createInsertSchema(collections)
+export const insertCollectionSchema = createInsertSchema(collections, {
+  scheduledDate: z.union([z.string(), z.date()]).transform(val => {
+    if (typeof val === 'string') {
+      return new Date(val);
+    }
+    return val;
+  }),
+})
   .pick({
     userId: true,
     wasteType: true,
@@ -143,16 +150,6 @@ export const insertCollectionSchema = createInsertSchema(collections)
     address: true,
     location: true,
     notes: true,
-  })
-  .transform((data) => {
-    // Convert scheduledDate from ISO string to Date if it's a string
-    if (typeof data.scheduledDate === 'string') {
-      return {
-        ...data,
-        scheduledDate: new Date(data.scheduledDate)
-      };
-    }
-    return data;
   });
 
 export const insertImpactSchema = createInsertSchema(impacts)
