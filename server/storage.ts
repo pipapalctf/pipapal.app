@@ -28,7 +28,6 @@ export interface IStorage {
   getCollection(id: number): Promise<Collection | undefined>;
   getCollectionsByUser(userId: number): Promise<Collection[]>;
   getUpcomingCollectionsByUser(userId: number): Promise<Collection[]>;
-  getAllCollections(): Promise<Collection[]>;
   createCollection(collection: InsertCollection): Promise<Collection>;
   updateCollection(id: number, updates: Partial<Collection>): Promise<Collection | undefined>;
   
@@ -179,11 +178,6 @@ export class MemStorage implements IStorage {
         collection.status !== CollectionStatus.CANCELLED
       )
       .sort((a, b) => new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime());
-  }
-  
-  async getAllCollections(): Promise<Collection[]> {
-    return Array.from(this.collections.values())
-      .sort((a, b) => new Date(b.scheduledDate).getTime() - new Date(a.scheduledDate).getTime());
   }
   
   async createCollection(insertCollection: InsertCollection): Promise<Collection> {
@@ -504,11 +498,6 @@ export class DatabaseStorage implements IStorage {
         ne(collections.status, CollectionStatus.CANCELLED)
       ))
       .orderBy(collections.scheduledDate);
-  }
-  
-  async getAllCollections(): Promise<Collection[]> {
-    return db.select().from(collections)
-      .orderBy(desc(collections.scheduledDate));
   }
   
   async createCollection(insertCollection: InsertCollection): Promise<Collection> {

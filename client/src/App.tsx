@@ -11,7 +11,6 @@ import EcoTipsPage from "@/pages/eco-tips-page";
 import ImpactPage from "@/pages/impact-page";
 import ProfilePage from "@/pages/profile-page";
 import CollectionDetailsPage from "@/pages/collection-details-page";
-import CollectorDashboardPage from "@/pages/collector-dashboard-page";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 import { ThemeProvider } from "next-themes";
@@ -26,7 +25,6 @@ function Router() {
       <ProtectedRoute path="/impact" component={ImpactPage} />
       <ProtectedRoute path="/collections/:id" component={CollectionDetailsPage} />
       <ProtectedRoute path="/profile" component={ProfilePage} />
-      <ProtectedRoute path="/collector-dashboard" component={CollectorDashboardPage} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
     </Switch>
