@@ -93,6 +93,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timestamp: new Date()
       });
       
+      // Create environmental impact data (per kg of waste)
+      const estimatedWeightKg = 10; // Default to 10kg for each collection
+      
+      // Calculate environmental impact based on waste type and weight
+      const impactFactors = {
+        waterSaved: 50, // liters of water saved per kg
+        co2Reduced: 2, // kg of CO2 reduced per kg of waste
+        treesEquivalent: 0.01, // trees saved per kg
+        energyConserved: 5 // kWh conserved per kg
+      };
+      
+      await storage.createImpact({
+        userId: req.user.id,
+        waterSaved: estimatedWeightKg * impactFactors.waterSaved,
+        co2Reduced: estimatedWeightKg * impactFactors.co2Reduced,
+        treesEquivalent: estimatedWeightKg * impactFactors.treesEquivalent,
+        energyConserved: estimatedWeightKg * impactFactors.energyConserved,
+        wasteAmount: estimatedWeightKg,
+        collectionId: collection.id
+      });
+      
       res.status(201).json({
         ...collection,
         pointsEarned: pointsToAward,
@@ -137,6 +158,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     const impact = await storage.getTotalImpactByUser(req.user.id);
     res.json(impact);
+  });
+  
+  // Monthly Collection and Impact Data
+  app.get("/api/impact/monthly", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      // Get all collections for this user
+      const collections = await storage.getCollectionsByUser(req.user.id);
+      
+      // Group by month
+      const monthlyData = new Map();
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      
+      collections.forEach(collection => {
+        const collectionDate = new Date(collection.scheduledDate);
+        const monthIndex = collectionDate.getMonth();
+        const monthName = months[monthIndex];
+        
+        if (!monthlyData.has(monthName)) {
+          monthlyData.set(monthName, {
+            name: monthName,
+            wasteCollected: 0,
+            co2Reduced: 0
+          });
+        }
+        
+        // Use estimated weight or default to 10kg
+        const wasteAmount = collection.estimatedWeight || 10;
+        
+        // Update monthly data
+        const monthData = monthlyData.get(monthName);
+        monthData.wasteCollected += wasteAmount;
+        monthData.co2Reduced += wasteAmount * 2; // Assuming 2kg CO2 reduction per kg of waste
+      });
+      
+      // Convert to array and sort by month
+      const result = Array.from(monthlyData.values());
+      
+      // Sort by month
+      result.sort((a, b) => {
+        return months.indexOf(a.name) - months.indexOf(b.name);
+      });
+      
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching monthly impact data:", error);
+      res.status(500).send("Failed to fetch monthly impact data");
+    }
+  });
+  
+  // Waste Type Distribution
+  app.get("/api/impact/waste-types", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      // Get all collections for this user
+      const collections = await storage.getCollectionsByUser(req.user.id);
+      
+      // Group by waste type
+      const wasteTypeData = new Map();
+      
+      collections.forEach(collection => {
+        const wasteType = collection.wasteType || 'general';
+        const wasteAmount = collection.estimatedWeight || 10;
+        
+        if (!wasteTypeData.has(wasteType)) {
+          wasteTypeData.set(wasteType, {
+            name: wasteType.charAt(0).toUpperCase() + wasteType.slice(1),
+            value: 0
+          });
+        }
+        
+        // Update waste type data
+        const typeData = wasteTypeData.get(wasteType);
+        typeData.value += wasteAmount;
+      });
+      
+      // Convert to array
+      const result = Array.from(wasteTypeData.values());
+      
+      // If no collections, provide some default data
+      if (result.length === 0) {
+        result.push({ name: 'No collections yet', value: 100 });
+      }
+      
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching waste type data:", error);
+      res.status(500).send("Failed to fetch waste type data");
+    }
   });
   
   // User Badges
