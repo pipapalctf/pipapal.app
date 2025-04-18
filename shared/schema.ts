@@ -119,6 +119,8 @@ export const activities = pgTable("activities", {
   userId: integer("user_id").notNull(),
   activityType: text("activity_type").notNull(),
   description: text("description").notNull(),
+  points: integer("points"),
+  timestamp: timestamp("timestamp"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -182,6 +184,8 @@ export const insertActivitySchema = createInsertSchema(activities)
     userId: true,
     activityType: true,
     description: true,
+    points: true,
+    timestamp: true,
   });
 
 // Relations

@@ -64,7 +64,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const collection = await storage.createCollection(collectionData);
       
       // Award points based on the waste type (different points for different types)
-      const pointsMap = {
+      const pointsMap: Record<string, number> = {
         'general': 5,
         'plastic': 10,
         'paper': 8,
@@ -77,7 +77,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       // Award default points if waste type is not in the map
-      const pointsToAward = pointsMap[collectionData.wasteType] || 5;
+      const pointsToAward = pointsMap[collectionData.wasteType as string] || 5;
       
       // Update user's sustainability score
       const updatedUser = await storage.updateUser(req.user.id, {
