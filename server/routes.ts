@@ -185,8 +185,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
         
-        // Use estimated weight or default to 10kg
-        const wasteAmount = collection.estimatedWeight || 10;
+        // Use waste amount or default to 10kg
+        const wasteAmount = collection.wasteAmount || 10;
         
         // Update monthly data
         const monthData = monthlyData.get(monthName);
@@ -222,7 +222,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       collections.forEach(collection => {
         const wasteType = collection.wasteType || 'general';
-        const wasteAmount = collection.estimatedWeight || 10;
+        const wasteAmount = collection.wasteAmount || 10;
         
         if (!wasteTypeData.has(wasteType)) {
           wasteTypeData.set(wasteType, {

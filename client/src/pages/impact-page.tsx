@@ -20,34 +20,23 @@ import Navbar from "@/components/shared/navbar";
 import Footer from "@/components/shared/footer";
 import MobileNavigation from "@/components/shared/mobile-navigation";
 
-// Generate mock data for charts
-const generateMonthlyData = () => {
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const currentMonth = new Date().getMonth();
-  
-  return months.slice(0, currentMonth + 1).map((month, index) => ({
-    name: month,
-    wasteCollected: Math.floor(Math.random() * 30) + 5,
-    co2Reduced: Math.floor(Math.random() * 20) + 2,
-  }));
-};
-
-const wasteTypeData = [
-  { name: 'General', value: 35 },
-  { name: 'Plastic', value: 25 },
-  { name: 'Paper', value: 20 },
-  { name: 'Glass', value: 10 },
-  { name: 'Organic', value: 10 },
-];
-
-const COLORS = ['#34495E', '#2ECC71', '#3498DB', '#F1C40F', '#E74C3C'];
+const COLORS = ['#34495E', '#2ECC71', '#3498DB', '#F1C40F', '#E74C3C', '#9B59B6', '#1ABC9C', '#D35400', '#7F8C8D'];
 
 export default function ImpactPage() {
-  const { data: impact, isLoading } = useQuery<TotalImpact>({
+  const { data: impact, isLoading: impactLoading } = useQuery<TotalImpact>({
     queryKey: ["/api/impact"],
   });
   
-  const monthlyData = generateMonthlyData();
+  const { data: monthlyData, isLoading: monthlyLoading } = useQuery<{ name: string; wasteCollected: number; co2Reduced: number }[]>({
+    queryKey: ["/api/impact/monthly"],
+  });
+  
+  const { data: wasteTypeData, isLoading: wasteTypeLoading } = useQuery<{ name: string; value: number }[]>({
+    queryKey: ["/api/impact/waste-types"],
+  });
+  
+  // If any data is loading, show overall loading state
+  const isLoading = impactLoading || monthlyLoading || wasteTypeLoading;
   
   const formatNumber = (value?: number) => {
     if (value === undefined) return "0";
