@@ -102,8 +102,8 @@ export default function EnvironmentalImpact() {
             <div className="text-center">
               <Link href="/impact">
                 <Button variant="outline" className="bg-white">
-                  <i className="fas fa-chart-line mr-2"></i>
-                  View Detailed Impact Report
+                  <span className="mr-2">📊</span>
+                  View Detailed Impact Metrics
                 </Button>
               </Link>
             </div>

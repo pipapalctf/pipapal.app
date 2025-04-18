@@ -267,7 +267,7 @@ export default function ImpactPage() {
                           dataKey="value"
                           label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                         >
-                          {wasteTypeData.map((entry, index) => (
+                          {wasteTypeData?.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                           ))}
                         </Pie>
@@ -339,7 +339,7 @@ export default function ImpactPage() {
                     
                     <div className="p-4 bg-accent/10 rounded-lg text-center">
                       <p className="text-secondary font-medium flex items-center justify-center">
-                        <i className="fas fa-medal text-accent mr-2"></i>
+                        <span className="text-accent mr-2">🏆</span>
                         You're in the top 15% of environmentally conscious users in your area!
                       </p>
                     </div>
@@ -352,7 +352,7 @@ export default function ImpactPage() {
           <Card className="text-center py-12">
             <CardContent>
               <div className="mb-4 text-4xl text-gray-300">
-                <i className="fas fa-chart-line"></i>
+                📈
               </div>
               <h3 className="text-xl font-montserrat font-medium text-secondary mb-2">
                 No impact data yet

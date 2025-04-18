@@ -61,7 +61,7 @@ export default function HomePage() {
             <StatCard
               title="Total Collections"
               value={collections?.length || 0}
-              subtitle={"+2 from last month"}
+              subtitle={collections?.length > 0 ? "Keep up the good work!" : "Schedule your first collection"}
               icon="recycle"
               gradient="bg-gradient-to-br from-green-500 to-green-700"
             />
@@ -69,7 +69,7 @@ export default function HomePage() {
             <StatCard
               title="Waste Diverted"
               value={`${formatNumber(impact?.wasteAmount || 0)} kg`}
-              subtitle={"+18 kg this month"}
+              subtitle={`${impact?.wasteAmount ? "Reducing landfill waste" : "Start recycling today"}`}
               icon="dumpster"
               gradient="bg-gradient-to-br from-indigo-500 to-indigo-700"
             />
@@ -77,7 +77,7 @@ export default function HomePage() {
             <StatCard
               title="CO₂ Reduced"
               value={`${formatNumber(impact?.co2Reduced || 0)} kg`}
-              subtitle={`Equivalent to ${formatNumber(impact?.treesEquivalent || 0)} trees`}
+              subtitle={`${impact?.treesEquivalent ? `Equivalent to ${formatNumber(impact?.treesEquivalent)} trees` : "Help fight climate change"}`}
               icon="leaf"
               gradient="bg-gradient-to-br from-amber-500 to-amber-700"
             />
