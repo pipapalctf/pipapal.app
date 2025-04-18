@@ -147,7 +147,7 @@ export default function EcoTipsPage() {
                           className="w-full justify-start"
                           onClick={() => setSelectedCategory(category.value)}
                         >
-                          <i className={`fas fa-${category.icon} mr-2`}></i>
+                          <RefreshCw className="mr-2 h-4 w-4" />
                           {category.label}
                         </Button>
                       ))}
@@ -159,7 +159,7 @@ export default function EcoTipsPage() {
               <Card className="bg-primary/5 border-primary/20">
                 <CardHeader>
                   <CardTitle className="flex items-center text-primary">
-                    <i className="fas fa-lightbulb mr-2"></i>
+                    <RefreshCw className="h-4 w-4 mr-2" />
                     Generate Tips
                   </CardTitle>
                 </CardHeader>
@@ -180,7 +180,14 @@ export default function EcoTipsPage() {
                         {generateTipMutation.isPending && generateTipMutation.variables === category.value ? (
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         ) : (
-                          <i className={`fas fa-${category.icon} mr-2`}></i>
+                          category.value === 'recycling' ? <RefreshCw className="mr-2 h-4 w-4" /> :
+                          category.value === 'water' ? <Loader2 className="mr-2 h-4 w-4" /> :
+                          category.value === 'energy' ? <Loader2 className="mr-2 h-4 w-4" /> :
+                          category.value === 'waste' ? <Loader2 className="mr-2 h-4 w-4" /> :
+                          category.value === 'plastic' ? <Loader2 className="mr-2 h-4 w-4" /> :
+                          category.value === 'composting' ? <Loader2 className="mr-2 h-4 w-4" /> :
+                          category.value === 'transportation' ? <Loader2 className="mr-2 h-4 w-4" /> :
+                          <Loader2 className="mr-2 h-4 w-4" />
                         )}
                         Generate {category.label} Tip
                       </Button>
