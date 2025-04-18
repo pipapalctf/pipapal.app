@@ -86,10 +86,11 @@ export default function EcoTipsPage() {
     
     const matchesCategory = !selectedCategory || tip.category === selectedCategory;
     
+    const tipCreatedAt = tip.createdAt ? new Date(tip.createdAt) : new Date();
     const matchesTab = 
       currentTab === "all" || 
       (currentTab === "saved" && savedTips.includes(tip.id)) ||
-      (currentTab === "newest" && new Date(tip.createdAt).getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000);
+      (currentTab === "newest" && tipCreatedAt.getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000);
     
     return matchesSearch && matchesCategory && matchesTab;
   });
@@ -213,7 +214,8 @@ export default function EcoTipsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {filteredTips.map(tip => {
                     const categoryInfo = ecoTipCategories.find(cat => cat.value === tip.category);
-                    const isNewTip = new Date(tip.createdAt).getTime() > Date.now() - 24 * 60 * 60 * 1000;
+                    const createdAt = tip.createdAt ? new Date(tip.createdAt) : new Date();
+                    const isNewTip = createdAt.getTime() > Date.now() - 24 * 60 * 60 * 1000;
                     const isSaved = savedTips.includes(tip.id);
                     const isLiked = likedTips.includes(tip.id);
                     
@@ -268,7 +270,7 @@ export default function EcoTipsPage() {
                               <ThumbsDown className="h-4 w-4" />
                             </Button>
                             <span className="text-xs text-gray-500 ml-1">
-                              {new Date(tip.createdAt).toLocaleDateString()}
+                              {createdAt.toLocaleDateString()}
                             </span>
                           </div>
                           <Button 
