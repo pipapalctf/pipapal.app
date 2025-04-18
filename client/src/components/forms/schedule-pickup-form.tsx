@@ -27,7 +27,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { format } from "date-fns";
-import { CalendarIcon, Loader2 } from "lucide-react";
+import { CalendarIcon, Loader2, Trash2, SquareCode, Newspaper, Wine, Utensils, Recycle, BadgeCheck } from "lucide-react";
 import { WasteType } from "@shared/schema";
 import { wasteTypeConfig } from "@/lib/types";
 import { useMutation } from "@tanstack/react-query";
@@ -112,7 +112,13 @@ export default function SchedulePickupForm() {
                     return (
                       <SelectItem key={value} value={value}>
                         <div className="flex items-center">
-                          <i className={`fas fa-${wasteConfig.icon} mr-2 text-${key === 'GENERAL' ? 'primary' : 'secondary'}`}></i>
+                          {value === 'general' ? <Trash2 className="mr-2 h-4 w-4 text-primary" /> :
+                           value === 'plastic' ? <SquareCode className="mr-2 h-4 w-4 text-blue-600" /> :
+                           value === 'paper' ? <Newspaper className="mr-2 h-4 w-4 text-yellow-600" /> :
+                           value === 'glass' ? <Wine className="mr-2 h-4 w-4 text-blue-600" /> :
+                           value === 'metal' ? <Utensils className="mr-2 h-4 w-4 text-gray-600" /> :
+                           value === 'organic' ? <Recycle className="mr-2 h-4 w-4 text-green-600" /> :
+                           <Trash2 className="mr-2 h-4 w-4 text-primary" />}
                           {wasteConfig.label}
                         </div>
                       </SelectItem>
@@ -258,7 +264,7 @@ export default function SchedulePickupForm() {
           {schedulePickupMutation.isPending ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (
-            <i className="fas fa-calendar-check mr-2"></i>
+            <BadgeCheck className="mr-2 h-4 w-4" />
           )}
           Schedule Pickup
         </Button>
