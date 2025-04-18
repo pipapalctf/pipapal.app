@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || "dummy-key-for-development" });
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 type EcoTipResponse = {
   title: string;
@@ -15,14 +15,14 @@ export async function generateEcoTip(category: string): Promise<EcoTipResponse> 
       return getFallbackEcoTip(category);
     }
     
-    const prompt = `Generate a short, practical eco-friendly tip related to "${category}". The tip should be actionable advice for sustainable living.
+    const prompt = `Generate a short, practical eco-friendly tip related to "${category}". The tip should be actionable advice for sustainable living that users of the PipaPal waste management app can immediately implement.
     
     Format the response as JSON with these fields:
     - title: A short, catchy title for the tip (maximum 40 characters)
-    - content: The detailed tip with practical advice (maximum 150 characters)
-    - icon: A single Font Awesome icon name that represents this tip (e.g., 'recycle', 'leaf', 'tint', etc.)
+    - content: The detailed tip with practical advice (maximum 200 characters). Include specific steps or measurable impacts when possible.
+    - icon: A single Font Awesome icon name that represents this tip (e.g., 'recycle', 'leaf', 'tint', 'trash', 'seedling', etc.)
     
-    The tip should be factual and environmentally sound.`;
+    The tip should be factual, environmentally sound, and focused on reducing waste or improving recycling habits. Make it engaging and motivational for users.`;
 
     const response = await openai.chat.completions.create({
       // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
@@ -40,7 +40,8 @@ export async function generateEcoTip(category: string): Promise<EcoTipResponse> 
       response_format: { type: "json_object" },
     });
 
-    const result = JSON.parse(response.choices[0].message.content) as EcoTipResponse;
+    const content = response.choices[0].message.content || '{}';
+    const result = JSON.parse(content) as EcoTipResponse;
     return result;
   } catch (error) {
     console.error("Error generating EcoTip:", error);

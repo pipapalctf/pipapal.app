@@ -1,8 +1,10 @@
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { IconBadge } from "@/components/ui/icon-badge";
 import { Input } from "@/components/ui/input";
-import { Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Loader2, ThumbsUp, ThumbsDown, Share, Award, Bookmark, BookmarkCheck, RefreshCw } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { EcoTip } from "@shared/schema";
@@ -17,6 +19,9 @@ export default function EcoTipsPage() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [currentTab, setCurrentTab] = useState("all");
+  const [savedTips, setSavedTips] = useState<number[]>([]);
+  const [likedTips, setLikedTips] = useState<number[]>([]);
   
   const { data: ecoTips, isLoading } = useQuery<EcoTip[]>({
     queryKey: ["/api/ecotips"],
@@ -27,11 +32,11 @@ export default function EcoTipsPage() {
       const res = await apiRequest("POST", "/api/ecotips/generate", { category });
       return await res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/ecotips"] });
       toast({
         title: "New tip generated",
-        description: "A new eco tip has been added to your collection"
+        description: `'${data.title}' has been added to your collection`,
       });
     },
     onError: (error: Error) => {
@@ -47,7 +52,33 @@ export default function EcoTipsPage() {
     generateTipMutation.mutate(category);
   };
   
-  // Filter tips based on search term and category
+  const handleSaveTip = (tipId: number) => {
+    if (savedTips.includes(tipId)) {
+      setSavedTips(savedTips.filter(id => id !== tipId));
+      toast({
+        title: "Removed from saved",
+        description: "Tip removed from your saved collection"
+      });
+    } else {
+      setSavedTips([...savedTips, tipId]);
+      toast({
+        title: "Saved",
+        description: "Tip saved to your collection"
+      });
+    }
+  };
+  
+  const handleLikeTip = (tipId: number) => {
+    if (!likedTips.includes(tipId)) {
+      setLikedTips([...likedTips, tipId]);
+      toast({
+        title: "Thanks for the feedback!",
+        description: "We'll use this to improve future tips",
+      });
+    }
+  };
+  
+  // Filter tips based on search term, category, and current tab
   const filteredTips = ecoTips?.filter(tip => {
     const matchesSearch = !searchTerm || 
       tip.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -55,7 +86,12 @@ export default function EcoTipsPage() {
     
     const matchesCategory = !selectedCategory || tip.category === selectedCategory;
     
-    return matchesSearch && matchesCategory;
+    const matchesTab = 
+      currentTab === "all" || 
+      (currentTab === "saved" && savedTips.includes(tip.id)) ||
+      (currentTab === "newest" && new Date(tip.createdAt).getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000);
+    
+    return matchesSearch && matchesCategory && matchesTab;
   });
   
   return (
@@ -155,6 +191,20 @@ export default function EcoTipsPage() {
             
             {/* Main Content */}
             <div className="lg:col-span-3">
+              <Tabs defaultValue="all" value={currentTab} onValueChange={setCurrentTab} className="mb-6">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="all" className="flex items-center gap-2">
+                    <RefreshCw className="h-4 w-4" /> All Tips
+                  </TabsTrigger>
+                  <TabsTrigger value="newest" className="flex items-center gap-2">
+                    <Award className="h-4 w-4" /> Newest
+                  </TabsTrigger>
+                  <TabsTrigger value="saved" className="flex items-center gap-2">
+                    <BookmarkCheck className="h-4 w-4" /> Saved ({savedTips.length})
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+              
               {isLoading ? (
                 <div className="flex justify-center py-12">
                   <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -163,48 +213,74 @@ export default function EcoTipsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {filteredTips.map(tip => {
                     const categoryInfo = ecoTipCategories.find(cat => cat.value === tip.category);
+                    const isNewTip = new Date(tip.createdAt).getTime() > Date.now() - 24 * 60 * 60 * 1000;
+                    const isSaved = savedTips.includes(tip.id);
+                    const isLiked = likedTips.includes(tip.id);
                     
                     return (
-                      <Card key={tip.id} className="overflow-hidden">
-                        <div className={`bg-${tip.category === 'water' ? 'blue' : tip.category === 'energy' ? 'yellow' : 'primary'}-50 p-4 border-b`}>
+                      <Card key={tip.id} className="overflow-hidden flex flex-col h-full">
+                        <div className={`bg-primary-50 p-4 border-b relative`}>
                           <div className="flex items-center">
                             <IconBadge 
                               icon={tip.icon || categoryInfo?.icon || 'lightbulb'} 
-                              bgColor={
-                                tip.category === 'water' ? 'bg-blue-100' : 
-                                tip.category === 'energy' ? 'bg-yellow-100' : 
-                                'bg-green-100'
-                              }
-                              textColor={
-                                tip.category === 'water' ? 'text-blue-600' : 
-                                tip.category === 'energy' ? 'text-yellow-600' : 
-                                'text-green-600'
-                              }
+                              bgColor={'bg-primary-100'}
+                              textColor={'text-primary-600'}
                               className="mr-3"
                             />
-                            <div>
+                            <div className="flex-1">
                               <h3 className="font-montserrat font-semibold text-lg text-secondary">
                                 {tip.title}
                               </h3>
-                              <p className="text-xs text-gray-500 capitalize">
-                                {categoryInfo?.label || tip.category}
-                              </p>
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="capitalize text-xs">
+                                  {categoryInfo?.label || tip.category}
+                                </Badge>
+                                {isNewTip && (
+                                  <Badge variant="default" className="bg-blue-500 text-xs">
+                                    New
+                                  </Badge>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </div>
-                        <CardContent className="p-5">
+                        <CardContent className="p-5 flex-grow">
                           <p className="text-gray-700">{tip.content}</p>
-                          
-                          <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-100">
-                            <span className="text-xs text-gray-500">
+                        </CardContent>
+                        <CardFooter className="flex justify-between items-center p-4 pt-2 border-t border-gray-100">
+                          <div className="flex items-center gap-2">
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className={isLiked ? "text-green-500" : "text-gray-400"}
+                              onClick={() => handleLikeTip(tip.id)}
+                              disabled={isLiked}
+                            >
+                              <ThumbsUp className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="text-gray-400"
+                              onClick={() => handleLikeTip(tip.id)} // We're just tracking likes for now
+                              disabled={isLiked}
+                            >
+                              <ThumbsDown className="h-4 w-4" />
+                            </Button>
+                            <span className="text-xs text-gray-500 ml-1">
                               {new Date(tip.createdAt).toLocaleDateString()}
                             </span>
-                            <Button variant="ghost" size="sm" className="h-8 px-2 text-primary">
-                              <i className="fas fa-bookmark mr-2"></i>
-                              Save
-                            </Button>
                           </div>
-                        </CardContent>
+                          <Button 
+                            variant={isSaved ? "default" : "outline"} 
+                            size="sm" 
+                            className={`h-8 px-3 ${isSaved ? "bg-primary text-white" : "text-primary"}`}
+                            onClick={() => handleSaveTip(tip.id)}
+                          >
+                            {isSaved ? <BookmarkCheck className="h-4 w-4 mr-1" /> : <Bookmark className="h-4 w-4 mr-1" />}
+                            {isSaved ? "Saved" : "Save"}
+                          </Button>
+                        </CardFooter>
                       </Card>
                     );
                   })}
@@ -213,7 +289,7 @@ export default function EcoTipsPage() {
                 <Card className="text-center py-12">
                   <CardContent>
                     <div className="mb-4 text-4xl text-gray-300">
-                      <i className="fas fa-lightbulb"></i>
+                      <RefreshCw className="mx-auto h-12 w-12" />
                     </div>
                     <h3 className="text-xl font-montserrat font-medium text-secondary mb-2">
                       No eco tips found
@@ -225,14 +301,16 @@ export default function EcoTipsPage() {
                       onClick={() => {
                         setSearchTerm("");
                         setSelectedCategory(null);
+                        setCurrentTab("all");
                         handleGenerateTip("recycling");
                       }}
                       disabled={generateTipMutation.isPending}
+                      className="gap-2"
                     >
                       {generateTipMutation.isPending ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
-                        <i className="fas fa-plus mr-2"></i>
+                        <RefreshCw className="h-4 w-4" />
                       )}
                       Generate New Tip
                     </Button>
