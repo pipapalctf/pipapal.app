@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import logoImage from "@assets/pipapal-logo.png";
 
 interface LogoProps {
   size?: "sm" | "md" | "lg";
@@ -12,38 +13,19 @@ export default function Logo({
   className 
 }: LogoProps) {
   const sizeClasses = {
-    sm: "h-10",
-    md: "h-12",
-    lg: "h-16"
+    sm: "h-10 w-10",
+    md: "h-12 w-12",
+    lg: "h-16 w-16"
   };
   
-  const bgColorClass = variant === "white" ? "bg-white" : "bg-transparent";
+  // Apply filter for white variant
+  const filterClass = variant === "white" ? "brightness-0 invert" : "";
   
   return (
-    <svg 
-      viewBox="0 0 500 500" 
-      className={cn(sizeClasses[size], className)}
-      aria-label="PipaPal Logo"
-    >
-      <circle 
-        cx="250" 
-        cy="250" 
-        r="230" 
-        fill="none" 
-        stroke="#2ECC71" 
-        strokeWidth="40" 
-      />
-      
-      <circle cx="150" cy="250" r="40" fill="#2ECC71" />
-      <circle cx="350" cy="250" r="40" fill="#2ECC71" />
-      
-      <path 
-        d="M250,350 Q200,300 200,250 Q200,200 250,200 Q300,200 300,250" 
-        fill="none" 
-        stroke="#2ECC71" 
-        strokeWidth="40" 
-        strokeLinecap="round" 
-      />
-    </svg>
+    <img 
+      src={logoImage} 
+      alt="PipaPal Logo" 
+      className={cn(sizeClasses[size], filterClass, className)}
+    />
   );
 }
