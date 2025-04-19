@@ -174,14 +174,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // - Collectors can update status (MARK_JOB_COMPLETE permission)
       // - Owners can update other details (their own collections)
       if (isCollector && req.body.status) {
-        // The requirePermission middleware would have already checked this,
-        // but we'll keep this explicit check for clarity
-        if (req.user.role !== UserRole.COLLECTOR) {
-          return res.status(403).json({
-            error: 'Access denied',
-            message: 'You do not have permission to update collection status'
-          });
-        }
+        // No need for additional permission check here
+        // The collector role was already verified above
       } else if (!isOwner) {
         return res.status(403).json({
           error: 'Access denied',
