@@ -10,7 +10,8 @@ import {
   BarChart3,
   Recycle,
   Award,
-  Check
+  Check,
+  Gift
 } from "lucide-react";
 // Import directly using relative path to attached_assets
 import pipapalLogo from "../.././../attached_assets/pipapal-logo.png";
@@ -119,8 +120,8 @@ export default function LandingPage() {
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="bg-gray-50 rounded-xl p-6 transition-all hover:shadow-md">
-              <div className="w-12 h-12 bg-primary/20 rounded-lg flex items-center justify-center mb-4">
-                <CalendarClock className="h-6 w-6 text-primary" />
+              <div className="mb-6 flex justify-center">
+                <img src="/images/waste-schedule.svg" alt="Schedule Waste Pickup" className="h-48 w-auto" />
               </div>
               <h3 className="text-xl font-bold text-secondary mb-2">Schedule Pickups</h3>
               <p className="text-gray-600">
@@ -129,8 +130,8 @@ export default function LandingPage() {
             </div>
             
             <div className="bg-gray-50 rounded-xl p-6 transition-all hover:shadow-md">
-              <div className="w-12 h-12 bg-primary/20 rounded-lg flex items-center justify-center mb-4">
-                <Recycle className="h-6 w-6 text-primary" />
+              <div className="mb-6 flex justify-center">
+                <img src="/images/recycling-bins.svg" alt="Track Collections" className="h-48 w-auto" />
               </div>
               <h3 className="text-xl font-bold text-secondary mb-2">Track Collections</h3>
               <p className="text-gray-600">
@@ -139,8 +140,8 @@ export default function LandingPage() {
             </div>
             
             <div className="bg-gray-50 rounded-xl p-6 transition-all hover:shadow-md">
-              <div className="w-12 h-12 bg-primary/20 rounded-lg flex items-center justify-center mb-4">
-                <BarChart3 className="h-6 w-6 text-primary" />
+              <div className="mb-6 flex justify-center">
+                <img src="/images/eco-impact.svg" alt="Measure Impact" className="h-48 w-auto" />
               </div>
               <h3 className="text-xl font-bold text-secondary mb-2">Measure Impact</h3>
               <p className="text-gray-600">
@@ -163,76 +164,109 @@ export default function LandingPage() {
             </p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="flex items-start space-x-4">
-              <div className="w-10 h-10 bg-primary/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
-                <Leaf className="h-5 w-5 text-primary" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-12">
+            <div className="bg-white p-6 rounded-xl shadow-sm">
+              <div className="flex mb-4">
+                <div className="w-10 h-10 bg-primary/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-1 mr-3">
+                  <Leaf className="h-5 w-5 text-primary" />
+                </div>
+                <h3 className="text-xl font-bold text-secondary">Environmental Impact</h3>
               </div>
-              <div>
-                <h3 className="text-xl font-bold text-secondary mb-2">Environmental Impact</h3>
-                <p className="text-gray-600">
-                  Track your contribution to reducing landfill waste, CO₂ emissions, and conserving natural resources. Our detailed impact dashboard helps you see the difference you're making.
-                </p>
+              <div className="mb-4">
+                <img src="/images/eco-impact.svg" alt="Environmental Impact" className="w-full h-auto rounded-lg" />
               </div>
+              <p className="text-gray-600">
+                Track your contribution to reducing landfill waste, CO₂ emissions, and conserving natural resources. Our detailed impact dashboard helps you see the difference you're making.
+              </p>
             </div>
             
-            <div className="flex items-start space-x-4">
-              <div className="w-10 h-10 bg-primary/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
-                <Award className="h-5 w-5 text-primary" />
+            <div className="bg-white p-6 rounded-xl shadow-sm">
+              <div className="flex mb-4">
+                <div className="w-10 h-10 bg-primary/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-1 mr-3">
+                  <Award className="h-5 w-5 text-primary" />
+                </div>
+                <h3 className="text-xl font-bold text-secondary">Rewards Program</h3>
               </div>
-              <div>
-                <h3 className="text-xl font-bold text-secondary mb-2">Rewards Program</h3>
-                <p className="text-gray-600">
-                  Earn points for every collection scheduled based on waste type. Points can be redeemed for eco-friendly products or donated to environmental causes.
-                </p>
+              <div className="mb-4">
+                <img src="/images/rewards-badges.svg" alt="Rewards Program" className="w-full h-auto rounded-lg" />
               </div>
+              <p className="text-gray-600">
+                Earn points for every collection scheduled based on waste type. Points can be redeemed for eco-friendly products or donated to environmental causes.
+              </p>
             </div>
             
-            <div className="flex items-start space-x-4">
-              <div className="w-10 h-10 bg-primary/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
-                <CalendarClock className="h-5 w-5 text-primary" />
+            <div className="bg-white p-6 rounded-xl shadow-sm">
+              <div className="flex mb-4">
+                <div className="w-10 h-10 bg-primary/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-1 mr-3">
+                  <CalendarClock className="h-5 w-5 text-primary" />
+                </div>
+                <h3 className="text-xl font-bold text-secondary">Convenient Scheduling</h3>
               </div>
-              <div>
-                <h3 className="text-xl font-bold text-secondary mb-2">Convenient Scheduling</h3>
-                <p className="text-gray-600">
-                  Choose collection times that work for you with our flexible scheduling system. Receive reminders and real-time updates on your collection status.
-                </p>
+              <div className="mb-4">
+                <img src="/images/waste-schedule.svg" alt="Convenient Scheduling" className="w-full h-auto rounded-lg" />
               </div>
+              <p className="text-gray-600">
+                Choose collection times that work for you with our flexible scheduling system. Receive reminders and real-time updates on your collection status.
+              </p>
             </div>
             
-            <div className="flex items-start space-x-4">
-              <div className="w-10 h-10 bg-primary/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
-                <Recycle className="h-5 w-5 text-primary" />
+            <div className="bg-white p-6 rounded-xl shadow-sm">
+              <div className="flex mb-4">
+                <div className="w-10 h-10 bg-primary/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-1 mr-3">
+                  <Recycle className="h-5 w-5 text-primary" />
+                </div>
+                <h3 className="text-xl font-bold text-secondary">Educational Resources</h3>
               </div>
-              <div>
-                <h3 className="text-xl font-bold text-secondary mb-2">Educational Resources</h3>
-                <p className="text-gray-600">
-                  Access our AI-powered EcoTips learning center to discover better waste management practices and sustainability tips tailored to your household.
-                </p>
+              <div className="mb-4">
+                <img src="/images/eco-tips-illustration.svg" alt="Educational Resources" className="w-full h-auto rounded-lg" />
               </div>
+              <p className="text-gray-600">
+                Access our AI-powered EcoTips learning center to discover better waste management practices and sustainability tips tailored to your household.
+              </p>
             </div>
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="w-full py-16 bg-primary/10">
-        <div className="container mx-auto px-4 md:px-8 text-center">
-          <h2 className="text-3xl md:text-4xl font-montserrat font-bold text-secondary mb-4">
-            Ready to Make a Difference?
-          </h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-8">
-            Join PipaPal today and start your journey towards more sustainable waste management
-          </p>
-          <Link href="/auth">
-            <Button size="lg" className="px-8">
-              Get Started Now
-              <ChevronRight className="ml-2 h-5 w-5" />
-            </Button>
-          </Link>
-          <p className="mt-4 text-sm text-gray-500">
-            New users receive free compostable trash bags with their first collection
-          </p>
+      <section 
+        className="w-full py-24 relative" 
+        style={{
+          backgroundImage: `url('/images/eco-cta-bg.svg')`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center'
+        }}
+      >
+        <div className="container mx-auto px-4 md:px-8 text-center relative z-10">
+          <div className="bg-white/80 backdrop-blur-sm max-w-3xl mx-auto p-8 rounded-2xl shadow-lg">
+            <h2 className="text-3xl md:text-4xl font-montserrat font-bold text-secondary mb-4">
+              Ready to Make a Difference?
+            </h2>
+            <p className="text-lg text-gray-700 max-w-2xl mx-auto mb-8">
+              Join PipaPal today and start your journey towards more sustainable waste management
+            </p>
+            <div className="flex flex-col sm:flex-row justify-center gap-4 mb-6">
+              <Link href="/auth">
+                <Button size="lg" className="px-8 w-full sm:w-auto">
+                  Get Started Now
+                  <ChevronRight className="ml-2 h-5 w-5" />
+                </Button>
+              </Link>
+              <Link href="#features">
+                <Button variant="outline" size="lg" className="px-8 w-full sm:w-auto">
+                  Learn More
+                </Button>
+              </Link>
+            </div>
+            <div className="flex items-center justify-center mt-6">
+              <div className="flex items-center justify-center w-10 h-10 rounded-full bg-green-100 mr-3">
+                <Gift className="h-5 w-5 text-primary" />
+              </div>
+              <p className="text-gray-700">
+                New users receive free compostable trash bags with their first collection
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
