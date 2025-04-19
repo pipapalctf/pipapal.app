@@ -93,13 +93,11 @@ export default function LandingPage() {
                 <div className="absolute -top-6 -left-6 w-24 h-24 bg-primary/20 rounded-lg"></div>
                 <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-primary/30 rounded-lg"></div>
                 <div className="relative bg-white rounded-xl shadow-lg p-6 z-10">
-                  {/* Using a fallback div instead of attempting to load a non-existent image */}
-                  <div className="bg-primary/10 rounded-lg flex items-center justify-center h-[350px] w-full">
-                    <div className="text-center">
-                      <Recycle className="mx-auto h-16 w-16 text-primary mb-4" />
-                      <p className="text-lg font-medium text-gray-700">Sustainable Waste Management</p>
-                    </div>
-                  </div>
+                  <img 
+                    src="/images/waste-collection-form.png" 
+                    alt="PipaPal Waste Collection Form" 
+                    className="rounded-lg w-full h-auto object-cover"
+                  />
                 </div>
               </div>
             </div>
