@@ -3,9 +3,11 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PieChart, Pie, BarChart, Bar, XAxis, YAxis, Tooltip, Cell, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
-import { Leaf, Recycle, Truck, Award, Scale, CalendarCheck } from 'lucide-react';
+import { Leaf, Recycle, Truck, Award, Scale, CalendarCheck, CalendarPlus, PlusCircle } from 'lucide-react';
 import { User } from '@shared/schema';
 import { formatNumber } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Link } from 'wouter';
 
 interface HouseholdDashboardProps {
   user: User;
@@ -558,16 +560,30 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
       
       {/* Upcoming Pickups */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="flex items-center">
             <Truck className="mr-2 h-5 w-5" />
             Upcoming Pickups
           </CardTitle>
+          <div className="flex space-x-2">
+            <Link href="/schedule-pickup?tab=pickups">
+              <Button variant="outline" size="sm" className="h-8 px-2 text-xs">
+                <CalendarCheck className="mr-1 h-3.5 w-3.5" />
+                View All
+              </Button>
+            </Link>
+            <Link href="/schedule-pickup">
+              <Button size="sm" className="h-8 px-2 text-xs">
+                <PlusCircle className="mr-1 h-3.5 w-3.5" />
+                Schedule
+              </Button>
+            </Link>
+          </div>
         </CardHeader>
         <CardContent>
           {upcomingCollections.length > 0 ? (
             <div className="space-y-4">
-              {upcomingCollections.map((collection) => (
+              {upcomingCollections.slice(0, 2).map((collection) => (
                 <div key={collection.id} className="flex items-center p-3 border rounded-lg">
                   <div className="mr-4 p-2 rounded-full bg-primary/10">
                     <Truck className="h-5 w-5 text-primary" />
@@ -584,10 +600,25 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
                   </div>
                 </div>
               ))}
+              
+              {upcomingCollections.length > 2 && (
+                <Link href="/schedule-pickup?tab=pickups" className="block text-center text-sm text-primary hover:underline mt-3">
+                  + {upcomingCollections.length - 2} more scheduled pickups
+                </Link>
+              )}
             </div>
           ) : (
-            <div className="text-center p-6 text-muted-foreground">
-              <p>No upcoming pickups scheduled. Schedule your next pickup today!</p>
+            <div className="text-center p-6">
+              <div className="inline-flex items-center justify-center rounded-full bg-primary/10 p-4 mb-4">
+                <CalendarPlus className="h-6 w-6 text-primary" />
+              </div>
+              <p className="text-muted-foreground mb-4">No upcoming pickups scheduled.</p>
+              <Link href="/schedule-pickup">
+                <Button size="sm">
+                  <PlusCircle className="mr-1 h-3.5 w-3.5" />
+                  Schedule Your First Pickup
+                </Button>
+              </Link>
             </div>
           )}
         </CardContent>
