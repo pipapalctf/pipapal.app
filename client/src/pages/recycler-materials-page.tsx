@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { apiRequest, queryClient } from '@/lib/queryClient';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -67,18 +68,54 @@ export default function RecyclerMaterialsPage() {
     return acc;
   }, {});
 
+  // Express interest in materials mutation
+  const expressInterestMutation = useMutation({
+    mutationFn: async (collectionId: number) => {
+      const response = await apiRequest('POST', '/api/materials/express-interest', { collectionId });
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Interest Recorded",
+        description: "Your interest in this material has been recorded. The system will notify relevant parties.",
+        variant: "default",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to Express Interest",
+        description: error.message || "There was an error recording your interest. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
   // Handle purchasing/acquiring materials
   const handleAcquireMaterial = (collectionId: number) => {
-    toast({
-      title: "Interest Recorded",
-      description: "Your interest in this material has been recorded. The system will notify the collector.",
-      variant: "default",
-    });
+    expressInterestMutation.mutate(collectionId);
   };
 
   // Get waste type display name and color
   const getWasteTypeDisplay = (type: string) => {
     const config = wasteTypeConfig[type as keyof typeof wasteTypeConfig] || wasteTypeConfig.general;
+    
+    // Extract color from the textColor class
+    const getColorFromClass = (colorClass: string): string => {
+      const colorMap: Record<string, string> = {
+        'text-primary': '#2ECC71',
+        'text-blue-600': '#3182CE',
+        'text-yellow-600': '#D69E2E',
+        'text-green-600': '#38A169',
+        'text-green-700': '#2F855A',
+        'text-gray-600': '#4B5563',
+        'text-purple-600': '#805AD5',
+        'text-red-600': '#E53E3E',
+        'text-orange-600': '#DD6B20',
+        'text-indigo-600': '#5A67D8'
+      };
+      
+      return colorMap[colorClass] || '#6B7280';
+    };
     
     // Map icon strings to Lucide React components
     const getIconComponent = (iconName: string) => {
@@ -98,7 +135,7 @@ export default function RecyclerMaterialsPage() {
     
     return {
       name: config.label || type.charAt(0).toUpperCase() + type.slice(1),
-      color: config.textColor.replace('text-', ''),
+      color: getColorFromClass(config.textColor),
       icon: getIconComponent(config.icon)
     };
   };
@@ -299,9 +336,19 @@ export default function RecyclerMaterialsPage() {
                         <Button
                           onClick={() => handleAcquireMaterial(collection.id)}
                           className="flex items-center gap-1"
+                          disabled={expressInterestMutation.isPending}
                         >
-                          Express Interest
-                          <ArrowRight className="h-4 w-4 ml-1" />
+                          {expressInterestMutation.isPending ? (
+                            <>
+                              <span className="animate-pulse">Processing</span>
+                              <Clock className="h-4 w-4 ml-1 animate-spin" />
+                            </>
+                          ) : (
+                            <>
+                              Express Interest
+                              <ArrowRight className="h-4 w-4 ml-1" />
+                            </>
+                          )}
                         </Button>
                       </CardFooter>
                     </Card>

@@ -20,6 +20,12 @@ import {
   hasPermission 
 } from "./permissions";
 
+// Schema for material interest expression
+const materialInterestSchema = z.object({
+  collectionId: z.number(),
+  message: z.string().optional(),
+});
+
 // Simple middleware to require authentication
 const requireAuthentication = (req: Request, res: Response, next: NextFunction) => {
   if (!req.isAuthenticated || !req.isAuthenticated() || !req.user) {
@@ -452,6 +458,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
       const activities = await storage.getActivitiesByUser(req.user!.id, limit);
       res.json(activities);
+    }
+  );
+  
+  // Express interest in recycling materials
+  app.post("/api/materials/express-interest", 
+    requirePermission(Permissions.BUY_RECYCLABLES),
+    async (req, res) => {
+      if (!req.user) return res.sendStatus(401);
+      
+      try {
+        const { collectionId, message } = materialInterestSchema.parse(req.body);
+        
+        // Get the collection
+        const collection = await storage.getCollection(collectionId);
+        if (!collection) {
+          return res.status(404).json({ error: 'Collection not found' });
+        }
+        
+        // Make sure collection is completed and has waste
+        if (collection.status !== CollectionStatus.COMPLETED || !collection.wasteAmount) {
+          return res.status(400).json({ 
+            error: 'Invalid collection', 
+            message: 'This collection is not ready for recycling' 
+          });
+        }
+        
+        // Create an activity for the recycler
+        await storage.createActivity({
+          userId: req.user.id,
+          activityType: 'express_interest',
+          description: `Expressed interest in ${collection.wasteType} materials (${collection.wasteAmount}kg)`,
+          timestamp: new Date()
+        });
+        
+        // Notify the collection owner
+        const ownerClients = clients.get(collection.userId) || [];
+        const notification = {
+          type: 'notification',
+          message: `A recycler has expressed interest in your ${collection.wasteType} materials`,
+          collectionId: collection.id
+        };
+        
+        ownerClients.forEach(client => {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify(notification));
+          }
+        });
+        
+        // Notify the collector if assigned
+        if (collection.collectorId) {
+          const collectorClients = clients.get(collection.collectorId) || [];
+          collectorClients.forEach(client => {
+            if (client.readyState === WebSocket.OPEN) {
+              client.send(JSON.stringify(notification));
+            }
+          });
+        }
+        
+        res.status(200).json({ 
+          success: true, 
+          message: 'Interest expressed successfully'
+        });
+        
+      } catch (error) {
+        console.error("Error expressing interest in materials:", error);
+        if (error instanceof z.ZodError) {
+          return res.status(400).json({ errors: error.format() });
+        }
+        res.status(500).send("Failed to express interest in materials");
+      }
     }
   );
 
