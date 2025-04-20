@@ -117,8 +117,13 @@ export default function SchedulePickupForm() {
         title: "Pickup scheduled",
         description: "Your waste collection has been scheduled successfully"
       });
+      // Invalidate all relevant queries
       queryClient.invalidateQueries({ queryKey: ["/api/collections"] });
       queryClient.invalidateQueries({ queryKey: ["/api/collections/upcoming"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/impact"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/impact/waste-types"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/impact/monthly"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] }); // Important: Also refresh user data for points
       navigate("/");
     },
     onError: (error: Error) => {
@@ -149,8 +154,13 @@ export default function SchedulePickupForm() {
         title: "Pickup rescheduled",
         description: "Your waste collection has been rescheduled successfully"
       });
+      // Invalidate all relevant queries
       queryClient.invalidateQueries({ queryKey: ["/api/collections"] });
       queryClient.invalidateQueries({ queryKey: ["/api/collections/upcoming"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/impact"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/impact/waste-types"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/impact/monthly"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] }); // Important: Also refresh user data for points
       navigate("/");
     },
     onError: (error: Error) => {

@@ -15,7 +15,15 @@ interface HouseholdDashboardProps {
  * Dashboard for Household/Individual users
  * Shows waste collection metrics, environmental impact, and badges
  */
-export default function HouseholdDashboard({ user }: HouseholdDashboardProps) {
+export default function HouseholdDashboard({ user: initialUser }: HouseholdDashboardProps) {
+  // Fetch the latest user data to ensure score is up-to-date
+  const { data: userData } = useQuery({
+    queryKey: ['/api/user'],
+  });
+  
+  // Use the most up-to-date user data
+  const user = userData || initialUser;
+  
   // Fetch collections
   const { data: collections = [] } = useQuery({
     queryKey: ['/api/collections'],
