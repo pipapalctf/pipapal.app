@@ -602,7 +602,7 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
               ))}
               
               {upcomingCollections.length > 2 && (
-                <Link href="/schedule-pickup?tab=pickups" className="block text-center text-sm text-primary hover:underline mt-3" onClick={() => scrollToTop()}>
+                <Link href="/schedule-pickup?tab=pickups" className="block text-center text-sm text-primary hover:underline mt-3" onClick={() => scrollToElement('pickups-tab-content', 80)}>
                   + {upcomingCollections.length - 2} more scheduled pickups
                 </Link>
               )}
@@ -613,7 +613,7 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
                 <CalendarPlus className="h-6 w-6 text-primary" />
               </div>
               <p className="text-muted-foreground mb-4">No upcoming pickups scheduled.</p>
-              <Link href="/schedule-pickup" onClick={() => scrollToTop()}>
+              <Link href="/schedule-pickup" onClick={() => scrollToElement('schedule-tab-content', 80)}>
                 <Button size="sm">
                   <PlusCircle className="mr-1 h-3.5 w-3.5" />
                   Schedule Your First Pickup
