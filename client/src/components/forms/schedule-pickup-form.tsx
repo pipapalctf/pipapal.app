@@ -126,7 +126,13 @@ export default function SchedulePickupForm({ collectionToEdit, onSuccess }: Sche
       queryClient.invalidateQueries({ queryKey: ["/api/impact/waste-types"] });
       queryClient.invalidateQueries({ queryKey: ["/api/impact/monthly"] });
       queryClient.invalidateQueries({ queryKey: ["/api/user"] }); // Important: Also refresh user data for points
-      navigate("/");
+      
+      // Call onSuccess callback if provided
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        navigate("/");
+      }
     },
     onError: (error: Error) => {
       toast({
@@ -163,7 +169,13 @@ export default function SchedulePickupForm({ collectionToEdit, onSuccess }: Sche
       queryClient.invalidateQueries({ queryKey: ["/api/impact/waste-types"] });
       queryClient.invalidateQueries({ queryKey: ["/api/impact/monthly"] });
       queryClient.invalidateQueries({ queryKey: ["/api/user"] }); // Important: Also refresh user data for points
-      navigate("/");
+      
+      // Call onSuccess callback if provided
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        navigate("/");
+      }
     },
     onError: (error: Error) => {
       toast({
@@ -396,7 +408,7 @@ export default function SchedulePickupForm({ collectionToEdit, onSuccess }: Sche
         <Button 
           type="submit" 
           className="w-full"
-          disabled={schedulePickupMutation.isPending || reschedulePickupMutation.isPending || isLoadingCollection}
+          disabled={schedulePickupMutation.isPending || reschedulePickupMutation.isPending}
         >
           {schedulePickupMutation.isPending || reschedulePickupMutation.isPending ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
