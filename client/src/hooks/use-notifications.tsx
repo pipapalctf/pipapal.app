@@ -4,6 +4,7 @@ import { useToast } from '@/hooks/use-toast';
 import { queryClient } from '@/lib/queryClient';
 
 type NotificationType = 'notification' | 'collection_update';
+type WSEventType = NotificationType | 'connection_status';
 
 type Notification = {
   id: string;
@@ -16,8 +17,8 @@ type Notification = {
 };
 
 type WebSocketMessageEvent = {
-  type: NotificationType;
-  message: string;
+  type: WSEventType;
+  message?: string;
   collectionId?: number;
   status?: string;
 };
@@ -69,9 +70,27 @@ export function useNotifications() {
       try {
         const data: WebSocketMessageEvent = JSON.parse(event.data);
         
+        // Handle connection status messages separately
+        if (data.type === 'connection_status') {
+          console.log(`WebSocket connection status: ${data.status || 'unknown'}`);
+          setConnected(data.status === 'connected');
+          return;
+        }
+        
+        // Only proceed if this is a notification message with actual content
+        if (!data.message) {
+          return;
+        }
+        
+        // At this point we know it's a notification type with a message
+        const notificationType: NotificationType = 
+          data.type === 'notification' || data.type === 'collection_update' 
+            ? data.type 
+            : 'notification'; // Fallback to generic notification
+            
         const newNotification: Notification = {
           id: Math.random().toString(36).substring(2, 9),
-          type: data.type,
+          type: notificationType,
           message: data.message,
           read: false,
           timestamp: new Date(),
