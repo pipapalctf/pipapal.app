@@ -106,9 +106,15 @@ export default function SchedulePickupPage() {
   // State for the collection being edited
   const [collectionToEdit, setCollectionToEdit] = useState<Collection | null>(null);
   
-  // Parse collection ID from URL if present
+  // Parse collection ID from URL or hash if present
   useEffect(() => {
-    const match = location.match(/edit=(\d+)/);
+    // Check for edit in query params or hash
+    const queryMatch = location.match(/edit=(\d+)/);
+    const hashMatch = window.location.hash.match(/edit=(\d+)/);
+    
+    // Use either match, prioritizing query params
+    const match = queryMatch || hashMatch;
+    
     if (match && match[1]) {
       const collectionId = parseInt(match[1], 10);
       const collection = upcomingCollections.find(c => c.id === collectionId);
@@ -136,8 +142,8 @@ export default function SchedulePickupPage() {
   const handleEditRequest = (collection: Collection) => {
     setCollectionToEdit(collection);
     setActiveTab("schedule");
-    // Update URL for bookmark/sharing purposes
-    navigate(`/schedule-pickup?edit=${collection.id}`);
+    // Update URL using hash to avoid navigation issues
+    navigate(`/schedule-pickup#edit=${collection.id}`);
   };
   
   // Get status badge configuration
