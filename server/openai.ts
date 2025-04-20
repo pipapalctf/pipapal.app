@@ -18,16 +18,26 @@ export async function generateEcoTip(category: string, customPrompt?: string): P
     let prompt = "";
     
     if (customPrompt) {
-      prompt = `Generate a detailed, specific eco-friendly tip addressing this EXACT query: "${customPrompt}".
+      // Much more explicit and forceful prompt for custom queries
+      prompt = `IMPORTANT: You MUST generate a HIGHLY SPECIFIC eco-friendly tip that DIRECTLY addresses this EXACT user query: "${customPrompt}".
       
-      The user is specifically asking about this topic and expects precise, actionable advice for THIS EXACT TOPIC. Do not generate generic advice about ${category}. Stay completely focused on answering the user's specific question about "${customPrompt}".
+      RULES:
+      1. Your response MUST mention "${customPrompt}" by name in both the title and content
+      2. AVOID generic advice about ${category} - focus ONLY on "${customPrompt}"
+      3. Your response MUST include SPECIFIC methods, steps, or techniques for "${customPrompt}"
+      4. Do NOT generalize - stay COMPLETELY focused on "${customPrompt}" 
+      5. Include ACTUAL techniques, locations, or resources for "${customPrompt}" whenever possible
       
-      For example:
-      - If they ask about "recycling old tires", provide specific ways to recycle or repurpose old tires
-      - If they ask about "composting coffee grounds", provide detailed steps for that specific material
-      - If they ask about "reducing plastic in the bathroom", focus only on bathroom-specific tips
+      EXAMPLES:
+      - Query: "recycling old tires"
+        BAD response: "General recycling tips..."
+        GOOD response: "Recycle old tires by taking them to tire retailers who offer recycling programs, or repurpose them as garden planters by cutting them in half..."
+        
+      - Query: "composting coffee grounds"
+        BAD response: "Composting guidelines..."  
+        GOOD response: "Coffee grounds add nitrogen to compost - mix 1 part grounds with 4 parts carbon materials like dried leaves..."
       
-      Your response must directly address their query in detail with practical, actionable steps.`;
+      The user will ONLY be satisfied if you provide SPECIFIC, ACTIONABLE information about "${customPrompt}" - not general environmental advice.`;
     } else {
       prompt = `Generate a practical eco-friendly tip related to "${category}". The tip should be actionable advice for sustainable living that users of the PipaPal waste management app can immediately implement.`;
     }
@@ -35,8 +45,8 @@ export async function generateEcoTip(category: string, customPrompt?: string): P
     prompt += `
     
     Format the response as JSON with these fields:
-    - title: A short, descriptive title that clearly indicates what the tip is about (maximum 50 characters). The title MUST reflect the content - if it's about recycling tires, the title should mention tires.
-    - content: The detailed tip with practical advice (maximum 250 characters). Include specific steps, measurable impacts, and concrete how-to information. Be thorough and precise.
+    - title: A short, specific title that EXPLICITLY mentions what the tip is about (maximum 50 characters). For example, if it's about recycling tires, the title MUST contain the word "tires" - such as "Recycling Old Tires Methods" or "Tire Recycling & Reuse Options"
+    - content: Detailed, specific advice with practical steps (maximum 250 characters). Include exactly HOW to accomplish the task, WHERE to take items if relevant, and WHAT equipment or resources are needed. Be specific, not generic.
     - icon: A single Font Awesome icon name that represents this tip (e.g., 'recycle', 'leaf', 'tint', 'trash', 'seedling', etc.)
     
     The tip should be factual, environmentally sound, and focused on reducing waste or improving recycling habits. Make it engaging and motivational for users.`;
@@ -47,7 +57,7 @@ export async function generateEcoTip(category: string, customPrompt?: string): P
       messages: [
         {
           role: "system",
-          content: "You are an environmental sustainability expert providing practical, specific eco-friendly tips. Always address the user's exact query with specific, actionable advice that directly responds to their question. Your answers should be practical, detailed, and focused precisely on what the user is asking about. Never provide generic advice when a specific question is asked."
+          content: "You are an environmental sustainability expert providing EXTREMELY specific eco-friendly tips. Focus exclusively on the exact query provided by the user. Always include the specific topic by name in both title and content. Provide detailed implementation steps, not generalized advice. Include real-world resources when relevant. Never drift into general advice when a specific topic is requested. Your responses should be laser-focused on exactly what was asked."
         },
         {
           role: "user",

@@ -528,7 +528,16 @@ export default function EcoTipsPage() {
                       const isNewTip = createdAt.getTime() > Date.now() - 24 * 60 * 60 * 1000;
                       const isSaved = savedTips.includes(tip.id);
                       const isLiked = likedTips.includes(tip.id);
-                      const isCustomTip = tip.title.length > 20 && !tip.title.startsWith("Proper Recycling"); // Detect custom tips by title length/pattern
+                      // More robust detection of custom-generated tips
+                      const isCustomTip = (
+                        // Not one of the default tip titles
+                        !["Proper Recycling Techniques", "Save Water With Shower Buckets", 
+                         "Unplug To Save Energy", "Zero-Waste Shopping", "Ditch Single-Use Plastics", 
+                         "Start Simple Composting", "Green Commuting", "Eco-Friendly Daily Habits"].includes(tip.title) &&
+                        // And either has a specific word pattern or is longer than generic titles
+                        (tip.title.includes("How") || tip.title.includes("Tips") || 
+                         tip.title.includes("Guide") || tip.title.length > 20)
+                      );
                       const colors = getCategoryColors(tip.category || 'default');
                       
                       return (
