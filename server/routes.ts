@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { 
@@ -22,7 +22,7 @@ import {
 
 // Simple middleware to require authentication
 const requireAuthentication = (req: Request, res: Response, next: NextFunction) => {
-  if (!req.isAuthenticated() || !req.user) {
+  if (!req.isAuthenticated || !req.isAuthenticated() || !req.user) {
     return res.status(401).json({ error: 'Authentication required' });
   }
   return next();
@@ -163,49 +163,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   );
   
-  app.patch("/api/collections/:id", 
-    (req, res, next) => {
-      if (!req.isAuthenticated() || !req.user) {
+  // Collections update route - implemented in a way to avoid middleware issues
+  app.patch("/api/collections/:id", async (req: any, res: any) => {
+    try {
+      // Authentication check
+      if (!req.isAuthenticated || !req.isAuthenticated() || !req.user) {
         return res.status(401).json({ error: 'Authentication required' });
       }
-      next();
-    },
-    async (req, res) => {
-      try {
-        const id = parseInt(req.params.id);
-        if (isNaN(id)) return res.status(400).send("Invalid ID format");
-        
-        const collection = await storage.getCollection(id);
-        if (!collection) return res.status(404).send("Collection not found");
-        
-        const isCollector = req.user.role === UserRole.COLLECTOR;
-        const isOwner = collection.userId === req.user.id;
-        
-        // Different permissions based on role:
-        // - Collectors can update status or claim collections (MARK_JOB_COMPLETE permission)
-        // - Owners can update other details (their own collections)
-        if (!(isCollector || isOwner)) {
-          return res.status(403).json({
-            error: 'Access denied',
-            message: 'You are not authorized to update this collection'
-          });
-        }
-        
-        // Collectors can only update status or claim collections
-        if (isCollector && !isOwner && Object.keys(req.body).some(key => key !== 'status' && key !== 'collectorId' && key !== 'notes' && key !== 'wasteAmount' && key !== 'completedDate')) {
-          return res.status(403).json({
-            error: 'Access denied',
-            message: 'Collectors can only update status, claim collections, or add notes'
-          });
-        }
-        
-        const updates = req.body;
-        const updatedCollection = await storage.updateCollection(id, updates);
-        res.json(updatedCollection);
-      } catch (error) {
-        res.status(500).send("Failed to update collection");
+      
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).send("Invalid ID format");
+      
+      const collection = await storage.getCollection(id);
+      if (!collection) return res.status(404).send("Collection not found");
+      
+      const isCollector = req.user.role === UserRole.COLLECTOR;
+      const isOwner = collection.userId === req.user.id;
+      
+      // Different permissions based on role:
+      // - Collectors can update status or claim collections (MARK_JOB_COMPLETE permission)
+      // - Owners can update other details (their own collections)
+      if (!(isCollector || isOwner)) {
+        return res.status(403).json({
+          error: 'Access denied',
+          message: 'You are not authorized to update this collection'
+        });
       }
+      
+      // Collectors can only update status or claim collections
+      if (isCollector && !isOwner && Object.keys(req.body).some(key => 
+        key !== 'status' && 
+        key !== 'collectorId' && 
+        key !== 'notes' && 
+        key !== 'wasteAmount' && 
+        key !== 'completedDate')) {
+        return res.status(403).json({
+          error: 'Access denied',
+          message: 'Collectors can only update status, claim collections, or add notes'
+        });
+      }
+      
+      const updates = req.body;
+      const updatedCollection = await storage.updateCollection(id, updates);
+      
+      // Send notification if the status was updated
+      if (updates.status && updatedCollection) {
+        try {
+          // Send notification to the user
+          const userClients = clients.get(collection.userId) || [];
+          
+          if (userClients.length > 0) {
+            const statusConfig = {
+              [CollectionStatus.PENDING]: 'scheduled',
+              [CollectionStatus.CONFIRMED]: 'confirmed',
+              [CollectionStatus.IN_PROGRESS]: 'in progress',
+              [CollectionStatus.COMPLETED]: 'completed',
+              [CollectionStatus.CANCELLED]: 'cancelled'
+            };
+            
+            const statusText = statusConfig[updates.status as keyof typeof statusConfig] || 'updated';
+            
+            const notification = {
+              type: 'collection_update',
+              collectionId: collection.id,
+              status: updates.status,
+              message: `Your collection has been ${statusText}`
+            };
+            
+            userClients.forEach(client => {
+              if (client.readyState === WebSocket.OPEN) {
+                client.send(JSON.stringify(notification));
+              }
+            });
+          }
+        } catch (err) {
+          console.error('Error sending WebSocket notification:', err);
+          // Continue even if notification fails
+        }
+      }
+      
+      res.json(updatedCollection);
+    } catch (error) {
+      console.error("Error updating collection:", error);
+      res.status(500).send("Failed to update collection");
     }
+  }
   );
   
   // Environmental Impact - All authenticated users can view their impact data
@@ -468,60 +510,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
   
-  // Update patch route to send notifications
-  const originalPatch = app._router.stack.find(
-    (layer: any) => layer.route && layer.route.path === '/api/collections/:id' && layer.route.methods.patch
-  );
-  
-  if (originalPatch) {
-    const originalHandler = originalPatch.route.stack[0].handle;
-    
-    originalPatch.route.stack[0].handle = async (req: any, res: any) => {
-      const originalEnd = res.end;
-      
-      res.end = function(...args: any[]) {
-        if (res.statusCode >= 200 && res.statusCode < 300 && req.body.status) {
-          // Get the collection that was updated
-          const collectionId = parseInt(req.params.id);
-          storage.getCollection(collectionId).then((collection) => {
-            if (collection) {
-              // Send notification to the user
-              const userClients = clients.get(collection.userId) || [];
-              
-              if (userClients.length > 0) {
-                const statusConfig = {
-                  [CollectionStatus.PENDING]: 'scheduled',
-                  [CollectionStatus.CONFIRMED]: 'confirmed',
-                  [CollectionStatus.IN_PROGRESS]: 'in progress',
-                  [CollectionStatus.COMPLETED]: 'completed',
-                  [CollectionStatus.CANCELLED]: 'cancelled'
-                };
-                
-                const notification = {
-                  type: 'collection_update',
-                  collectionId: collection.id,
-                  status: collection.status,
-                  message: `Your collection has been ${statusConfig[collection.status as keyof typeof statusConfig]}`
-                };
-                
-                userClients.forEach(client => {
-                  if (client.readyState === WebSocket.OPEN) {
-                    client.send(JSON.stringify(notification));
-                  }
-                });
-              }
-            }
-          }).catch(err => {
-            console.error('Error sending WebSocket notification:', err);
-          });
-        }
-        
-        originalEnd.apply(res, args);
-      };
-      
-      return originalHandler(req, res);
-    };
-  }
+  // We no longer need to modify the route handlers after registration
+  // since we've integrated the notification logic directly into our PATCH handler
 
   return httpServer;
 }
