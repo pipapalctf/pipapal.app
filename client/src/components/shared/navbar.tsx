@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Menu, Truck, Recycle } from "lucide-react";
+import { Menu, Truck, Recycle, Calendar } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { NotificationBell } from "@/components/shared/notification-bell";
 import { UserRole } from "@shared/schema";
@@ -56,11 +56,12 @@ export default function Navbar() {
       });
     }
     // Add household-specific links
-    else if (user?.role === UserRole.HOUSEHOLD) {
+    else if (user?.role === UserRole.HOUSEHOLD || user?.role === UserRole.ORGANIZATION) {
       links.push({
         href: "/schedule-pickup",
         label: "Schedule Collection",
-        active: location === "/schedule-pickup"
+        active: location === "/schedule-pickup",
+        icon: <Calendar className="w-4 h-4 mr-1" />
       });
     }
     

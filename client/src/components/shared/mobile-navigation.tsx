@@ -36,6 +36,13 @@ export default function MobileNavigation() {
         icon: "recycle", 
         active: location === "/materials" 
       });
+    } else if (user?.role === UserRole.ORGANIZATION) {
+      links.splice(1, 0, { 
+        href: "/schedule-pickup", 
+        label: "Schedule", 
+        icon: "calendar-alt", 
+        active: location === "/schedule-pickup" 
+      });
     }
     
     return links;
