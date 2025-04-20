@@ -31,6 +31,17 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger
+} from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -89,15 +100,43 @@ export default function SchedulePickupPage() {
     }
   });
   
+  // State for the collection to be cancelled
+  const [collectionToCancel, setCollectionToCancel] = useState<Collection | null>(null);
+  
+  // State for the collection being edited
+  const [collectionToEdit, setCollectionToEdit] = useState<Collection | null>(null);
+  
+  // Parse collection ID from URL if present
+  useEffect(() => {
+    const match = location.match(/edit=(\d+)/);
+    if (match && match[1]) {
+      const collectionId = parseInt(match[1], 10);
+      const collection = upcomingCollections.find(c => c.id === collectionId);
+      if (collection) {
+        setCollectionToEdit(collection);
+        setActiveTab("schedule");
+      }
+    }
+  }, [location, upcomingCollections]);
+  
   // Function to handle cancellation
   const handleCancelRequest = (collection: Collection) => {
-    if (window.confirm("Are you sure you want to cancel this collection?")) {
-      cancelCollectionMutation.mutate(collection.id);
+    setCollectionToCancel(collection);
+  };
+  
+  // Function to confirm cancellation
+  const confirmCancellation = () => {
+    if (collectionToCancel) {
+      cancelCollectionMutation.mutate(collectionToCancel.id);
+      setCollectionToCancel(null);
     }
   };
   
   // Function to handle edit/reschedule
   const handleEditRequest = (collection: Collection) => {
+    setCollectionToEdit(collection);
+    setActiveTab("schedule");
+    // Update URL for bookmark/sharing purposes
     navigate(`/schedule-pickup?edit=${collection.id}`);
   };
   
@@ -158,7 +197,10 @@ export default function SchedulePickupPage() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <SchedulePickupForm />
+                      <SchedulePickupForm collectionToEdit={collectionToEdit} onSuccess={() => {
+                        setCollectionToEdit(null);
+                        navigate('/schedule-pickup?tab=pickups');
+                      }} />
                     </CardContent>
                   </Card>
                 </div>
@@ -403,6 +445,45 @@ export default function SchedulePickupPage() {
       
       <MobileNavigation />
       <Footer />
+      
+      {/* Cancel Collection Confirmation Dialog */}
+      <AlertDialog open={collectionToCancel !== null} onOpenChange={(open) => !open && setCollectionToCancel(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel Collection</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to cancel this waste collection?
+              {collectionToCancel && (
+                <div className="mt-4 p-3 border rounded-md bg-muted/50">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Truck className="h-4 w-4 text-primary" />
+                    <span className="font-medium capitalize">{collectionToCancel.wasteType} Waste Pickup</span>
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      <span>{format(new Date(collectionToCancel.scheduledDate), 'PPP')}</span>
+                    </div>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Clock className="h-4 w-4" />
+                      <span>{format(new Date(collectionToCancel.scheduledDate), 'p')}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>No, Keep It</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmCancellation}
+              className="bg-red-500 hover:bg-red-600"
+            >
+              Yes, Cancel Collection
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

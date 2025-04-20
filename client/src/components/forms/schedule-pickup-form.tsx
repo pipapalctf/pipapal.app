@@ -58,15 +58,15 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-export default function SchedulePickupForm() {
+interface SchedulePickupFormProps {
+  collectionToEdit?: Collection | null;
+  onSuccess?: () => void;
+}
+
+export default function SchedulePickupForm({ collectionToEdit, onSuccess }: SchedulePickupFormProps) {
   const { toast } = useToast();
   const { user } = useAuth();
   const [location, navigate] = useLocation();
-  
-  // Get collection ID from URL if we're rescheduling
-  const editId = location.includes('?edit=') ? 
-    parseInt(location.split('?edit=')[1]) : 
-    null;
   
   // Form states
   const [isRescheduling, setIsRescheduling] = useState<boolean>(false);
@@ -80,25 +80,27 @@ export default function SchedulePickupForm() {
     },
   });
   
-  // Fetch collection data if in edit mode
-  const { data: editCollection, isLoading: isLoadingCollection } = useQuery<Collection>({
-    queryKey: ['/api/collections', editId],
-    enabled: !!editId,
-  });
-  
-  // Update form when collection data is loaded
+  // Initialize form with collection data if provided directly
   useEffect(() => {
-    if (editCollection) {
+    if (collectionToEdit) {
       setIsRescheduling(true);
       form.reset({
-        wasteType: editCollection.wasteType,
-        wasteAmount: editCollection.wasteAmount || 10,
-        scheduledDate: new Date(editCollection.scheduledDate),
-        address: editCollection.address,
-        notes: editCollection.notes || "",
+        wasteType: collectionToEdit.wasteType,
+        wasteAmount: collectionToEdit.wasteAmount || 10,
+        scheduledDate: new Date(collectionToEdit.scheduledDate),
+        address: collectionToEdit.address,
+        notes: collectionToEdit.notes || "",
+      });
+    } else {
+      // Reset the form if no collection is being edited
+      setIsRescheduling(false);
+      form.reset({
+        address: user?.address || "",
+        wasteAmount: 10,
+        notes: "",
       });
     }
-  }, [editCollection, form]);
+  }, [collectionToEdit, form, user?.address]);
   
   // Create new collection
   const schedulePickupMutation = useMutation({
@@ -173,8 +175,8 @@ export default function SchedulePickupForm() {
   });
   
   function onSubmit(values: FormValues) {
-    if (isRescheduling && editCollection) {
-      reschedulePickupMutation.mutate({ ...values, id: editCollection.id });
+    if (isRescheduling && collectionToEdit) {
+      reschedulePickupMutation.mutate({ ...values, id: collectionToEdit.id });
     } else {
       schedulePickupMutation.mutate(values);
     }
