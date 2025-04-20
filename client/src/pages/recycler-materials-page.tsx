@@ -18,6 +18,9 @@ import { formatNumber } from '@/lib/utils';
 import { wasteTypeConfig } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useLocation } from 'wouter';
+import Navbar from "@/components/shared/navbar";
+import Footer from "@/components/shared/footer";
+import MobileNavigation from "@/components/shared/mobile-navigation";
 
 export default function RecyclerMaterialsPage() {
   const { user } = useAuth();
@@ -144,225 +147,234 @@ export default function RecyclerMaterialsPage() {
   const estimatedCO2Offset = totalMaterials * 2; // 2kg CO2 per kg of recycled material
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Available Materials</h1>
-        <p className="text-muted-foreground">
-          Browse and acquire materials ready for recycling
-        </p>
-      </div>
-
-      {/* Summary Cards */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 mb-8">
-        <Card className="overflow-hidden border-0 shadow-md">
-          <div className="h-2 bg-gradient-to-r from-green-400 to-green-600"></div>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Available Materials</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center">
-              <div className="p-2 rounded-full bg-green-100 mr-3">
-                <Scale className="h-5 w-5 text-green-600" />
-              </div>
-              <span className="text-2xl font-bold">{formatNumber(totalMaterials)} kg</span>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card className="overflow-hidden border-0 shadow-md">
-          <div className="h-2 bg-gradient-to-r from-blue-400 to-blue-600"></div>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Material Types</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center">
-              <div className="p-2 rounded-full bg-blue-100 mr-3">
-                <Recycle className="h-5 w-5 text-blue-600" />
-              </div>
-              <span className="text-2xl font-bold">{Object.keys(materialsByType).length}</span>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card className="overflow-hidden border-0 shadow-md">
-          <div className="h-2 bg-gradient-to-r from-teal-400 to-teal-600"></div>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Potential CO₂ Offset</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center">
-              <div className="p-2 rounded-full bg-teal-100 mr-3">
-                <Leaf className="h-5 w-5 text-teal-600" />
-              </div>
-              <span className="text-2xl font-bold">{formatNumber(estimatedCO2Offset)} kg</span>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card className="overflow-hidden border-0 shadow-md">
-          <div className="h-2 bg-gradient-to-r from-amber-400 to-amber-600"></div>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Estimated Value</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center">
-              <div className="p-2 rounded-full bg-amber-100 mr-3">
-                <CircleDollarSign className="h-5 w-5 text-amber-600" />
-              </div>
-              <span className="text-2xl font-bold">${formatNumber(totalMaterials * 0.2, 2)}</span>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Filter Controls */}
-      <div className="flex flex-col md:flex-row gap-4 mb-6">
-        <div className="flex-1">
-          <Select
-            value={filterWasteType}
-            onValueChange={setFilterWasteType}
-          >
-            <SelectTrigger className="w-full md:w-64">
-              <span className="flex items-center">
-                <Filter className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Filter by material type" />
-              </span>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Materials</SelectItem>
-              {Object.keys(WasteType).map(type => (
-                <SelectItem key={type} value={WasteType[type as keyof typeof WasteType]}>
-                  {type.charAt(0) + type.slice(1).toLowerCase().replace('_', ' ')}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      {isLoading ? (
-        <div className="py-12 text-center">
-          <div className="inline-block p-4 rounded-full bg-muted">
-            <Clock className="h-8 w-8 animate-spin text-primary" />
-          </div>
-          <p className="mt-4 text-lg font-medium">Loading available materials...</p>
-        </div>
-      ) : filteredByWasteType.length === 0 ? (
-        <Card className="text-center p-12">
-          <CardContent>
-            <div className="mx-auto w-20 h-20 bg-muted rounded-full flex items-center justify-center mb-4">
-              <Package className="h-10 w-10 text-muted-foreground" />
-            </div>
-            <h3 className="text-xl font-medium mb-2">No Materials Available</h3>
-            <p className="text-muted-foreground max-w-md mx-auto">
-              There are currently no completed collections with materials available for recycling.
-              Check back later or adjust your filters.
+    <div className="min-h-screen flex flex-col bg-background">
+      <Navbar />
+      
+      <main className="flex-grow">
+        <div className="container mx-auto px-4 py-8">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold mb-2">Available Materials</h1>
+            <p className="text-muted-foreground">
+              Browse and acquire materials ready for recycling
             </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-8">
-          {Object.entries(groupedMaterials).map(([wasteType, collections]) => {
-            const typeInfo = getWasteTypeDisplay(wasteType);
+          </div>
+
+          {/* Summary Cards */}
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+            <Card className="overflow-hidden border-0 shadow-md">
+              <div className="h-2 bg-gradient-to-r from-green-400 to-green-600"></div>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Available Materials</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center">
+                  <div className="p-2 rounded-full bg-green-100 mr-3">
+                    <Scale className="h-5 w-5 text-green-600" />
+                  </div>
+                  <span className="text-2xl font-bold">{formatNumber(totalMaterials)} kg</span>
+                </div>
+              </CardContent>
+            </Card>
             
-            return (
-              <div key={wasteType} className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-full" style={{ backgroundColor: `${typeInfo.color}25` }}>
-                    <div className="p-1 rounded-full" style={{ color: typeInfo.color }}>
-                      {typeInfo.icon}
+            <Card className="overflow-hidden border-0 shadow-md">
+              <div className="h-2 bg-gradient-to-r from-blue-400 to-blue-600"></div>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Material Types</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center">
+                  <div className="p-2 rounded-full bg-blue-100 mr-3">
+                    <Recycle className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <span className="text-2xl font-bold">{Object.keys(materialsByType).length}</span>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="overflow-hidden border-0 shadow-md">
+              <div className="h-2 bg-gradient-to-r from-teal-400 to-teal-600"></div>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Potential CO₂ Offset</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center">
+                  <div className="p-2 rounded-full bg-teal-100 mr-3">
+                    <Leaf className="h-5 w-5 text-teal-600" />
+                  </div>
+                  <span className="text-2xl font-bold">{formatNumber(estimatedCO2Offset)} kg</span>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="overflow-hidden border-0 shadow-md">
+              <div className="h-2 bg-gradient-to-r from-amber-400 to-amber-600"></div>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Estimated Value</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center">
+                  <div className="p-2 rounded-full bg-amber-100 mr-3">
+                    <CircleDollarSign className="h-5 w-5 text-amber-600" />
+                  </div>
+                  <span className="text-2xl font-bold">${formatNumber(totalMaterials * 0.2, 2)}</span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Filter Controls */}
+          <div className="flex flex-col md:flex-row gap-4 mb-6">
+            <div className="flex-1">
+              <Select
+                value={filterWasteType}
+                onValueChange={setFilterWasteType}
+              >
+                <SelectTrigger className="w-full md:w-64">
+                  <span className="flex items-center">
+                    <Filter className="h-4 w-4 mr-2" />
+                    <SelectValue placeholder="Filter by material type" />
+                  </span>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Materials</SelectItem>
+                  {Object.keys(WasteType).map(type => (
+                    <SelectItem key={type} value={WasteType[type as keyof typeof WasteType]}>
+                      {type.charAt(0) + type.slice(1).toLowerCase().replace('_', ' ')}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {isLoading ? (
+            <div className="py-12 text-center">
+              <div className="inline-block p-4 rounded-full bg-muted">
+                <Clock className="h-8 w-8 animate-spin text-primary" />
+              </div>
+              <p className="mt-4 text-lg font-medium">Loading available materials...</p>
+            </div>
+          ) : filteredByWasteType.length === 0 ? (
+            <Card className="text-center p-12">
+              <CardContent>
+                <div className="mx-auto w-20 h-20 bg-muted rounded-full flex items-center justify-center mb-4">
+                  <Package className="h-10 w-10 text-muted-foreground" />
+                </div>
+                <h3 className="text-xl font-medium mb-2">No Materials Available</h3>
+                <p className="text-muted-foreground max-w-md mx-auto">
+                  There are currently no completed collections with materials available for recycling.
+                  Check back later or adjust your filters.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-8">
+              {Object.entries(groupedMaterials).map(([wasteType, collections]) => {
+                const typeInfo = getWasteTypeDisplay(wasteType);
+                
+                return (
+                  <div key={wasteType} className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 rounded-full" style={{ backgroundColor: `${typeInfo.color}25` }}>
+                        <div className="p-1 rounded-full" style={{ color: typeInfo.color }}>
+                          {typeInfo.icon}
+                        </div>
+                      </div>
+                      <h2 className="text-xl font-semibold">{typeInfo.name} Materials</h2>
+                      <Badge variant="outline" className="ml-2">
+                        {collections.length} {collections.length === 1 ? 'item' : 'items'}
+                      </Badge>
+                    </div>
+                    
+                    <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                      {collections.map((collection: Collection) => (
+                        <Card key={collection.id} className="overflow-hidden border shadow-sm hover:shadow-md transition-shadow">
+                          <div className="h-2" style={{ backgroundColor: typeInfo.color }}></div>
+                          <CardHeader>
+                            <div className="flex justify-between items-start">
+                              <CardTitle className="text-lg font-medium">
+                                {formatNumber(collection.wasteAmount || 0)} kg
+                              </CardTitle>
+                              <Badge className="ml-2" style={{ 
+                                backgroundColor: `${typeInfo.color}20`, 
+                                color: typeInfo.color,
+                                border: `1px solid ${typeInfo.color}40`
+                              }}>
+                                {typeInfo.name}
+                              </Badge>
+                            </div>
+                            <CardDescription className="flex items-center justify-between">
+                              <span>Collected on {new Date(collection.completedDate || collection.scheduledDate).toLocaleDateString()}</span>
+                              <Badge variant="outline" className="ml-auto text-xs bg-green-50 text-green-700 border-green-200">
+                                <CheckCircle2 className="h-3 w-3 mr-1" />
+                                Available
+                              </Badge>
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent className="space-y-3">
+                            <div className="flex items-start gap-2">
+                              <MapPin className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
+                              <span className="text-sm">{collection.address}</span>
+                            </div>
+                            
+                            {collection.notes && (
+                              <div className="flex items-start gap-2 text-sm">
+                                <AlertCircle className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
+                                <span>{collection.notes}</span>
+                              </div>
+                            )}
+                            
+                            <div className="flex items-center justify-between mt-2 text-sm">
+                              <div className="flex items-center gap-1 text-muted-foreground">
+                                <CircleDollarSign className="h-4 w-4" />
+                                <span>${formatNumber((collection.wasteAmount || 0) * 0.2, 2)} est. value</span>
+                              </div>
+                              
+                              <div className="flex items-center gap-1 text-muted-foreground">
+                                <Leaf className="h-4 w-4" />
+                                <span>{formatNumber((collection.wasteAmount || 0) * 2)} kg CO₂ offset</span>
+                              </div>
+                            </div>
+                          </CardContent>
+                          <CardFooter className="flex justify-between pt-2">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => navigate(`/collections/${collection.id}`)}
+                            >
+                              View Details
+                            </Button>
+                            <Button
+                              onClick={() => handleAcquireMaterial(collection.id)}
+                              className="flex items-center gap-1"
+                              disabled={expressInterestMutation.isPending}
+                            >
+                              {expressInterestMutation.isPending ? (
+                                <>
+                                  <span className="animate-pulse">Processing</span>
+                                  <Clock className="h-4 w-4 ml-1 animate-spin" />
+                                </>
+                              ) : (
+                                <>
+                                  Express Interest
+                                  <ArrowRight className="h-4 w-4 ml-1" />
+                                </>
+                              )}
+                            </Button>
+                          </CardFooter>
+                        </Card>
+                      ))}
                     </div>
                   </div>
-                  <h2 className="text-xl font-semibold">{typeInfo.name} Materials</h2>
-                  <Badge variant="outline" className="ml-2">
-                    {collections.length} {collections.length === 1 ? 'item' : 'items'}
-                  </Badge>
-                </div>
-                
-                <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                  {collections.map((collection: Collection) => (
-                    <Card key={collection.id} className="overflow-hidden border shadow-sm hover:shadow-md transition-shadow">
-                      <div className="h-2" style={{ backgroundColor: typeInfo.color }}></div>
-                      <CardHeader>
-                        <div className="flex justify-between items-start">
-                          <CardTitle className="text-lg font-medium">
-                            {formatNumber(collection.wasteAmount || 0)} kg
-                          </CardTitle>
-                          <Badge className="ml-2" style={{ 
-                            backgroundColor: `${typeInfo.color}20`, 
-                            color: typeInfo.color,
-                            border: `1px solid ${typeInfo.color}40`
-                          }}>
-                            {typeInfo.name}
-                          </Badge>
-                        </div>
-                        <CardDescription className="flex items-center justify-between">
-                          <span>Collected on {new Date(collection.completedDate || collection.scheduledDate).toLocaleDateString()}</span>
-                          <Badge variant="outline" className="ml-auto text-xs bg-green-50 text-green-700 border-green-200">
-                            <CheckCircle2 className="h-3 w-3 mr-1" />
-                            Available
-                          </Badge>
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        <div className="flex items-start gap-2">
-                          <MapPin className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
-                          <span className="text-sm">{collection.address}</span>
-                        </div>
-                        
-                        {collection.notes && (
-                          <div className="flex items-start gap-2 text-sm">
-                            <AlertCircle className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
-                            <span>{collection.notes}</span>
-                          </div>
-                        )}
-                        
-                        <div className="flex items-center justify-between mt-2 text-sm">
-                          <div className="flex items-center gap-1 text-muted-foreground">
-                            <CircleDollarSign className="h-4 w-4" />
-                            <span>${formatNumber((collection.wasteAmount || 0) * 0.2, 2)} est. value</span>
-                          </div>
-                          
-                          <div className="flex items-center gap-1 text-muted-foreground">
-                            <Leaf className="h-4 w-4" />
-                            <span>{formatNumber((collection.wasteAmount || 0) * 2)} kg CO₂ offset</span>
-                          </div>
-                        </div>
-                      </CardContent>
-                      <CardFooter className="flex justify-between pt-2">
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => navigate(`/collections/${collection.id}`)}
-                        >
-                          View Details
-                        </Button>
-                        <Button
-                          onClick={() => handleAcquireMaterial(collection.id)}
-                          className="flex items-center gap-1"
-                          disabled={expressInterestMutation.isPending}
-                        >
-                          {expressInterestMutation.isPending ? (
-                            <>
-                              <span className="animate-pulse">Processing</span>
-                              <Clock className="h-4 w-4 ml-1 animate-spin" />
-                            </>
-                          ) : (
-                            <>
-                              Express Interest
-                              <ArrowRight className="h-4 w-4 ml-1" />
-                            </>
-                          )}
-                        </Button>
-                      </CardFooter>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
+                );
+              })}
+            </div>
+          )}
         </div>
-      )}
+      </main>
+      
+      <MobileNavigation />
+      <Footer />
     </div>
   );
 }
