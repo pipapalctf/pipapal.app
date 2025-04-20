@@ -72,6 +72,7 @@ export const collections = pgTable("collections", {
   userId: integer("user_id").notNull(),
   collectorId: integer("collector_id"),
   wasteType: text("waste_type").notNull(),
+  wasteDescription: text("waste_description"), // For specific waste details, e.g. "apple Organic"
   status: text("status").notNull().default(CollectionStatus.SCHEDULED),
   scheduledDate: timestamp("scheduled_date").notNull(),
   completedDate: timestamp("completed_date"),
@@ -148,6 +149,7 @@ export const insertCollectionSchema = createInsertSchema(collections, {
   .pick({
     userId: true,
     wasteType: true,
+    wasteDescription: true,
     wasteAmount: true,
     status: true,
     scheduledDate: true,

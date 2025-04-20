@@ -42,6 +42,7 @@ const formSchema = z.object({
   wasteType: z.string({
     required_error: "Please select the type of waste",
   }),
+  wasteDescription: z.string().optional(),
   wasteAmount: z.coerce
     .number({ 
       required_error: "Please enter the amount of waste",
@@ -86,6 +87,7 @@ export default function SchedulePickupForm({ collectionToEdit, onSuccess }: Sche
       setIsRescheduling(true);
       form.reset({
         wasteType: collectionToEdit.wasteType,
+        wasteDescription: collectionToEdit.wasteDescription || "",
         wasteAmount: collectionToEdit.wasteAmount || 10,
         scheduledDate: new Date(collectionToEdit.scheduledDate),
         address: collectionToEdit.address,
@@ -97,6 +99,7 @@ export default function SchedulePickupForm({ collectionToEdit, onSuccess }: Sche
       form.reset({
         address: user?.address || "",
         wasteAmount: 10,
+        wasteDescription: "",
         notes: "",
       });
     }
@@ -248,6 +251,23 @@ export default function SchedulePickupForm({ collectionToEdit, onSuccess }: Sche
               </Select>
               <FormDescription>
                 Select the main type of waste for this collection
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="wasteDescription"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Waste Description</FormLabel>
+              <FormControl>
+                <Input placeholder="e.g., apple Organic, pineapple byproducts" {...field} />
+              </FormControl>
+              <FormDescription>
+                Add specific details about your waste (e.g., apple Organic, expired canned goods)
               </FormDescription>
               <FormMessage />
             </FormItem>
