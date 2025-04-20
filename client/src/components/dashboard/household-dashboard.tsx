@@ -363,18 +363,83 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
                 </div>
               </div>
               
-              <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={monthlyData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis yAxisId="left" orientation="left" stroke="#4ade80" />
-                    <YAxis yAxisId="right" orientation="right" stroke="#3b82f6" />
-                    <Tooltip />
-                    <Bar yAxisId="left" dataKey="wasteCollected" name="Waste (kg)" fill="#4ade80" />
-                    <Bar yAxisId="right" dataKey="co2Reduced" name="CO₂ Reduced (kg)" fill="#3b82f6" />
-                  </BarChart>
-                </ResponsiveContainer>
+              <div className="mt-4 space-y-2">
+                <div className="flex items-center justify-center space-x-6">
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 rounded-sm bg-emerald-500 mr-2"></div>
+                    <span className="text-xs">Waste Collected (kg)</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 rounded-sm bg-blue-500 mr-2"></div>
+                    <span className="text-xs">CO₂ Reduced (kg)</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 rounded-sm bg-yellow-500 mr-2"></div>
+                    <span className="text-xs">Trees Equivalent (×100)</span>
+                  </div>
+                </div>
+                
+                <div className="h-[250px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart 
+                      data={monthlyData.map((month: any) => ({
+                        ...month,
+                        // Scale trees for visibility (multiply by 100)
+                        treesEquivalent: month.wasteCollected * 0.01 * 100
+                      }))}
+                      margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" />
+                      <YAxis yAxisId="left" orientation="left" />
+                      <Tooltip 
+                        formatter={(value: any, name: string) => {
+                          if (name === 'Trees Equivalent') {
+                            // Convert back to actual value for tooltip
+                            return [(value / 100).toFixed(2), name];
+                          }
+                          return [value, name];
+                        }}
+                        labelFormatter={(label) => `Month: ${label}`}
+                      />
+                      <Legend 
+                        formatter={(value: string) => {
+                          switch(value) {
+                            case 'wasteCollected': return 'Waste Collected (kg)';
+                            case 'co2Reduced': return 'CO₂ Reduced (kg)';
+                            case 'treesEquivalent': return 'Trees Equivalent';
+                            default: return value;
+                          }
+                        }}
+                      />
+                      <Bar 
+                        yAxisId="left" 
+                        dataKey="wasteCollected" 
+                        name="Waste Collected" 
+                        fill="#4ade80" 
+                        radius={[4, 4, 0, 0]}
+                      />
+                      <Bar 
+                        yAxisId="left" 
+                        dataKey="co2Reduced" 
+                        name="CO₂ Reduced" 
+                        fill="#3b82f6" 
+                        radius={[4, 4, 0, 0]}
+                      />
+                      <Bar 
+                        yAxisId="left" 
+                        dataKey="treesEquivalent" 
+                        name="Trees Equivalent" 
+                        fill="#eab308" 
+                        radius={[4, 4, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+                
+                <div className="text-xs text-center text-muted-foreground">
+                  <p>Environmental impact calculations: 2kg CO₂ reduced, 0.01 trees saved, and 50L water saved per kg of waste</p>
+                </div>
               </div>
             </CardContent>
           </Card>
