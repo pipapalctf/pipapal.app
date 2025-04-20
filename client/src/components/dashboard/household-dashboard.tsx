@@ -3,8 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PieChart, Pie, BarChart, Bar, XAxis, YAxis, Tooltip, Cell, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
-import { Leaf, Recycle, Truck, Award, Scale, CalendarCheck, CalendarPlus, PlusCircle } from 'lucide-react';
-import { User } from '@shared/schema';
+import { Leaf, Recycle, Truck, Award, Scale, CalendarCheck, CalendarPlus, PlusCircle, TrendingUp } from 'lucide-react';
+import { User, Collection, Impact, Badge } from '@shared/schema';
 import { formatNumber, scrollToElement } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Link, useLocation } from 'wouter';
@@ -19,7 +19,7 @@ interface HouseholdDashboardProps {
  */
 export default function HouseholdDashboard({ user: initialUser }: HouseholdDashboardProps) {
   // Fetch the latest user data to ensure score is up-to-date
-  const { data: userData } = useQuery({
+  const { data: userData } = useQuery<User>({
     queryKey: ['/api/user'],
   });
   
@@ -27,42 +27,42 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
   const user = userData || initialUser;
   
   // Fetch collections
-  const { data: collections = [] } = useQuery({
+  const { data: collections = [] } = useQuery<Collection[]>({
     queryKey: ['/api/collections'],
   });
 
   // Fetch upcoming collections
-  const { data: upcomingCollections = [] } = useQuery({
+  const { data: upcomingCollections = [] } = useQuery<Collection[]>({
     queryKey: ['/api/collections/upcoming'],
   });
 
   // Fetch impact data
-  const { data: impact } = useQuery({
+  const { data: impact } = useQuery<Impact>({
     queryKey: ['/api/impact'],
   });
 
   // Fetch waste type distribution
-  const { data: wasteTypes = [] } = useQuery({
+  const { data: wasteTypes = [] } = useQuery<{ name: string; value: number }[]>({
     queryKey: ['/api/impact/waste-types'],
   });
 
   // Fetch monthly impact data
-  const { data: monthlyData = [] } = useQuery({
+  const { data: monthlyData = [] } = useQuery<any[]>({
     queryKey: ['/api/impact/monthly'],
   });
 
   // Fetch badges
-  const { data: badges = [] } = useQuery({
+  const { data: badges = [] } = useQuery<Badge[]>({
     queryKey: ['/api/badges'],
   });
 
   // Calculate total waste weight
-  const totalWasteWeight = collections.reduce((total, collection) => {
+  const totalWasteWeight = collections.reduce((total: number, collection: Collection) => {
     return total + (collection.wasteAmount || 10); // Default to 10kg if not specified
   }, 0);
 
   // Calculate recycling rate (assume all collections are recycled except general waste)
-  const recycledWaste = collections.reduce((total, collection) => {
+  const recycledWaste = collections.reduce((total: number, collection: Collection) => {
     return collection.wasteType !== 'general' 
       ? total + (collection.wasteAmount || 10) 
       : total;
@@ -74,10 +74,12 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
     : 0;
 
   // Calculate pickup frequency (number of collections per month)
-  const collectionsCountByMonth = new Map();
+  const collectionsCountByMonth = new Map<string, number>();
   
   // Count collections by month
-  collections.forEach((collection: any) => {
+  collections.forEach((collection: Collection) => {
+    if (!collection.scheduledDate) return;
+    
     const collectionDate = new Date(collection.scheduledDate);
     const monthIndex = collectionDate.getMonth();
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -86,152 +88,186 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
     if (!collectionsCountByMonth.has(monthName)) {
       collectionsCountByMonth.set(monthName, 0);
     }
-    collectionsCountByMonth.set(monthName, collectionsCountByMonth.get(monthName) + 1);
+    collectionsCountByMonth.set(monthName, collectionsCountByMonth.get(monthName)! + 1);
   });
   
   // Calculate average collections per month
   const collectionsPerMonth = collectionsCountByMonth.size > 0
-    ? Array.from(collectionsCountByMonth.values()).reduce((sum, count) => sum + count, 0) / collectionsCountByMonth.size
+    ? Array.from(collectionsCountByMonth.values()).reduce((sum: number, count: number) => sum + count, 0) / collectionsCountByMonth.size
     : 0;
 
   // Random colors for the pie chart
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D', '#FF6B6B', '#6B66FF', '#FFA556', '#4CD790'];
 
   return (
-    <div className="space-y-6 p-2 md:p-4">
-      {/* User Welcome Section */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">My Environmental Dashboard</h1>
-        <h2 className="text-xl font-medium text-primary mt-2">
-          Welcome back, {user?.fullName?.split(' ')[0] || user?.username || 'Eco Hero'}!
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          Your sustainability journey is making a difference.
-        </p>
+    <div className="space-y-6 p-2 md:p-6">
+      {/* User Welcome Section with Hero Banner */}
+      <div className="mb-6 bg-gradient-to-r from-green-50 to-teal-50 dark:from-green-950/30 dark:to-teal-900/20 p-6 rounded-lg border border-green-100 dark:border-green-800 shadow-sm">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100">My Environmental Dashboard</h1>
+            <h2 className="text-xl font-medium text-primary mt-2">
+              Welcome back, {user?.fullName?.split(' ')[0] || user?.username || 'Eco Hero'}!
+            </h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Your sustainability journey is making a difference. Keep up the good work!
+            </p>
+          </div>
+          <div className="mt-4 md:mt-0">
+            <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 dark:bg-green-800/60 text-green-800 dark:text-green-200">
+              <Leaf className="h-4 w-4 mr-1" />
+              Eco-Conscious Household
+            </div>
+          </div>
+        </div>
       </div>
       
       {/* Key Stats Cards */}
-      <div className="grid gap-6 grid-cols-1 sm:grid-cols-3">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         {/* Total Pickups Card */}
-        <Card className="overflow-hidden border-2 hover:border-primary/50 transition-all duration-200">
-          <CardHeader className="pb-2 bg-muted/30">
-            <CardTitle className="text-sm font-medium flex items-center justify-between">
-              <span>Total Pickups</span>
-              <Truck className="h-4 w-4 text-primary" />
-            </CardTitle>
+        <Card className="overflow-hidden border-0 shadow-md">
+          <div className="h-2 bg-gradient-to-r from-blue-400 to-blue-600"></div>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Pickups</CardTitle>
           </CardHeader>
-          <CardContent className="pt-4">
-            <div className="flex flex-col">
-              <span className="text-3xl font-bold text-center">
-                {Array.isArray(collections) ? collections.length : 0}
-              </span>
-              <span className="text-xs text-muted-foreground text-center mt-1">
-                {Array.isArray(collections) && collections.length === 1 ? 'collection scheduled' : 'collections scheduled'}
-              </span>
-              <div className="w-full mt-4 bg-muted h-1 rounded-full overflow-hidden">
-                <div 
-                  className="bg-primary h-1 rounded-full" 
-                  style={{ 
-                    width: `${Math.min(Array.isArray(collections) ? collections.length * 5 : 0, 100)}%` 
-                  }} 
-                />
+          <CardContent>
+            <div className="flex items-center">
+              <div className="p-2 rounded-full bg-blue-100 dark:bg-blue-900/40 mr-3">
+                <Truck className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div>
+                <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                  {Array.isArray(collections) ? collections.length : 0}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {Array.isArray(collections) && collections.length > 0 
+                    ? `${upcomingCollections.length} upcoming pickups` 
+                    : "No collections scheduled yet"}
+                </p>
               </div>
             </div>
           </CardContent>
         </Card>
         
         {/* Waste Collected Card */}
-        <Card className="overflow-hidden border-2 hover:border-primary/50 transition-all duration-200">
-          <CardHeader className="pb-2 bg-muted/30">
-            <CardTitle className="text-sm font-medium flex items-center justify-between">
-              <span>Waste Collected</span>
-              <Scale className="h-4 w-4 text-primary" />
-            </CardTitle>
+        <Card className="overflow-hidden border-0 shadow-md">
+          <div className="h-2 bg-gradient-to-r from-amber-400 to-amber-600"></div>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Waste Managed</CardTitle>
           </CardHeader>
-          <CardContent className="pt-4">
-            <div className="flex flex-col">
-              <div className="flex items-center justify-center gap-1">
-                <span className="text-3xl font-bold">{formatNumber(totalWasteWeight || 0)}</span>
-                <span className="text-lg font-medium text-muted-foreground">kg</span>
+          <CardContent>
+            <div className="flex items-center">
+              <div className="p-2 rounded-full bg-amber-100 dark:bg-amber-900/40 mr-3">
+                <Scale className="h-5 w-5 text-amber-600 dark:text-amber-400" />
               </div>
-              <span className="text-xs text-muted-foreground text-center mt-1">
-                total waste managed
-              </span>
-              <div className="mt-4 grid grid-cols-4 gap-1">
-                {Array.isArray(collections) && collections.length > 0 ? (
-                  [...Array(4)].map((_, i) => (
-                    <div 
-                      key={i} 
-                      className={`h-1 rounded-full ${i < Math.min(Math.ceil(totalWasteWeight / 10), 4) ? 'bg-primary' : 'bg-muted'}`}
-                    />
-                  ))
-                ) : (
-                  [...Array(4)].map((_, i) => (
-                    <div key={i} className="h-1 rounded-full bg-muted" />
-                  ))
-                )}
+              <div>
+                <div className="flex items-baseline">
+                  <span className="text-3xl font-bold text-amber-600 dark:text-amber-400">{formatNumber(totalWasteWeight || 0)}</span>
+                  <span className="text-sm ml-1 font-medium text-amber-500 dark:text-amber-400">kg</span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {recyclingRate}% recycling rate
+                </p>
               </div>
             </div>
           </CardContent>
         </Card>
         
         {/* CO₂ Reduced Card */}
-        <Card className="overflow-hidden border-2 hover:border-primary/50 transition-all duration-200">
-          <CardHeader className="pb-2 bg-muted/30">
-            <CardTitle className="text-sm font-medium flex items-center justify-between">
-              <span>CO₂ Reduced</span>
-              <Leaf className="h-4 w-4 text-primary" />
-            </CardTitle>
+        <Card className="overflow-hidden border-0 shadow-md">
+          <div className="h-2 bg-gradient-to-r from-green-400 to-green-600"></div>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">CO₂ Reduced</CardTitle>
           </CardHeader>
-          <CardContent className="pt-4">
-            <div className="flex flex-col">
-              <div className="flex items-center justify-center gap-1">
-                <span className="text-3xl font-bold">{formatNumber(impact?.co2Reduced || 0)}</span>
-                <span className="text-lg font-medium text-muted-foreground">kg</span>
+          <CardContent>
+            <div className="flex items-center">
+              <div className="p-2 rounded-full bg-green-100 dark:bg-green-900/40 mr-3">
+                <Leaf className="h-5 w-5 text-green-600 dark:text-green-400" />
               </div>
-              <span className="text-xs text-muted-foreground text-center mt-1">
-                carbon footprint reduced
-              </span>
-              <div className="w-full mt-4 flex justify-center">
-                <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Leaf className="h-3 w-3 text-primary" />
+              <div>
+                <div className="flex items-baseline">
+                  <span className="text-3xl font-bold text-green-600 dark:text-green-400">{formatNumber(impact?.co2Reduced || 0)}</span>
+                  <span className="text-sm ml-1 font-medium text-green-500 dark:text-green-400">kg</span>
                 </div>
-                {impact?.co2Reduced > 5 && (
-                  <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center ml-1">
-                    <Leaf className="h-3 w-3 text-primary" />
-                  </div>
-                )}
-                {impact?.co2Reduced > 10 && (
-                  <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center ml-1">
-                    <Leaf className="h-3 w-3 text-primary" />
-                  </div>
-                )}
+                <p className="text-xs text-muted-foreground">
+                  carbon footprint reduction
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        {/* Trees Equivalent Card */}
+        <Card className="overflow-hidden border-0 shadow-md">
+          <div className="h-2 bg-gradient-to-r from-purple-400 to-purple-600"></div>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Trees Equivalent</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center">
+              <div className="p-2 rounded-full bg-purple-100 dark:bg-purple-900/40 mr-3">
+                <TrendingUp className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div>
+                <div className="flex items-baseline">
+                  <span className="text-3xl font-bold text-purple-600 dark:text-purple-400">{formatNumber(impact?.treesEquivalent || 0, 1)}</span>
+                  <span className="text-sm ml-1 font-medium text-purple-500 dark:text-purple-400">trees</span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  environmental impact
+                </p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
       
-      <Tabs defaultValue="recycling">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="recycling" onClick={() => scrollToElement('recycling-tab-content', 80)}>Recycling</TabsTrigger>
-          <TabsTrigger value="timeline" onClick={() => scrollToElement('timeline-tab-content', 80)}>Timeline</TabsTrigger>
-          <TabsTrigger value="achievements" onClick={() => scrollToElement('achievements-tab-content', 80)}>Achievements</TabsTrigger>
+      {/* Action Buttons */}
+      <div className="flex flex-wrap gap-3">
+        <Link href="/schedule">
+          <Button className="bg-green-600 hover:bg-green-700 text-white">
+            <CalendarPlus className="h-4 w-4 mr-2" />
+            Schedule New Pickup
+          </Button>
+        </Link>
+        <Link href="/collections">
+          <Button variant="outline" className="border-green-200 hover:bg-green-50 hover:text-green-700 dark:border-green-800 dark:hover:bg-green-900/20">
+            <Truck className="h-4 w-4 mr-2" />
+            View All Collections
+          </Button>
+        </Link>
+      </div>
+      
+      <Tabs defaultValue="recycling" className="mt-6">
+        <TabsList className="grid w-full grid-cols-3 bg-muted/30 p-1">
+          <TabsTrigger value="recycling" className="data-[state=active]:bg-background data-[state=active]:shadow-sm" onClick={() => scrollToElement('recycling-tab-content', 80)}>
+            <Recycle className="h-4 w-4 mr-2" />
+            Recycling
+          </TabsTrigger>
+          <TabsTrigger value="timeline" className="data-[state=active]:bg-background data-[state=active]:shadow-sm" onClick={() => scrollToElement('timeline-tab-content', 80)}>
+            <TrendingUp className="h-4 w-4 mr-2" />
+            Impact
+          </TabsTrigger>
+          <TabsTrigger value="achievements" className="data-[state=active]:bg-background data-[state=active]:shadow-sm" onClick={() => scrollToElement('achievements-tab-content', 80)}>
+            <Award className="h-4 w-4 mr-2" />
+            Achievements
+          </TabsTrigger>
         </TabsList>
         
         {/* Recycling Tab */}
-        <TabsContent value="recycling" className="space-y-4" id="recycling-tab-content">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Recycle className="mr-2 h-5 w-5" />
+        <TabsContent value="recycling" className="space-y-4 mt-6" id="recycling-tab-content">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card className="overflow-hidden border-0 shadow-md">
+              <div className="h-1 bg-gradient-to-r from-green-400 to-green-600"></div>
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center text-base">
+                  <Recycle className="mr-2 h-5 w-5 text-green-600" />
                   Recycling Rate
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-center mb-2">
-                  <span className="text-4xl font-bold text-primary">{recyclingRate}%</span>
+                <div className="text-center mb-4">
+                  <span className="text-4xl font-bold text-green-600 dark:text-green-400">{recyclingRate}%</span>
                   <p className="text-sm text-muted-foreground">of your waste is recycled</p>
                 </div>
                 <div className="h-[200px]">
@@ -261,10 +297,11 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
               </CardContent>
             </Card>
             
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Scale className="mr-2 h-5 w-5" />
+            <Card className="overflow-hidden border-0 shadow-md">
+              <div className="h-1 bg-gradient-to-r from-amber-400 to-amber-600"></div>
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center text-base">
+                  <Scale className="mr-2 h-5 w-5 text-amber-600" />
                   Waste Types
                 </CardTitle>
               </CardHeader>
@@ -292,25 +329,42 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
+                  {wasteTypes.slice(0, 6).map((type, index) => (
+                    <div key={type.name} className="flex items-center">
+                      <div 
+                        className="w-3 h-3 rounded-full mr-2" 
+                        style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                      />
+                      <span className="text-xs">{type.name}</span>
+                    </div>
+                  ))}
+                </div>
               </CardContent>
             </Card>
           </div>
           
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <CalendarCheck className="mr-2 h-5 w-5" />
+          <Card className="overflow-hidden border-0 shadow-md">
+            <div className="h-1 bg-gradient-to-r from-blue-400 to-blue-600"></div>
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center text-base">
+                <CalendarCheck className="mr-2 h-5 w-5 text-blue-600" />
                 Pickup Frequency
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-center mb-2">
-                <span className="text-4xl font-bold text-primary">
-                  {formatNumber(collectionsPerMonth, 1)}
-                </span>
-                <p className="text-sm text-muted-foreground">average collections per month</p>
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-left">
+                  <span className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                    {formatNumber(collectionsPerMonth, 1)}
+                  </span>
+                  <p className="text-sm text-muted-foreground">average pickups per month</p>
+                </div>
+                <div className="p-3 rounded-full bg-blue-50 dark:bg-blue-900/20">
+                  <CalendarCheck className="h-6 w-6 text-blue-500" />
+                </div>
               </div>
-              <div className="h-[200px]">
+              <div className="h-[250px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart 
                     data={Array.from(collectionsCountByMonth.entries())
@@ -324,11 +378,11 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
                       })
                     }
                   >
-                    <CartesianGrid strokeDasharray="3 3" />
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                     <XAxis dataKey="name" />
                     <YAxis />
                     <Tooltip />
-                    <Bar dataKey="pickupCount" name="Pickups" fill="#4ade80" />
+                    <Bar dataKey="pickupCount" name="Pickups" fill="#3b82f6" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
