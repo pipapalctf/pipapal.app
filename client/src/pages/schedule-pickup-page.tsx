@@ -46,7 +46,7 @@ import { format } from "date-fns";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { scrollToTop } from "@/lib/utils";
+import { scrollToTop, scrollToElement } from "@/lib/utils";
 import { useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 
@@ -143,7 +143,7 @@ export default function SchedulePickupPage() {
   const handleEditRequest = (collection: Collection) => {
     setCollectionToEdit(collection);
     setActiveTab("schedule");
-    scrollToTop();
+    scrollToElement('schedule-tab-content', 80);
     // No URL update needed, just manage with state
   };
   
@@ -182,7 +182,8 @@ export default function SchedulePickupPage() {
           
           <Tabs value={activeTab} onValueChange={(value) => {
               setActiveTab(value);
-              scrollToTop();
+              // Scroll to the specific tab content instead of the top
+              scrollToElement(`${value}-tab-content`, 80);
             }} className="mb-6">
             <TabsList className="grid w-full grid-cols-2 mb-8">
               <TabsTrigger value="schedule" className="flex items-center">
@@ -196,7 +197,7 @@ export default function SchedulePickupPage() {
             </TabsList>
             
             {/* Schedule New Pickup Tab */}
-            <TabsContent value="schedule">
+            <TabsContent value="schedule" id="schedule-tab-content">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="md:col-span-2">
                   <Card>
@@ -210,7 +211,7 @@ export default function SchedulePickupPage() {
                       <SchedulePickupForm collectionToEdit={collectionToEdit} onSuccess={() => {
                         setCollectionToEdit(null);
                         navigate('/schedule-pickup?tab=pickups');
-                        scrollToTop();
+                        scrollToElement('pickups-tab-content', 80);
                       }} />
                     </CardContent>
                   </Card>
@@ -295,7 +296,7 @@ export default function SchedulePickupPage() {
             </TabsContent>
             
             {/* My Scheduled Pickups Tab */}
-            <TabsContent value="pickups">
+            <TabsContent value="pickups" id="pickups-tab-content">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center">

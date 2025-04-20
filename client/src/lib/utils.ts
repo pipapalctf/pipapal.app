@@ -20,8 +20,39 @@ export function formatNumber(value?: number, decimals: number = 0): string {
 }
 
 /**
+ * Scroll to a specific element or the top of the page with a smooth animation
+ * Used when navigating between pages or sections
+ * @param elementId The ID of the element to scroll to (optional)
+ * @param offset Offset in pixels from the top of the element (default: 0)
+ * @param smooth Whether to use smooth scrolling animation (default: true)
+ */
+export function scrollToElement(elementId?: string, offset: number = 0, smooth: boolean = true): void {
+  if (elementId) {
+    const element = document.getElementById(elementId);
+    if (element) {
+      const rect = element.getBoundingClientRect();
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const targetPosition = rect.top + scrollTop - offset;
+      
+      window.scrollTo({
+        top: targetPosition,
+        behavior: smooth ? 'smooth' : 'auto'
+      });
+      return;
+    }
+  }
+  
+  // Default to scroll to top if no element found or no ID provided
+  window.scrollTo({
+    top: 0,
+    behavior: smooth ? 'smooth' : 'auto'
+  });
+}
+
+/**
  * Scroll to the top of the page with a smooth animation
  * Used when navigating between pages or sections
+ * @param smooth Whether to use smooth scrolling animation (default: true)
  */
 export function scrollToTop(smooth: boolean = true): void {
   window.scrollTo({
