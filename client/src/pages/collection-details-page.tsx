@@ -151,7 +151,7 @@ export default function CollectionDetailsPage() {
             <Button 
               variant="outline"
               className="flex-1"
-              onClick={() => navigate(`/schedule?edit=${collection.id}`)}
+              onClick={() => navigate(`/schedule-pickup?edit=${collection.id}`)}
             >
               <CalendarClock className="mr-2 h-4 w-4" />
               Reschedule

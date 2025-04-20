@@ -68,8 +68,8 @@ export default function UpcomingCollections() {
   }
   
   function handleReschedule(collection: Collection) {
-    // Navigate to schedule page with collection data for rescheduling
-    navigate(`/schedule?edit=${collection.id}`);
+    // Navigate to schedule pickup page with collection data for rescheduling
+    navigate(`/schedule-pickup?edit=${collection.id}`);
   }
   
   function handleCancelRequest(collection: Collection) {
@@ -166,7 +166,7 @@ export default function UpcomingCollections() {
           )}
 
           <div className="mt-5 text-center">
-            <Link href="/schedule">
+            <Link href="/schedule-pickup">
               <Button variant="outline" className="bg-white">
                 <Plus className="mr-2 h-4 w-4" />
                 Schedule New Collection
