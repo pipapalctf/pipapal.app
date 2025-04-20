@@ -4,13 +4,16 @@ import { IconBadge } from "@/components/ui/icon-badge";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, ThumbsUp, ThumbsDown, Share, Award, Bookmark, BookmarkCheck, RefreshCw } from "lucide-react";
+import { 
+  Loader2, ThumbsUp, ThumbsDown, Share, Award, Bookmark, BookmarkCheck, RefreshCw,
+  Sparkles, Lightbulb, Search, Leaf, Droplet, Zap, Car, Recycle, TreePine, Trash2
+} from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { EcoTip } from "@shared/schema";
 import { ecoTipCategories } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "@/components/shared/navbar";
 import Footer from "@/components/shared/footer";
 import MobileNavigation from "@/components/shared/mobile-navigation";
@@ -95,240 +98,363 @@ export default function EcoTipsPage() {
     return matchesSearch && matchesCategory && matchesTab;
   });
   
+  // Get the correct icon for category
+  const getCategoryIcon = (categoryValue: string) => {
+    switch(categoryValue) {
+      case 'water': return <Droplet className="h-5 w-5" />;
+      case 'energy': return <Zap className="h-5 w-5" />; 
+      case 'waste': return <Trash2 className="h-5 w-5" />;
+      case 'plastic': return <Recycle className="h-5 w-5" />;
+      case 'composting': return <Leaf className="h-5 w-5" />;
+      case 'recycling': return <Recycle className="h-5 w-5" />;
+      case 'transportation': return <Car className="h-5 w-5" />;
+      default: return <Lightbulb className="h-5 w-5" />;
+    }
+  };
+  
+  // Get color scheme for category
+  const getCategoryColors = (categoryValue: string) => {
+    switch(categoryValue) {
+      case 'water': return { bg: 'bg-blue-100', text: 'text-blue-600', border: 'border-blue-200', gradient: 'from-blue-400 to-blue-600' };
+      case 'energy': return { bg: 'bg-yellow-100', text: 'text-yellow-600', border: 'border-yellow-200', gradient: 'from-yellow-400 to-yellow-600' };
+      case 'waste': return { bg: 'bg-orange-100', text: 'text-orange-600', border: 'border-orange-200', gradient: 'from-orange-400 to-orange-600' };
+      case 'plastic': return { bg: 'bg-indigo-100', text: 'text-indigo-600', border: 'border-indigo-200', gradient: 'from-indigo-400 to-indigo-600' };
+      case 'composting': return { bg: 'bg-green-100', text: 'text-green-600', border: 'border-green-200', gradient: 'from-green-400 to-green-600' };
+      case 'recycling': return { bg: 'bg-emerald-100', text: 'text-emerald-600', border: 'border-emerald-200', gradient: 'from-emerald-400 to-emerald-600' };
+      case 'transportation': return { bg: 'bg-purple-100', text: 'text-purple-600', border: 'border-purple-200', gradient: 'from-purple-400 to-purple-600' };
+      default: return { bg: 'bg-primary/10', text: 'text-primary', border: 'border-primary/20', gradient: 'from-primary/70 to-primary' };
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       
-      <main className="flex-grow container mx-auto px-4 py-8 md:py-10">
-        <div className="max-w-5xl mx-auto">
-          <div className="mb-8">
-            <h1 className="text-2xl md:text-3xl font-montserrat font-bold text-secondary">
-              AI-Powered EcoTips
-            </h1>
-            <p className="text-gray-600 mt-1">
-              Discover practical tips for sustainable living and waste management
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            {/* Sidebar */}
-            <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Search & Filter</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <Input
-                      placeholder="Search tips..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="mb-4"
-                    />
+      <main className="flex-grow">
+        {/* Hero Section */}
+        <section className="bg-gradient-to-br from-primary-50 to-primary/5 border-b">
+          <div className="container mx-auto px-4 py-12 md:py-16">
+            <div className="max-w-5xl mx-auto">
+              <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
+                <div className="flex-1">
+                  <div className="mb-2 flex items-center space-x-2">
+                    <Badge variant="outline" className="bg-white/50 border-primary/30 text-primary px-3 py-1 rounded-full">
+                      <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                      AI-Powered
+                    </Badge>
                   </div>
-                  
-                  <div>
-                    <h3 className="text-sm font-medium mb-2">Categories</h3>
-                    <div className="space-y-2">
-                      <Button
-                        variant={selectedCategory === null ? "default" : "outline"}
-                        size="sm"
-                        className="w-full justify-start"
-                        onClick={() => setSelectedCategory(null)}
-                      >
-                        All Categories
-                      </Button>
-                      
-                      {ecoTipCategories.map(category => (
-                        <Button
-                          key={category.value}
-                          variant={selectedCategory === category.value ? "default" : "outline"}
-                          size="sm"
-                          className="w-full justify-start"
-                          onClick={() => setSelectedCategory(category.value)}
-                        >
-                          <RefreshCw className="mr-2 h-4 w-4" />
-                          {category.label}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card className="bg-primary/5 border-primary/20">
-                <CardHeader>
-                  <CardTitle className="flex items-center text-primary">
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Generate Tips
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm mb-4">
-                    Get AI-generated tips for specific categories to enhance your sustainability journey.
+                  <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-4 font-montserrat">
+                    Sustainable Living Tips & Tricks
+                  </h1>
+                  <p className="text-gray-600 mb-6 text-lg">
+                    Discover practical, everyday actions to reduce your environmental footprint. Our AI-powered 
+                    eco-tips provide personalized suggestions for sustainable living.
                   </p>
-                  <div className="space-y-2">
-                    {ecoTipCategories.map(category => (
-                      <Button
+                  <div className="flex flex-wrap gap-3 mb-6">
+                    {ecoTipCategories.slice(0, 4).map(category => (
+                      <Button 
                         key={category.value}
                         variant="outline"
                         size="sm"
-                        className="w-full justify-start"
-                        onClick={() => handleGenerateTip(category.value)}
-                        disabled={generateTipMutation.isPending}
+                        className={`rounded-full ${selectedCategory === category.value ? 'bg-primary/10 border-primary/30' : 'bg-white/50'}`}
+                        onClick={() => setSelectedCategory(category.value)}
                       >
-                        {generateTipMutation.isPending && generateTipMutation.variables === category.value ? (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                          category.value === 'recycling' ? <RefreshCw className="mr-2 h-4 w-4" /> :
-                          category.value === 'water' ? <Loader2 className="mr-2 h-4 w-4" /> :
-                          category.value === 'energy' ? <Loader2 className="mr-2 h-4 w-4" /> :
-                          category.value === 'waste' ? <Loader2 className="mr-2 h-4 w-4" /> :
-                          category.value === 'plastic' ? <Loader2 className="mr-2 h-4 w-4" /> :
-                          category.value === 'composting' ? <Loader2 className="mr-2 h-4 w-4" /> :
-                          category.value === 'transportation' ? <Loader2 className="mr-2 h-4 w-4" /> :
-                          <Loader2 className="mr-2 h-4 w-4" />
-                        )}
-                        Generate {category.label} Tip
+                        <div className="flex items-center gap-1.5">
+                          {getCategoryIcon(category.value)}
+                          <span>{category.label}</span>
+                        </div>
                       </Button>
                     ))}
                   </div>
-                </CardContent>
-              </Card>
-            </div>
-            
-            {/* Main Content */}
-            <div className="lg:col-span-3">
-              <Tabs defaultValue="all" value={currentTab} onValueChange={setCurrentTab} className="mb-6">
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="all" className="flex items-center gap-2">
-                    <RefreshCw className="h-4 w-4" /> All Tips
-                  </TabsTrigger>
-                  <TabsTrigger value="newest" className="flex items-center gap-2">
-                    <Award className="h-4 w-4" /> Newest
-                  </TabsTrigger>
-                  <TabsTrigger value="saved" className="flex items-center gap-2">
-                    <BookmarkCheck className="h-4 w-4" /> Saved ({savedTips.length})
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
-              
-              {isLoading ? (
-                <div className="flex justify-center py-12">
-                  <Loader2 className="h-12 w-12 animate-spin text-primary" />
                 </div>
-              ) : filteredTips && filteredTips.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {filteredTips.map(tip => {
-                    const categoryInfo = ecoTipCategories.find(cat => cat.value === tip.category);
-                    const createdAt = tip.createdAt ? new Date(tip.createdAt) : new Date();
-                    const isNewTip = createdAt.getTime() > Date.now() - 24 * 60 * 60 * 1000;
-                    const isSaved = savedTips.includes(tip.id);
-                    const isLiked = likedTips.includes(tip.id);
-                    
-                    return (
-                      <Card key={tip.id} className="overflow-hidden flex flex-col h-full">
-                        <div className={`bg-primary-50 p-4 border-b relative`}>
-                          <div className="flex items-center">
-                            <IconBadge 
-                              icon={tip.icon || categoryInfo?.icon || 'lightbulb'} 
-                              bgColor={'bg-primary-100'}
-                              textColor={'text-primary-600'}
-                              className="mr-3"
-                            />
-                            <div className="flex-1">
-                              <h3 className="font-montserrat font-semibold text-lg text-secondary">
-                                {tip.title}
-                              </h3>
-                              <div className="flex items-center gap-2">
-                                <Badge variant="outline" className="capitalize text-xs">
-                                  {categoryInfo?.label || tip.category}
-                                </Badge>
-                                {isNewTip && (
-                                  <Badge variant="default" className="bg-blue-500 text-xs">
-                                    New
-                                  </Badge>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        <CardContent className="p-5 flex-grow">
-                          <p className="text-gray-700">{tip.content}</p>
-                        </CardContent>
-                        <CardFooter className="flex justify-between items-center p-4 pt-2 border-t border-gray-100">
-                          <div className="flex items-center gap-2">
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className={isLiked ? "text-green-500" : "text-gray-400"}
-                              onClick={() => handleLikeTip(tip.id)}
-                              disabled={isLiked}
-                            >
-                              <ThumbsUp className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="text-gray-400"
-                              onClick={() => handleLikeTip(tip.id)} // We're just tracking likes for now
-                              disabled={isLiked}
-                            >
-                              <ThumbsDown className="h-4 w-4" />
-                            </Button>
-                            <span className="text-xs text-gray-500 ml-1">
-                              {createdAt.toLocaleDateString()}
-                            </span>
-                          </div>
-                          <Button 
-                            variant={isSaved ? "default" : "outline"} 
-                            size="sm" 
-                            className={`h-8 px-3 ${isSaved ? "bg-primary text-white" : "text-primary"}`}
-                            onClick={() => handleSaveTip(tip.id)}
-                          >
-                            {isSaved ? <BookmarkCheck className="h-4 w-4 mr-1" /> : <Bookmark className="h-4 w-4 mr-1" />}
-                            {isSaved ? "Saved" : "Save"}
-                          </Button>
-                        </CardFooter>
-                      </Card>
-                    );
-                  })}
-                </div>
-              ) : (
-                <Card className="text-center py-12">
-                  <CardContent>
-                    <div className="mb-4 text-4xl text-gray-300">
-                      <RefreshCw className="mx-auto h-12 w-12" />
+                
+                <div className="relative w-full md:w-2/5 max-w-sm flex-shrink-0">
+                  <div className="p-4 bg-white shadow-lg rounded-lg border border-gray-100">
+                    <div className="mb-4 flex items-center gap-3">
+                      <IconBadge 
+                        icon="lightbulb" 
+                        bgColor="bg-primary/10"
+                        textColor="text-primary"
+                        size="lg"
+                      />
+                      <div>
+                        <h3 className="font-semibold text-lg">Generate New Tip</h3>
+                        <p className="text-sm text-gray-500">AI-powered sustainability advice</p>
+                      </div>
                     </div>
-                    <h3 className="text-xl font-montserrat font-medium text-secondary mb-2">
-                      No eco tips found
-                    </h3>
-                    <p className="text-gray-500 mb-6">
-                      {searchTerm ? "Try a different search term or" : "Start by"} generating some tips!
-                    </p>
-                    <Button 
-                      onClick={() => {
-                        setSearchTerm("");
-                        setSelectedCategory(null);
-                        setCurrentTab("all");
-                        handleGenerateTip("recycling");
-                      }}
-                      disabled={generateTipMutation.isPending}
-                      className="gap-2"
-                    >
-                      {generateTipMutation.isPending ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <RefreshCw className="h-4 w-4" />
-                      )}
-                      Generate New Tip
-                    </Button>
-                  </CardContent>
-                </Card>
-              )}
+                    
+                    <div className="space-y-3">
+                      <p className="text-sm text-gray-600">
+                        Choose a category and get an AI-generated tip to help you live more sustainably:
+                      </p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {ecoTipCategories.slice(0, 4).map(category => (
+                          <Button
+                            key={category.value}
+                            variant="outline"
+                            size="sm"
+                            className="h-auto py-2 justify-start"
+                            onClick={() => handleGenerateTip(category.value)}
+                            disabled={generateTipMutation.isPending}
+                          >
+                            {generateTipMutation.isPending && generateTipMutation.variables === category.value ? (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                              getCategoryIcon(category.value)
+                            )}
+                            <span className="ml-2">{category.label}</span>
+                          </Button>
+                        ))}
+                      </div>
+                      <Button 
+                        className="w-full"
+                        onClick={() => handleGenerateTip(ecoTipCategories[Math.floor(Math.random() * ecoTipCategories.length)].value)}
+                        disabled={generateTipMutation.isPending}
+                      >
+                        {generateTipMutation.isPending ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Generating...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="mr-2 h-4 w-4" />
+                            Generate Random Tip
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  {/* Decorative elements */}
+                  <div className="absolute -bottom-3 -right-3 w-24 h-24 bg-green-100 rounded-full -z-10"></div>
+                  <div className="absolute -top-3 -left-3 w-16 h-16 bg-blue-100 rounded-full -z-10"></div>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        </section>
+        
+        {/* Content Section */}
+        <section className="container mx-auto px-4 py-10">
+          <div className="max-w-5xl mx-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+              {/* Sidebar */}
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center text-lg font-montserrat">
+                      <Search className="h-4 w-4 mr-2" />
+                      Find Tips
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Search tips..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-9"
+                      />
+                    </div>
+                    
+                    <div>
+                      <h3 className="text-sm font-medium mb-3">Categories</h3>
+                      <div className="space-y-1.5">
+                        <Button
+                          variant={selectedCategory === null ? "default" : "outline"}
+                          size="sm"
+                          className="w-full justify-start"
+                          onClick={() => setSelectedCategory(null)}
+                        >
+                          <Leaf className="mr-2 h-4 w-4" />
+                          All Categories
+                        </Button>
+                        
+                        {ecoTipCategories.map(category => {
+                          const colors = getCategoryColors(category.value);
+                          return (
+                            <Button
+                              key={category.value}
+                              variant={selectedCategory === category.value ? "default" : "outline"}
+                              size="sm"
+                              className={`w-full justify-start ${selectedCategory === category.value ? `bg-gradient-to-r ${colors.gradient} border-0` : ''}`}
+                              onClick={() => setSelectedCategory(category.value)}
+                            >
+                              {getCategoryIcon(category.value)}
+                              <span className="ml-2">{category.label}</span>
+                            </Button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card className="bg-gradient-to-b from-primary/5 to-transparent border-primary/20">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center text-lg font-montserrat text-primary">
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      AI Generator
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm mb-4">
+                      Let our AI create personalized eco-tips tailored to your sustainability interests.
+                    </p>
+                    <div className="space-y-2">
+                      {ecoTipCategories.map(category => {
+                        const colors = getCategoryColors(category.value);
+                        return (
+                          <Button
+                            key={category.value}
+                            variant="outline"
+                            size="sm"
+                            className={`w-full justify-start ${colors.bg} ${colors.text} border ${colors.border}`}
+                            onClick={() => handleGenerateTip(category.value)}
+                            disabled={generateTipMutation.isPending}
+                          >
+                            {generateTipMutation.isPending && generateTipMutation.variables === category.value ? (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                              getCategoryIcon(category.value)
+                            )}
+                            <span className="ml-2">Generate {category.label} Tip</span>
+                          </Button>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+              
+              {/* Main Content */}
+              <div className="lg:col-span-3">
+                <Tabs defaultValue="all" value={currentTab} onValueChange={setCurrentTab} className="mb-6">
+                  <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="all" className="flex items-center gap-2">
+                      <TreePine className="h-4 w-4" /> All Tips
+                    </TabsTrigger>
+                    <TabsTrigger value="newest" className="flex items-center gap-2">
+                      <Sparkles className="h-4 w-4" /> Newest
+                    </TabsTrigger>
+                    <TabsTrigger value="saved" className="flex items-center gap-2">
+                      <BookmarkCheck className="h-4 w-4" /> Saved ({savedTips.length})
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
+                
+                {isLoading ? (
+                  <div className="flex flex-col items-center justify-center py-12">
+                    <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+                    <p className="text-muted-foreground">Loading your eco tips...</p>
+                  </div>
+                ) : filteredTips && filteredTips.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {filteredTips.map(tip => {
+                      const categoryInfo = ecoTipCategories.find(cat => cat.value === tip.category);
+                      const createdAt = tip.createdAt ? new Date(tip.createdAt) : new Date();
+                      const isNewTip = createdAt.getTime() > Date.now() - 24 * 60 * 60 * 1000;
+                      const isSaved = savedTips.includes(tip.id);
+                      const isLiked = likedTips.includes(tip.id);
+                      const colors = getCategoryColors(tip.category || 'default');
+                      
+                      return (
+                        <Card key={tip.id} className="overflow-hidden flex flex-col h-full border hover:shadow-md transition-shadow">
+                          <div className="h-1.5 bg-gradient-to-r w-full" style={{ backgroundImage: `linear-gradient(to right, ${colors.text}, ${colors.text})` }}></div>
+                          <CardHeader className="pb-3">
+                            <div className="flex items-start">
+                              <div className={`p-2 rounded-full ${colors.bg} mr-3 flex-shrink-0`}>
+                                {getCategoryIcon(tip.category)}
+                              </div>
+                              <div>
+                                <CardTitle className="text-lg font-semibold mb-1">
+                                  {tip.title}
+                                </CardTitle>
+                                <div className="flex items-center flex-wrap gap-2">
+                                  <Badge variant="outline" className={`${colors.text} ${colors.bg} border-0 text-xs capitalize`}>
+                                    {categoryInfo?.label || tip.category}
+                                  </Badge>
+                                  {isNewTip && (
+                                    <Badge variant="default" className="bg-blue-500 text-xs">
+                                      New
+                                    </Badge>
+                                  )}
+                                  <span className="text-xs text-muted-foreground">
+                                    {createdAt.toLocaleDateString()}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="py-3 flex-grow">
+                            <p className="text-sm text-gray-700">{tip.content}</p>
+                          </CardContent>
+                          <CardFooter className="flex justify-between items-center pt-3 border-t">
+                            <div className="flex items-center gap-1">
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className={isLiked ? "text-green-500" : "text-gray-400"}
+                                onClick={() => handleLikeTip(tip.id)}
+                                disabled={isLiked}
+                              >
+                                <ThumbsUp className="h-4 w-4 mr-1" />
+                                <span className="text-xs">{isLiked ? 'Helpful' : 'Like'}</span>
+                              </Button>
+                            </div>
+                            <Button 
+                              variant={isSaved ? "default" : "outline"} 
+                              size="sm" 
+                              className={isSaved ? "bg-primary text-white" : "text-primary"}
+                              onClick={() => handleSaveTip(tip.id)}
+                            >
+                              {isSaved ? <BookmarkCheck className="h-4 w-4 mr-1" /> : <Bookmark className="h-4 w-4 mr-1" />}
+                              {isSaved ? "Saved" : "Save"}
+                            </Button>
+                          </CardFooter>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <Card className="text-center py-12 border-dashed border-2">
+                    <CardContent>
+                      <div className="mb-5 bg-primary/5 h-20 w-20 rounded-full flex items-center justify-center mx-auto">
+                        <Lightbulb className="h-10 w-10 text-primary/70" />
+                      </div>
+                      <h3 className="text-xl font-montserrat font-medium text-gray-800 mb-3">
+                        No eco tips found
+                      </h3>
+                      <p className="text-gray-500 mb-6 max-w-md mx-auto">
+                        {searchTerm ? "Try a different search term or" : "Start by"} generating a sustainable living tip 
+                        to help reduce your environmental footprint.
+                      </p>
+                      <Button 
+                        onClick={() => {
+                          setSearchTerm("");
+                          setSelectedCategory(null);
+                          setCurrentTab("all");
+                          handleGenerateTip("recycling");
+                        }}
+                        disabled={generateTipMutation.isPending}
+                        className="gap-2"
+                      >
+                        {generateTipMutation.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Sparkles className="h-4 w-4" />
+                        )}
+                        Generate My First Tip
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
       </main>
       
       <MobileNavigation />
