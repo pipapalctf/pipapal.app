@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import Logo from "@/components/logo";
 import { useAuth } from "@/hooks/use-auth";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -11,21 +11,52 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Menu } from "lucide-react";
+import { Menu, Truck } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { NotificationBell } from "@/components/shared/notification-bell";
+import { UserRole } from "@shared/schema";
+
+// Define a type for navigation links
+interface NavLink {
+  href: string;
+  label: string;
+  active: boolean;
+  icon?: React.ReactNode;
+}
 
 export default function Navbar() {
   const [location] = useLocation();
   const { user, logoutMutation } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const navLinks = [
-    { href: "/dashboard", label: "Dashboard", active: location === "/dashboard" },
-    { href: "/schedule-pickup", label: "Schedule Collection", active: location === "/schedule-pickup" },
-    { href: "/ecotips", label: "EcoTips", active: location === "/ecotips" },
-    { href: "/impact", label: "Impact", active: location === "/impact" },
-  ];
+  // Dynamic navigation links based on user role
+  const navLinks = useMemo<NavLink[]>(() => {
+    const links: NavLink[] = [
+      { href: "/dashboard", label: "Dashboard", active: location === "/dashboard" },
+      { href: "/ecotips", label: "EcoTips", active: location === "/ecotips" },
+      { href: "/impact", label: "Impact", active: location === "/impact" },
+    ];
+    
+    // Add collector-specific links
+    if (user?.role === UserRole.COLLECTOR) {
+      links.push({
+        href: "/collections",
+        label: "Collections",
+        active: location === "/collections",
+        icon: <Truck className="w-4 h-4 mr-1" />
+      });
+    } 
+    // Add household-specific links
+    else if (user?.role === UserRole.HOUSEHOLD) {
+      links.push({
+        href: "/schedule-pickup",
+        label: "Schedule Collection",
+        active: location === "/schedule-pickup"
+      });
+    }
+    
+    return links;
+  }, [location, user?.role]);
 
   function handleLogout() {
     logoutMutation.mutate();
@@ -46,10 +77,11 @@ export default function Navbar() {
             <Link
               key={link.href}
               href={link.href}
-              className={`transition-colors font-medium ${
+              className={`transition-colors font-medium flex items-center ${
                 link.active ? "text-primary" : "text-secondary hover:text-primary"
               }`}
             >
+              {link.icon && link.icon}
               {link.label}
             </Link>
           ))}
@@ -103,11 +135,12 @@ export default function Navbar() {
               <Link
                 key={link.href}
                 href={link.href}
-                className={`transition-colors font-medium ${
+                className={`transition-colors font-medium flex items-center ${
                   link.active ? "text-primary" : "text-secondary hover:text-primary"
                 }`}
                 onClick={() => setIsMobileMenuOpen(false)}
               >
+                {link.icon && link.icon}
                 {link.label}
               </Link>
             ))}
