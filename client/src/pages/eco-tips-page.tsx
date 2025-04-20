@@ -170,24 +170,25 @@ export default function EcoTipsPage() {
                 
                 <div className="relative w-full md:w-2/5 max-w-sm flex-shrink-0">
                   <div className="p-4 bg-white shadow-lg rounded-lg border border-gray-100">
-                    <div className="mb-4 flex items-center gap-3">
+                    <div className="mb-4 flex items-start gap-3">
                       <IconBadge 
                         icon="lightbulb" 
                         bgColor="bg-primary/10"
                         textColor="text-primary"
                         size="lg"
+                        className="flex-shrink-0"
                       />
-                      <div>
-                        <h3 className="font-semibold text-lg">Generate New Tip</h3>
+                      <div className="min-w-0"> {/* Add min-width for proper wrapping */}
+                        <h3 className="font-semibold text-lg break-words">Generate New Tip</h3>
                         <p className="text-sm text-gray-500">AI-powered sustainability advice</p>
                       </div>
                     </div>
                     
                     <div className="space-y-3">
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-gray-600 break-words">
                         Choose a category and get an AI-generated tip to help you live more sustainably:
                       </p>
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {ecoTipCategories.slice(0, 4).map(category => (
                           <Button
                             key={category.value}
@@ -197,12 +198,14 @@ export default function EcoTipsPage() {
                             onClick={() => handleGenerateTip(category.value)}
                             disabled={generateTipMutation.isPending}
                           >
-                            {generateTipMutation.isPending && generateTipMutation.variables === category.value ? (
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            ) : (
-                              getCategoryIcon(category.value)
-                            )}
-                            <span className="ml-2">{category.label}</span>
+                            <div className="flex items-center min-w-0">
+                              {generateTipMutation.isPending && generateTipMutation.variables === category.value ? (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin flex-shrink-0" />
+                              ) : (
+                                <span className="mr-2 flex-shrink-0">{getCategoryIcon(category.value)}</span>
+                              )}
+                              <span className="truncate">{category.label}</span>
+                            </div>
                           </Button>
                         ))}
                       </div>
@@ -212,15 +215,15 @@ export default function EcoTipsPage() {
                         disabled={generateTipMutation.isPending}
                       >
                         {generateTipMutation.isPending ? (
-                          <>
+                          <div className="flex items-center justify-center">
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Generating...
-                          </>
+                            <span>Generating...</span>
+                          </div>
                         ) : (
-                          <>
+                          <div className="flex items-center justify-center">
                             <Sparkles className="mr-2 h-4 w-4" />
-                            Generate Random Tip
-                          </>
+                            <span>Generate Random Tip</span>
+                          </div>
                         )}
                       </Button>
                     </div>
@@ -368,8 +371,8 @@ export default function EcoTipsPage() {
                               <div className={`p-2 rounded-full ${colors.bg} mr-3 flex-shrink-0`}>
                                 {getCategoryIcon(tip.category)}
                               </div>
-                              <div>
-                                <CardTitle className="text-lg font-semibold mb-1">
+                              <div className="min-w-0 flex-1"> {/* Add min-width to ensure proper text wrapping */}
+                                <CardTitle className="text-lg font-semibold mb-1 break-words">
                                   {tip.title}
                                 </CardTitle>
                                 <div className="flex items-center flex-wrap gap-2">
@@ -389,7 +392,7 @@ export default function EcoTipsPage() {
                             </div>
                           </CardHeader>
                           <CardContent className="py-3 flex-grow">
-                            <p className="text-sm text-gray-700">{tip.content}</p>
+                            <p className="text-sm text-gray-700 break-words">{tip.content}</p>
                           </CardContent>
                           <CardFooter className="flex justify-between items-center pt-3 border-t">
                             <div className="flex items-center gap-1">
