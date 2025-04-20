@@ -247,7 +247,7 @@ export default function CollectorCollectionsPage() {
   
   // Get requester (user) data for a collection
   const getRequesterInfo = (userId: number) => {
-    if (!users || !users.length) return null;
+    if (!users || !Array.isArray(users) || users.length === 0) return null;
     return users.find((u: any) => u.id === userId);
   };
 
@@ -473,6 +473,40 @@ export default function CollectorCollectionsPage() {
             </DialogHeader>
             
             <div className="grid gap-4 py-4">
+              {/* Requester Information */}
+              {selectedCollection.userId && (
+                <div className="grid grid-cols-4 items-start gap-4 mb-2">
+                  <Label className="text-right">Requester</Label>
+                  <div className="col-span-3 flex flex-col">
+                    {(() => {
+                      const requester = getRequesterInfo(selectedCollection.userId);
+                      if (!requester) return <span className="text-muted-foreground text-sm">User information not available</span>;
+                      
+                      return (
+                        <div className="flex flex-col gap-1">
+                          <div className="font-medium">{requester.fullName || requester.username}</div>
+                          {requester.fullName && requester.username && (
+                            <div className="text-sm text-muted-foreground">@{requester.username}</div>
+                          )}
+                          {requester.email && (
+                            <div className="text-sm flex items-center gap-1 mt-1">
+                              <span className="text-muted-foreground">Email:</span> 
+                              <span>{requester.email}</span>
+                            </div>
+                          )}
+                          {requester.phone && (
+                            <div className="text-sm flex items-center gap-1">
+                              <span className="text-muted-foreground">Phone:</span> 
+                              <span>{requester.phone}</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
+              )}
+              
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label className="text-right">Status</Label>
                 <div className="col-span-3">
