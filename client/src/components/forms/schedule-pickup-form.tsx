@@ -196,19 +196,15 @@ export default function SchedulePickupForm() {
                                 }} 
                               />
                             </div>
-                            <div className="flex flex-col">
-                              <span className="font-medium">{wasteConfig.label}</span>
-                              <span className="text-xs text-muted-foreground">
-                                Earn points for responsible disposal
-                              </span>
-                            </div>
-                          </div>
-                          <div className="flex flex-col items-end ml-2">
-                            <span className="text-sm font-medium text-primary">
-                              {wasteConfig.points} pts/{standardWeight} kg
+                            <span className="font-medium">{wasteConfig.label}:</span>
+                            <span className="ml-2 font-medium text-primary">
+                              {wasteConfig.points} pts
                             </span>
-                            <span className="text-xs text-muted-foreground">
-                              {(wasteConfig.points / standardWeight).toFixed(1)} pts per kg
+                            <span className="text-xs text-muted-foreground ml-1">
+                              per {standardWeight}kg
+                            </span>
+                            <span className="text-xs ml-1 text-primary font-medium">
+                              ({(wasteConfig.points / standardWeight).toFixed(1)} pts/kg)
                             </span>
                           </div>
                         </div>
