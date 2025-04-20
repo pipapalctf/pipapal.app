@@ -22,7 +22,7 @@ export default function Navbar() {
 
   const navLinks = [
     { href: "/dashboard", label: "Dashboard", active: location === "/dashboard" },
-    { href: "/schedule", label: "Schedule Collection", active: location === "/schedule" },
+    { href: "/schedule-pickup", label: "Schedule Collection", active: location === "/schedule-pickup" },
     { href: "/ecotips", label: "EcoTips", active: location === "/ecotips" },
     { href: "/impact", label: "Impact", active: location === "/impact" },
   ];
