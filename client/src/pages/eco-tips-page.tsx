@@ -24,7 +24,7 @@ const PREDEFINED_CUSTOM_TIPS = [
   {
     id: "custom-1",
     title: "How to Recycle Old Tires Properly",
-    content: "Take old tires to tire retailers offering recycling programs, or contact local recycling centers that accept tires. Many can be repurposed into playground surfaces, garden planters, or mulch. Never dispose of tires in regular trash.",
+    content: "Old tires can be recycled at tire retailers or local recycling centers. Many municipalities offer free tire collection events.\n\n**Did you know?** Only about 35% of tires are recycled properly, yet 100% of a tire can be reused!\n\n**DIY Project:** Create a colorful tire planter by cleaning an old tire, painting it with outdoor paint, adding drainage holes, and filling with soil and plants. Perfect for flowers or growing vegetables in small spaces.",
     category: "recycling",
     isCustom: true,
     createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
@@ -32,7 +32,7 @@ const PREDEFINED_CUSTOM_TIPS = [
   {
     id: "custom-2",
     title: "Electronic Waste Recycling Guide",
-    content: "Recycle electronics at dedicated e-waste centers or retailer take-back programs. Best Buy, Staples and Apple accept old devices for free recycling. Remove personal data before recycling and look for certified e-waste recyclers.",
+    content: "Recycle electronics at dedicated e-waste centers or retailer take-back programs like Best Buy, Staples, and Apple. Always remove personal data before recycling.\n\n**Did you know?** For every million cell phones recycled, 35,000 lbs of copper, 772 lbs of silver, 75 lbs of gold, and 33 lbs of palladium can be recovered!\n\n**DIY Project:** Transform an old laptop into a digital photo frame by removing the screen assembly, installing photo frame software, and creating a custom stand from reclaimed wood.",
     category: "waste",
     isCustom: true,
     createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
@@ -40,7 +40,7 @@ const PREDEFINED_CUSTOM_TIPS = [
   {
     id: "custom-3",
     title: "Composting Coffee Grounds Tips",
-    content: "Coffee grounds add nitrogen to compost - mix 1 part grounds with 4 parts carbon materials like dried leaves or newspaper. Can also be used directly in garden soil for acid-loving plants like azaleas, blueberries and roses.",
+    content: "Coffee grounds add valuable nitrogen to compost. Mix 1 part grounds with 4 parts carbon materials like dried leaves or shredded newspaper.\n\n**Did you know?** Coffee grounds help attract earthworms to your compost, which accelerate decomposition and increase nutrient content!\n\n**DIY Project:** Create a coffee ground scrub by mixing dried coffee grounds with coconut oil and a few drops of essential oil. Store in a sealed jar for a natural exfoliating body scrub that's plastic-free.",
     category: "composting",
     isCustom: true,
     createdAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000), // 4 days ago
@@ -48,7 +48,7 @@ const PREDEFINED_CUSTOM_TIPS = [
   {
     id: "custom-4",
     title: "Bathroom Plastic Reduction Methods",
-    content: "Replace plastic bottles with solid shampoo/soap bars, bamboo toothbrushes, refillable containers, and metal razors. Install a shower filter instead of buying bottled water. Choose products with compostable packaging.",
+    content: "Replace plastic bottles with solid shampoo bars, bamboo toothbrushes, refillable containers, and metal razors. Choose products with compostable packaging.\n\n**Did you know?** The average person uses about 156 plastic bottles per year in the bathroom alone, most of which end up in landfills!\n\n**DIY Project:** Make your own toothpaste by mixing 2 tbsp coconut oil, 1 tbsp baking soda, 10 drops peppermint essential oil, and 1 tsp stevia. Store in a small glass jar and apply with a bamboo applicator.",
     category: "plastic",
     isCustom: true,
     createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
@@ -56,7 +56,7 @@ const PREDEFINED_CUSTOM_TIPS = [
   {
     id: "custom-5",
     title: "Energy-Efficient Home Cooking Guide",
-    content: "Use pressure cookers to reduce cooking time by 70%. Match pot size to burner size. Keep lids on when cooking. Batch cook multiple meals at once. Use residual heat by turning off electric stovetops 5 minutes before cooking is complete.",
+    content: "Use pressure cookers to reduce cooking time by 70%. Match pot size to burner size and keep lids on when cooking. Turn off electric stovetops 5 minutes before cooking is complete.\n\n**Did you know?** Pressure cookers use 50-75% less energy than conventional cooking methods, saving both time and electricity!\n\n**DIY Project:** Create a heat-retaining cooking box by lining a cardboard box with reflective bubble wrap insulation. After bringing food to temperature on the stove, place the covered pot into the box to continue cooking without using additional energy.",
     category: "energy",
     isCustom: true,
     createdAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000), // 6 days ago
@@ -64,7 +64,7 @@ const PREDEFINED_CUSTOM_TIPS = [
   {
     id: "custom-6",
     title: "Rainwater Collection System Setup",
-    content: "Install a rain barrel under downspouts with mosquito screens and overflow outlets. A 50-gallon barrel can be sufficient for small gardens. Check local regulations first. Use collected water for gardens, plants, and lawn watering.",
+    content: "Install a rain barrel under downspouts with mosquito screens and overflow outlets. A 50-gallon barrel can supply water for a small garden.\n\n**Did you know?** A 1,000 sq. ft. roof can collect approximately 600 gallons of water from just 1 inch of rainfall!\n\n**DIY Project:** Create a decorative rain chain by connecting copper cups or funnels with small chains. Install where a downspout would normally go to guide rainwater directly into your collection barrel while adding visual interest to your home.",
     category: "water",
     isCustom: true,
     createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 7 days ago
@@ -242,6 +242,45 @@ export default function EcoTipsPage() {
       case 'transportation': return { bg: 'bg-purple-100', text: 'text-purple-600', border: 'border-purple-200', gradient: 'from-purple-400 to-purple-600' };
       default: return { bg: 'bg-primary/10', text: 'text-primary', border: 'border-primary/20', gradient: 'from-primary/70 to-primary' };
     }
+  };
+  
+  // Render formatted tip content with special sections
+  const TipContent = ({ content }: { content: string }) => {
+    return (
+      <>
+        {content.split('\n\n').map((paragraph, idx) => {
+          if (paragraph.startsWith('**Did you know?**')) {
+            return (
+              <div key={idx} className="mt-3 p-2 bg-blue-50 rounded-md border border-blue-100">
+                <p className="text-sm text-blue-800 font-medium">
+                  💡 Did you know?
+                </p>
+                <p className="text-sm text-blue-700">
+                  {paragraph.replace('**Did you know?**', '').trim()}
+                </p>
+              </div>
+            );
+          } else if (paragraph.startsWith('**DIY Project:**')) {
+            return (
+              <div key={idx} className="mt-3 p-2 bg-green-50 rounded-md border border-green-100">
+                <p className="text-sm text-green-800 font-medium">
+                  🛠️ DIY Project
+                </p>
+                <p className="text-sm text-green-700">
+                  {paragraph.replace('**DIY Project:**', '').trim()}
+                </p>
+              </div>
+            );
+          } else {
+            return (
+              <p key={idx} className="text-sm text-gray-700 mb-2">
+                {paragraph}
+              </p>
+            );
+          }
+        })}
+      </>
+    );
   };
 
   return (
