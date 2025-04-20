@@ -121,8 +121,8 @@ export default function CollectorCollectionsPage() {
       
       if (wasteAmount && status === CollectionStatus.COMPLETED) {
         updateData.wasteAmount = wasteAmount;
-        // Set current date as completed date
-        updateData.completedDate = new Date();
+        // Use a string date instead of a Date object to avoid serialization issues
+        updateData.completedDate = new Date().toISOString();
       }
       
       const res = await apiRequest('PATCH', `/api/collections/${id}`, updateData);

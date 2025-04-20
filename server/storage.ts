@@ -522,21 +522,8 @@ export class DatabaseStorage implements IStorage {
     // Process date fields if present
     const processedUpdates = { ...updates };
     
-    // Handle completedDate (ensure it's a proper Date object)
-    if (processedUpdates.completedDate !== undefined) {
-      if (processedUpdates.completedDate === null) {
-        // Keep it as null if explicitly set to null
-        processedUpdates.completedDate = null;
-      } else {
-        // Convert to Date object
-        try {
-          processedUpdates.completedDate = new Date(processedUpdates.completedDate);
-        } catch (error) {
-          console.error('Error converting completedDate:', error);
-          throw new Error('Invalid completedDate format');
-        }
-      }
-    }
+    // Just let Drizzle handle the date directly, without any conversion
+    // The client is sending an ISO string which the Postgres driver can process directly
     
     const [updatedCollection] = await db.update(collections)
       .set(processedUpdates)
