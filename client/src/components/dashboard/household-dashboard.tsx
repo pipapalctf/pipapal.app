@@ -84,40 +84,103 @@ export default function HouseholdDashboard({ user }: HouseholdDashboardProps) {
         </p>
       </div>
       
-      {/* Key Stats */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Pickups</CardTitle>
+      {/* Key Stats Cards */}
+      <div className="grid gap-6 grid-cols-1 sm:grid-cols-3">
+        {/* Total Pickups Card */}
+        <Card className="overflow-hidden border-2 hover:border-primary/50 transition-all duration-200">
+          <CardHeader className="pb-2 bg-muted/30">
+            <CardTitle className="text-sm font-medium flex items-center justify-between">
+              <span>Total Pickups</span>
+              <Truck className="h-4 w-4 text-primary" />
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="flex items-center">
-              <Truck className="mr-2 h-4 w-4 text-muted-foreground" />
-              <span className="text-2xl font-bold">{collections.length}</span>
+          <CardContent className="pt-4">
+            <div className="flex flex-col">
+              <span className="text-3xl font-bold text-center">
+                {Array.isArray(collections) ? collections.length : 0}
+              </span>
+              <span className="text-xs text-muted-foreground text-center mt-1">
+                {Array.isArray(collections) && collections.length === 1 ? 'collection scheduled' : 'collections scheduled'}
+              </span>
+              <div className="w-full mt-4 bg-muted h-1 rounded-full overflow-hidden">
+                <div 
+                  className="bg-primary h-1 rounded-full" 
+                  style={{ 
+                    width: `${Math.min(Array.isArray(collections) ? collections.length * 5 : 0, 100)}%` 
+                  }} 
+                />
+              </div>
             </div>
           </CardContent>
         </Card>
         
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Waste Collected</CardTitle>
+        {/* Waste Collected Card */}
+        <Card className="overflow-hidden border-2 hover:border-primary/50 transition-all duration-200">
+          <CardHeader className="pb-2 bg-muted/30">
+            <CardTitle className="text-sm font-medium flex items-center justify-between">
+              <span>Waste Collected</span>
+              <Scale className="h-4 w-4 text-primary" />
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="flex items-center">
-              <Scale className="mr-2 h-4 w-4 text-muted-foreground" />
-              <span className="text-2xl font-bold">{formatNumber(totalWasteWeight)} kg</span>
+          <CardContent className="pt-4">
+            <div className="flex flex-col">
+              <div className="flex items-center justify-center gap-1">
+                <span className="text-3xl font-bold">{formatNumber(totalWasteWeight || 0)}</span>
+                <span className="text-lg font-medium text-muted-foreground">kg</span>
+              </div>
+              <span className="text-xs text-muted-foreground text-center mt-1">
+                total waste managed
+              </span>
+              <div className="mt-4 grid grid-cols-4 gap-1">
+                {Array.isArray(collections) && collections.length > 0 ? (
+                  [...Array(4)].map((_, i) => (
+                    <div 
+                      key={i} 
+                      className={`h-1 rounded-full ${i < Math.min(Math.ceil(totalWasteWeight / 10), 4) ? 'bg-primary' : 'bg-muted'}`}
+                    />
+                  ))
+                ) : (
+                  [...Array(4)].map((_, i) => (
+                    <div key={i} className="h-1 rounded-full bg-muted" />
+                  ))
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>
         
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">CO₂ Reduced</CardTitle>
+        {/* CO₂ Reduced Card */}
+        <Card className="overflow-hidden border-2 hover:border-primary/50 transition-all duration-200">
+          <CardHeader className="pb-2 bg-muted/30">
+            <CardTitle className="text-sm font-medium flex items-center justify-between">
+              <span>CO₂ Reduced</span>
+              <Leaf className="h-4 w-4 text-primary" />
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="flex items-center">
-              <Leaf className="mr-2 h-4 w-4 text-muted-foreground" />
-              <span className="text-2xl font-bold">{formatNumber(impact?.co2Reduced || 0)} kg</span>
+          <CardContent className="pt-4">
+            <div className="flex flex-col">
+              <div className="flex items-center justify-center gap-1">
+                <span className="text-3xl font-bold">{formatNumber(impact?.co2Reduced || 0)}</span>
+                <span className="text-lg font-medium text-muted-foreground">kg</span>
+              </div>
+              <span className="text-xs text-muted-foreground text-center mt-1">
+                carbon footprint reduced
+              </span>
+              <div className="w-full mt-4 flex justify-center">
+                <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Leaf className="h-3 w-3 text-primary" />
+                </div>
+                {impact?.co2Reduced > 5 && (
+                  <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center ml-1">
+                    <Leaf className="h-3 w-3 text-primary" />
+                  </div>
+                )}
+                {impact?.co2Reduced > 10 && (
+                  <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center ml-1">
+                    <Leaf className="h-3 w-3 text-primary" />
+                  </div>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>
