@@ -393,11 +393,9 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
                       data={Array.isArray(monthlyData) ? monthlyData.map((month: any) => ({
                         ...month,
                         // Scale trees for visibility (multiply by 100)
-                        treesEquivalent: (month.wasteCollected || 0) * 0.01 * 100,
+                        treesEquivalent: (month.treesEquivalent || 0) * 100,
                         // Scale water saved for better visualization (divide by 10)
-                        waterSaved: (month.wasteCollected || 0) * 50 / 10,
-                        // Energy conserved
-                        energyConserved: (month.wasteCollected || 0) * 5
+                        waterSaved: (month.waterSaved || 0) / 10
                       })) : []}
                       margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
                     >

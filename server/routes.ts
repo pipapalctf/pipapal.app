@@ -232,17 +232,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
             monthlyData.set(monthName, {
               name: monthName,
               wasteCollected: 0,
-              co2Reduced: 0
+              co2Reduced: 0,
+              waterSaved: 0,
+              treesEquivalent: 0,
+              energyConserved: 0
             });
           }
           
           // Use waste amount or default to 10kg
           const wasteAmount = collection.wasteAmount || 10;
           
+          // Impact factors based on the same calculations used when creating impact records
+          const impactFactors = {
+            waterSaved: 50, // liters of water saved per kg
+            co2Reduced: 2, // kg of CO2 reduced per kg of waste
+            treesEquivalent: 0.01, // trees saved per kg
+            energyConserved: 5 // kWh conserved per kg
+          };
+          
           // Update monthly data
           const monthData = monthlyData.get(monthName);
           monthData.wasteCollected += wasteAmount;
-          monthData.co2Reduced += wasteAmount * 2; // Assuming 2kg CO2 reduction per kg of waste
+          monthData.co2Reduced += wasteAmount * impactFactors.co2Reduced;
+          monthData.waterSaved += wasteAmount * impactFactors.waterSaved;
+          monthData.treesEquivalent += wasteAmount * impactFactors.treesEquivalent;
+          monthData.energyConserved += wasteAmount * impactFactors.energyConserved;
         });
         
         // Convert to array and sort by month
