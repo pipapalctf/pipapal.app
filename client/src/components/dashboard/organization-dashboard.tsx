@@ -728,10 +728,11 @@ export default function OrganizationDashboard({ user }: OrganizationDashboardPro
         {/* Waste Analysis Tab */}
         <TabsContent value="waste" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card>
-              <CardHeader>
+            {/* Waste Composition Card */}
+            <Card className="overflow-hidden">
+              <CardHeader className="border-b bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/30 dark:to-green-900/20">
                 <CardTitle className="flex items-center">
-                  <Scale className="mr-2 h-5 w-5" />
+                  <Scale className="mr-2 h-5 w-5 text-green-600 dark:text-green-400" />
                   Waste Composition
                 </CardTitle>
               </CardHeader>
