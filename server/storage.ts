@@ -519,16 +519,25 @@ export class DatabaseStorage implements IStorage {
     const [collection] = await db.select().from(collections).where(eq(collections.id, id));
     if (!collection) return undefined;
     
-    // Process date fields if present
-    const processedUpdates = { ...updates };
+    // Use direct SQL for date handling to bypass any ORM serialization issues
+    let query = db.update(collections).where(eq(collections.id, id));
     
-    // Just let Drizzle handle the date directly, without any conversion
-    // The client is sending an ISO string which the Postgres driver can process directly
+    // Build the update clauses manually
+    const setValues: Record<string, any> = {};
     
-    const [updatedCollection] = await db.update(collections)
-      .set(processedUpdates)
-      .where(eq(collections.id, id))
-      .returning();
+    // Handle regular fields
+    if (updates.status !== undefined) setValues.status = updates.status;
+    if (updates.notes !== undefined) setValues.notes = updates.notes;
+    if (updates.wasteAmount !== undefined) setValues.waste_amount = updates.wasteAmount;
+    if (updates.collectorId !== undefined) setValues.collector_id = updates.collectorId;
+    
+    // Handle completedDate separately
+    if (updates.status === CollectionStatus.COMPLETED && !collection.completedDate) {
+      setValues.completed_date = sql`NOW()`; // Use the database's NOW() function
+    }
+    
+    // Execute the update
+    const [updatedCollection] = await query.set(setValues).returning();
     
     // If collection is completed, generate impact data
     if (updates.status === CollectionStatus.COMPLETED && updates.wasteAmount) {
