@@ -16,17 +16,17 @@ import {
 import { formatNumber } from '@/lib/utils';
 import { wasteTypeConfig } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useNavigate } from 'wouter';
+import { useLocation } from 'wouter';
 
 export default function RecyclerMaterialsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const navigate = useNavigate();
+  const [, navigate] = useLocation();
   const [filterWasteType, setFilterWasteType] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('available');
 
   // Fetch collections that are pending/ready for recyclers to process
-  const { data: collections = [], isLoading } = useQuery({
+  const { data: collections = [], isLoading } = useQuery<Collection[]>({
     queryKey: ['/api/collections'],
   });
 
@@ -49,11 +49,11 @@ export default function RecyclerMaterialsPage() {
     }
     groups[wasteType].push(collection);
     return groups;
-  }, {});
+  }, {} as Record<string, Collection[]>);
 
   // Calculate total materials available
   const totalMaterials = completedCollections.reduce(
-    (total, collection) => total + (collection.wasteAmount || 0),
+    (total: number, collection: Collection) => total + (collection.wasteAmount || 0),
     0
   );
 
@@ -79,10 +79,27 @@ export default function RecyclerMaterialsPage() {
   // Get waste type display name and color
   const getWasteTypeDisplay = (type: string) => {
     const config = wasteTypeConfig[type as keyof typeof wasteTypeConfig] || wasteTypeConfig.general;
+    
+    // Map icon strings to Lucide React components
+    const getIconComponent = (iconName: string) => {
+      switch(iconName) {
+        case 'trash': return <Package className="h-4 w-4" />;
+        case 'recycle': return <Recycle className="h-4 w-4" />;
+        case 'file': return <Package className="h-4 w-4" />;
+        case 'wine-glass': return <Package className="h-4 w-4" />;
+        case 'shopping-bag': return <Package className="h-4 w-4" />;
+        case 'cpu': return <Package className="h-4 w-4" />;
+        case 'apple': return <Package className="h-4 w-4" />;
+        case 'flask': return <Package className="h-4 w-4" />;
+        case 'package': return <Package className="h-4 w-4" />;
+        default: return <Package className="h-4 w-4" />;
+      }
+    };
+    
     return {
       name: config.label || type.charAt(0).toUpperCase() + type.slice(1),
-      color: config.color || '#6b7280',
-      icon: config.icon || <Package className="h-4 w-4" />
+      color: config.textColor.replace('text-', ''),
+      icon: getIconComponent(config.icon)
     };
   };
 
