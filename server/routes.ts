@@ -177,6 +177,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isCollector && req.body.status) {
         // No need for additional permission check here
         // The collector role was already verified above
+        return next();
       } else if (!isOwner) {
         return res.status(403).json({
           error: 'Access denied',
@@ -184,7 +185,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      next();
+      return next();
     },
     async (req, res) => {
       try {
