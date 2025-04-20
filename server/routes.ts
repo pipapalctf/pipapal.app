@@ -87,21 +87,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         const collection = await storage.createCollection(collectionData);
         
-        // Award points based on the waste type (matching client configuration)
-        const pointsMap: Record<string, number> = {
-          'general': 5,
-          'plastic': 10,
-          'paper': 8,
-          'glass': 10,
-          'metal': 12,
-          'electronic': 15,
-          'organic': 8,
-          'hazardous': 20,
-          'cardboard': 8
+        // Award points based on the waste type and amount (matching client configuration)
+        const pointsPerKgMap: Record<string, number> = {
+          'general': 0.5,    // 5 pts per 10kg
+          'plastic': 1.0,    // 10 pts per 10kg
+          'paper': 0.8,      // 8 pts per 10kg
+          'glass': 1.0,      // 10 pts per 10kg
+          'metal': 1.2,      // 12 pts per 10kg
+          'electronic': 1.5, // 15 pts per 10kg
+          'organic': 0.8,    // 8 pts per 10kg
+          'hazardous': 2.0,  // 20 pts per 10kg
+          'cardboard': 0.8   // 8 pts per 10kg
         };
         
-        // Award default points if waste type is not in the map
-        const pointsToAward = pointsMap[collectionData.wasteType as string] || 5;
+        // Get the waste amount or default to 10kg
+        const wasteAmount = collectionData.wasteAmount || 10;
+        
+        // Calculate points based on waste type and amount
+        const pointsPerKg = pointsPerKgMap[collectionData.wasteType as string] || 0.5;
+        const pointsToAward = Math.round(pointsPerKg * wasteAmount);
         
         // Update user's sustainability score
         const updatedUser = await storage.updateUser(req.user.id, {
