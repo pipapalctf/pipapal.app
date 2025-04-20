@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { apiRequest, queryClient } from '@/lib/queryClient';
-import { Calendar, CheckCircle, Clock, Filter, MapPin, Search, Truck, Package, AlertTriangle, Trash2, ClipboardCheck, ArrowRight, CalendarClock, CheckCheck, X, Map, XCircle, Activity, Scale } from 'lucide-react';
+import { Calendar, CheckCircle, Clock, Filter, MapPin, Search, Truck, Package, AlertTriangle, Trash2, ClipboardCheck, ArrowRight, CalendarClock, CheckCheck, X, Map, XCircle, Activity, Scale, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatNumber } from '@/lib/utils';
 import { wasteTypeConfig } from '@/lib/types';
 import { format } from 'date-fns';
@@ -30,6 +30,7 @@ export default function CollectorCollectionsPage() {
   const [selectedCollection, setSelectedCollection] = useState<any>(null);
   const [wasteAmount, setWasteAmount] = useState<string>('');
   const [statusUpdateModal, setStatusUpdateModal] = useState(false);
+  const [cancelDialog, setCancelDialog] = useState(false);
   const [notesInput, setNotesInput] = useState('');
   
   // Fetch users for requester information
@@ -80,6 +81,10 @@ export default function CollectorCollectionsPage() {
       return new Date(b.scheduledDate).getTime() - new Date(a.scheduledDate).getTime();
     });
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const itemsPerPage = 10;
+  
   // Group collections by status for the dashboard
   const collectionsCountByStatus = {
     scheduled: filteredCollections.filter(c => c.status === CollectionStatus.SCHEDULED).length,
@@ -89,6 +94,13 @@ export default function CollectorCollectionsPage() {
     completed: filteredCollections.filter(c => c.status === CollectionStatus.COMPLETED).length,
     cancelled: filteredCollections.filter(c => c.status === CollectionStatus.CANCELLED).length,
   };
+  
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredCollections.length / itemsPerPage);
+  const paginatedCollections = filteredCollections.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   // Claim a collection (assign to self)
   const claimCollectionMutation = useMutation({
@@ -389,7 +401,7 @@ export default function CollectorCollectionsPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredCollections.map((collection: any) => (
+                      {paginatedCollections.map((collection: any) => (
                         <TableRow key={collection.id} className="group hover:bg-muted/50">
                           <TableCell className="font-medium">#{collection.id}</TableCell>
                           <TableCell>
@@ -454,6 +466,45 @@ export default function CollectorCollectionsPage() {
                       ))}
                     </TableBody>
                   </Table>
+                  
+                  {/* Pagination Controls */}
+                  {totalPages > 1 && (
+                    <div className="flex justify-center mt-6 space-x-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                        disabled={currentPage === 1}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                        <span className="sr-only">Previous Page</span>
+                      </Button>
+                      
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                          <Button
+                            key={page}
+                            variant={page === currentPage ? "default" : "outline"}
+                            size="sm"
+                            className="w-8 h-8 p-0"
+                            onClick={() => setCurrentPage(page)}
+                          >
+                            {page}
+                          </Button>
+                        ))}
+                      </div>
+                      
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                        disabled={currentPage === totalPages}
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                        <span className="sr-only">Next Page</span>
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>
