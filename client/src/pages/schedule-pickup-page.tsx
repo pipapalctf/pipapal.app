@@ -46,6 +46,7 @@ import { format } from "date-fns";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { scrollToTop } from "@/lib/utils";
 import { useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 
@@ -142,6 +143,7 @@ export default function SchedulePickupPage() {
   const handleEditRequest = (collection: Collection) => {
     setCollectionToEdit(collection);
     setActiveTab("schedule");
+    scrollToTop();
     // No URL update needed, just manage with state
   };
   
@@ -178,7 +180,10 @@ export default function SchedulePickupPage() {
             </p>
           </div>
           
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
+          <Tabs value={activeTab} onValueChange={(value) => {
+              setActiveTab(value);
+              scrollToTop();
+            }} className="mb-6">
             <TabsList className="grid w-full grid-cols-2 mb-8">
               <TabsTrigger value="schedule" className="flex items-center">
                 <CalendarPlus className="mr-2 h-4 w-4" />
@@ -205,6 +210,7 @@ export default function SchedulePickupPage() {
                       <SchedulePickupForm collectionToEdit={collectionToEdit} onSuccess={() => {
                         setCollectionToEdit(null);
                         navigate('/schedule-pickup?tab=pickups');
+                        scrollToTop();
                       }} />
                     </CardContent>
                   </Card>
