@@ -3,7 +3,23 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
-import { Building, Leaf, FileText, TrendingUp, CalendarClock, Download, Truck, Scale, BarChart4 } from 'lucide-react';
+import { 
+  BarChart4, 
+  Building, 
+  CalendarClock,
+  CalendarCheck,
+  Check, 
+  Download,
+  FileText, 
+  Leaf, 
+  Plus,
+  Recycle as RecycleIcon,
+  Scale, 
+  Target,
+  Truck, 
+  TrendingUp,
+  Trophy
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { User, CollectionStatus } from '@shared/schema';
 import { formatNumber } from '@/lib/utils';
@@ -784,75 +800,378 @@ export default function OrganizationDashboard({ user }: OrganizationDashboardPro
         
         {/* CSR Reports Tab */}
         <TabsContent value="reports" className="space-y-4">
-          <Card>
-            <CardHeader>
+          <Card className="overflow-hidden">
+            <CardHeader className="border-b bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950/30 dark:to-emerald-900/20">
               <CardTitle className="flex items-center">
-                <FileText className="mr-2 h-5 w-5" />
+                <Leaf className="mr-2 h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                 Environmental Impact Summary
               </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Measurable sustainability outcomes
+              </p>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div className="bg-card rounded-lg p-4 text-center">
-                  <h3 className="text-sm font-medium text-muted-foreground">Water Saved</h3>
-                  <p className="text-xl font-bold">{formatNumber(impact?.waterSaved || 0)} L</p>
+            <CardContent className="pt-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-5 mb-6">
+                {/* Water Saved Metric */}
+                <div className="flex flex-col items-center justify-center p-4 rounded-lg border bg-blue-50 dark:bg-blue-950/20 border-blue-100 dark:border-blue-900/20">
+                  <div className="flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 mb-3">
+                    <div className="text-xl text-blue-600 dark:text-blue-400">💧</div>
+                  </div>
+                  <p className="text-sm font-medium text-blue-700 dark:text-blue-300">Water Saved</p>
+                  <div className="flex items-baseline mt-1">
+                    <span className="text-2xl font-bold text-blue-700 dark:text-blue-300">
+                      {formatNumber(impact?.waterSaved || 0)}
+                    </span>
+                    <span className="ml-1 text-sm text-blue-600/70 dark:text-blue-400/70">L</span>
+                  </div>
+                  <p className="mt-2 text-xs text-blue-600/70 dark:text-blue-400/70 text-center">
+                    ≈ {formatNumber(Math.round((impact?.waterSaved || 0) / 10))} 
+                    <span className="ml-1">shower minutes</span>
+                  </p>
                 </div>
-                <div className="bg-card rounded-lg p-4 text-center">
-                  <h3 className="text-sm font-medium text-muted-foreground">CO₂ Reduced</h3>
-                  <p className="text-xl font-bold">{formatNumber(impact?.co2Reduced || 0)} kg</p>
+                
+                {/* CO₂ Reduced Metric */}
+                <div className="flex flex-col items-center justify-center p-4 rounded-lg border bg-emerald-50 dark:bg-emerald-950/20 border-emerald-100 dark:border-emerald-900/20">
+                  <div className="flex items-center justify-center w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/30 mb-3">
+                    <Leaf className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+                  </div>
+                  <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">CO₂ Reduced</p>
+                  <div className="flex items-baseline mt-1">
+                    <span className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">
+                      {formatNumber(impact?.co2Reduced || 0)}
+                    </span>
+                    <span className="ml-1 text-sm text-emerald-600/70 dark:text-emerald-400/70">kg</span>
+                  </div>
+                  <p className="mt-2 text-xs text-emerald-600/70 dark:text-emerald-400/70 text-center">
+                    ≈ {formatNumber(Math.round((impact?.co2Reduced || 0) * 2.5))} 
+                    <span className="ml-1">car miles</span>
+                  </p>
                 </div>
-                <div className="bg-card rounded-lg p-4 text-center">
-                  <h3 className="text-sm font-medium text-muted-foreground">Trees Equivalent</h3>
-                  <p className="text-xl font-bold">{formatNumber(impact?.treesEquivalent || 0)}</p>
+                
+                {/* Trees Equivalent Metric */}
+                <div className="flex flex-col items-center justify-center p-4 rounded-lg border bg-amber-50 dark:bg-amber-950/20 border-amber-100 dark:border-amber-900/20">
+                  <div className="flex items-center justify-center w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/30 mb-3">
+                    <div className="text-xl text-amber-600 dark:text-amber-400">🌳</div>
+                  </div>
+                  <p className="text-sm font-medium text-amber-700 dark:text-amber-300">Trees Equivalent</p>
+                  <div className="flex items-baseline mt-1">
+                    <span className="text-2xl font-bold text-amber-700 dark:text-amber-300">
+                      {formatNumber(impact?.treesEquivalent || 0, 1)}
+                    </span>
+                    <span className="ml-1 text-sm text-amber-600/70 dark:text-amber-400/70">trees</span>
+                  </div>
+                  <p className="mt-2 text-xs text-amber-600/70 dark:text-amber-400/70 text-center">
+                    Absorbing CO₂ for
+                    <span className="ml-1">{formatNumber(Math.round((impact?.treesEquivalent || 0) * 365))} days</span>
+                  </p>
                 </div>
-                <div className="bg-card rounded-lg p-4 text-center">
-                  <h3 className="text-sm font-medium text-muted-foreground">Energy Conserved</h3>
-                  <p className="text-xl font-bold">{formatNumber(impact?.energyConserved || 0)} kWh</p>
+                
+                {/* Energy Conserved Metric */}
+                <div className="flex flex-col items-center justify-center p-4 rounded-lg border bg-purple-50 dark:bg-purple-950/20 border-purple-100 dark:border-purple-900/20">
+                  <div className="flex items-center justify-center w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/30 mb-3">
+                    <div className="text-xl text-purple-600 dark:text-purple-400">⚡</div>
+                  </div>
+                  <p className="text-sm font-medium text-purple-700 dark:text-purple-300">Energy Conserved</p>
+                  <div className="flex items-baseline mt-1">
+                    <span className="text-2xl font-bold text-purple-700 dark:text-purple-300">
+                      {formatNumber(impact?.energyConserved || 0)}
+                    </span>
+                    <span className="ml-1 text-sm text-purple-600/70 dark:text-purple-400/70">kWh</span>
+                  </div>
+                  <p className="mt-2 text-xs text-purple-600/70 dark:text-purple-400/70 text-center">
+                    ≈ {formatNumber(Math.round((impact?.energyConserved || 0) * 100))} 
+                    <span className="ml-1">lightbulb hours</span>
+                  </p>
                 </div>
               </div>
               
               <div className="space-y-4">
                 <h3 className="font-medium">Exportable Reports</h3>
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                  {/* Quarterly Sustainability Report */}
+                  <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors">
                     <div className="flex items-center">
-                      <FileText className="h-5 w-5 text-muted-foreground mr-3" />
+                      <div className="flex items-center justify-center h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 mr-3">
+                        <FileText className="h-5 w-5" />
+                      </div>
                       <div>
                         <p className="font-medium">Quarterly Sustainability Report</p>
-                        <p className="text-sm text-muted-foreground">Q2 2025</p>
+                        <p className="text-sm text-muted-foreground">Q2 2025 (April-June)</p>
                       </div>
                     </div>
-                    <Button size="sm" variant="outline" className="flex items-center">
+                    <Button 
+                      size="sm" 
+                      className="flex items-center bg-blue-600 hover:bg-blue-700 text-white"
+                      onClick={() => {
+                        // Get current quarter data
+                        const currentQuarter = {
+                          period: "Q2 2025 (April-June)",
+                          generated: new Date().toISOString(),
+                          organization: user.fullName || user.username,
+                          metrics: {
+                            wasteCollected: totalWasteWeight,
+                            wasteTypes: wasteTypes.map(type => ({
+                              type: type.name,
+                              amount: type.value,
+                              percentage: Math.round((type.value / totalWasteWeight) * 100)
+                            })),
+                            recyclingRate: recyclingRate,
+                            waterSaved: impact?.waterSaved || 0,
+                            co2Reduced: impact?.co2Reduced || 0,
+                            treesEquivalent: impact?.treesEquivalent || 0,
+                            energyConserved: impact?.energyConserved || 0,
+                            scheduleCompliance: scheduleCompliance,
+                            monthlyBreakdown: monthlyData.map(month => ({
+                              month: month.name,
+                              waste: month.wasteCollected,
+                              co2: month.co2Reduced
+                            }))
+                          }
+                        };
+
+                        // Generate CSV content
+                        const csvHeader = "PipaPal Quarterly Sustainability Report\n" +
+                          `Period: ${currentQuarter.period}\n` +
+                          `Organization: ${currentQuarter.organization}\n` +
+                          `Generated: ${new Date().toLocaleString()}\n\n`;
+                          
+                        let csvContent = csvHeader + 
+                          "Summary Metrics\n" +
+                          `Total Waste Collected,${formatNumber(currentQuarter.metrics.wasteCollected)} kg\n` +
+                          `Recycling Rate,${currentQuarter.metrics.recyclingRate}%\n` +
+                          `Water Saved,${formatNumber(currentQuarter.metrics.waterSaved)} L\n` +
+                          `CO2 Reduced,${formatNumber(currentQuarter.metrics.co2Reduced)} kg\n` +
+                          `Trees Equivalent,${formatNumber(currentQuarter.metrics.treesEquivalent)}\n` +
+                          `Energy Conserved,${formatNumber(currentQuarter.metrics.energyConserved)} kWh\n` +
+                          `Schedule Compliance,${currentQuarter.metrics.scheduleCompliance}%\n\n`;
+                          
+                        // Add waste type breakdown
+                        csvContent += "Waste Type Breakdown\n";
+                        csvContent += "Type,Amount (kg),Percentage\n";
+                        currentQuarter.metrics.wasteTypes.forEach(type => {
+                          csvContent += `${type.type},${formatNumber(type.amount)},${type.percentage}%\n`;
+                        });
+                        
+                        // Add monthly breakdown if available
+                        if (currentQuarter.metrics.monthlyBreakdown.length > 0) {
+                          csvContent += "\nMonthly Breakdown\n";
+                          csvContent += "Month,Waste Collected (kg),CO2 Reduced (kg)\n";
+                          currentQuarter.metrics.monthlyBreakdown.forEach(month => {
+                            csvContent += `${month.month},${formatNumber(month.waste)},${formatNumber(month.co2)}\n`;
+                          });
+                        }
+
+                        // Create and download file
+                        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.setAttribute('download', `PipaPal_Quarterly_Report_${currentQuarter.period.replace(/[^\w]/g, '_')}.csv`);
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                      }}
+                    >
                       <Download className="h-4 w-4 mr-1" />
-                      Export
+                      Export CSV
                     </Button>
                   </div>
                   
-                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                  {/* Annual Environmental Impact */}
+                  <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors">
                     <div className="flex items-center">
-                      <FileText className="h-5 w-5 text-muted-foreground mr-3" />
+                      <div className="flex items-center justify-center h-10 w-10 rounded-full bg-emerald-100 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 mr-3">
+                        <Leaf className="h-5 w-5" />
+                      </div>
                       <div>
                         <p className="font-medium">Annual Environmental Impact</p>
-                        <p className="text-sm text-muted-foreground">2025 YTD</p>
+                        <p className="text-sm text-muted-foreground">2025 Year-to-Date</p>
                       </div>
                     </div>
-                    <Button size="sm" variant="outline" className="flex items-center">
+                    <Button 
+                      size="sm" 
+                      className="flex items-center bg-emerald-600 hover:bg-emerald-700 text-white"
+                      onClick={() => {
+                        // Prepare annual impact data
+                        const annualImpact = {
+                          period: "2025 Year-to-Date",
+                          generated: new Date().toISOString(),
+                          organization: user.fullName || user.username,
+                          metrics: {
+                            totalWaste: totalWasteWeight,
+                            waterSaved: impact?.waterSaved || 0,
+                            co2Reduced: impact?.co2Reduced || 0,
+                            treesEquivalent: impact?.treesEquivalent || 0,
+                            energyConserved: impact?.energyConserved || 0,
+                            recyclingRate: recyclingRate,
+                            // Calculate equivalent impacts
+                            equivalents: {
+                              carMilesSaved: Math.round((impact?.co2Reduced || 0) * 2.5), // 2.5 miles per kg CO2
+                              showerMinutesSaved: Math.round((impact?.waterSaved || 0) / 10), // 10L per minute
+                              lightBulbHours: Math.round((impact?.energyConserved || 0) * 100), // 100 hours per kWh
+                              plasticBottlesSaved: Math.round(totalWasteWeight * 20) // Approx 20 bottles per kg
+                            }
+                          }
+                        };
+
+                        // Generate CSV content
+                        const csvHeader = "PipaPal Annual Environmental Impact Report\n" +
+                          `Period: ${annualImpact.period}\n` +
+                          `Organization: ${annualImpact.organization}\n` +
+                          `Generated: ${new Date().toLocaleString()}\n\n`;
+                          
+                        let csvContent = csvHeader + 
+                          "Environmental Impact Summary\n" +
+                          `Total Waste Managed,${formatNumber(annualImpact.metrics.totalWaste)} kg\n` +
+                          `Recycling Rate,${annualImpact.metrics.recyclingRate}%\n` +
+                          `Water Saved,${formatNumber(annualImpact.metrics.waterSaved)} L\n` +
+                          `CO2 Reduced,${formatNumber(annualImpact.metrics.co2Reduced)} kg\n` +
+                          `Trees Equivalent,${formatNumber(annualImpact.metrics.treesEquivalent)}\n` +
+                          `Energy Conserved,${formatNumber(annualImpact.metrics.energyConserved)} kWh\n\n`;
+                        
+                        // Add real-world equivalents section
+                        csvContent += "Real-World Environmental Impact Equivalents\n" +
+                          `Car Miles Saved,${formatNumber(annualImpact.metrics.equivalents.carMilesSaved)} miles\n` +
+                          `Shower Minutes Saved,${formatNumber(annualImpact.metrics.equivalents.showerMinutesSaved)} minutes\n` +
+                          `Light Bulb Hours,${formatNumber(annualImpact.metrics.equivalents.lightBulbHours)} hours\n` +
+                          `Plastic Bottles Saved,${formatNumber(annualImpact.metrics.equivalents.plasticBottlesSaved)} bottles\n\n`;
+                        
+                        // Add monthly trend data if available
+                        if (monthlyData.length > 0) {
+                          csvContent += "Monthly Environmental Impact Trends\n";
+                          csvContent += "Month,Waste Collected (kg),CO2 Reduced (kg),Water Saved (L),Energy Conserved (kWh)\n";
+                          monthlyData.forEach(month => {
+                            csvContent += `${month.name},${formatNumber(month.wasteCollected)},${formatNumber(month.co2Reduced)},${formatNumber(month.waterSaved)},${formatNumber(month.energyConserved)}\n`;
+                          });
+                        }
+
+                        // Create and download file
+                        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.setAttribute('download', `PipaPal_Annual_Environmental_Impact_${new Date().getFullYear()}.csv`);
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                      }}
+                    >
                       <Download className="h-4 w-4 mr-1" />
-                      Export
+                      Export CSV
                     </Button>
                   </div>
                   
-                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                  {/* Waste Management Compliance */}
+                  <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors">
                     <div className="flex items-center">
-                      <FileText className="h-5 w-5 text-muted-foreground mr-3" />
+                      <div className="flex items-center justify-center h-10 w-10 rounded-full bg-amber-100 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 mr-3">
+                        <Scale className="h-5 w-5" />
+                      </div>
                       <div>
                         <p className="font-medium">Waste Management Compliance</p>
                         <p className="text-sm text-muted-foreground">April 2025</p>
                       </div>
                     </div>
-                    <Button size="sm" variant="outline" className="flex items-center">
+                    <Button 
+                      size="sm" 
+                      className="flex items-center bg-amber-600 hover:bg-amber-700 text-white"
+                      onClick={() => {
+                        // Prepare compliance report data
+                        const month = "April";
+                        const year = "2025";
+                        const currentMonthData = monthlyData.find(m => m.name === "Apr") || {
+                          wasteCollected: 0,
+                          co2Reduced: 0,
+                          waterSaved: 0,
+                          energyConserved: 0
+                        };
+                        
+                        // Count collections by status
+                        const collectionsByStatus = {
+                          scheduled: collections.filter(c => 
+                            c.status === CollectionStatus.SCHEDULED &&
+                            new Date(c.scheduledDate).getMonth() === new Date().getMonth()
+                          ).length,
+                          completed: collections.filter(c => 
+                            c.status === CollectionStatus.COMPLETED &&
+                            c.completedDate && 
+                            new Date(c.completedDate).getMonth() === new Date().getMonth()
+                          ).length,
+                          cancelled: collections.filter(c => 
+                            c.status === CollectionStatus.CANCELLED &&
+                            new Date(c.scheduledDate).getMonth() === new Date().getMonth()
+                          ).length,
+                          total: collections.filter(c => 
+                            new Date(c.scheduledDate).getMonth() === new Date().getMonth()
+                          ).length
+                        };
+
+                        const complianceReport = {
+                          period: `${month} ${year}`,
+                          organization: user.fullName || user.username,
+                          generated: new Date().toISOString(),
+                          metrics: {
+                            wasteCollected: currentMonthData.wasteCollected,
+                            recyclingRate: recyclingRate,
+                            scheduleCompliance: scheduleCompliance,
+                            collections: collectionsByStatus,
+                            wasteComposition: wasteTypes.map(type => ({
+                              type: type.name,
+                              amount: type.value,
+                              percentage: Math.round((type.value / totalWasteWeight) * 100)
+                            }))
+                          }
+                        };
+
+                        // Generate CSV content
+                        const csvHeader = "PipaPal Waste Management Compliance Report\n" +
+                          `Period: ${complianceReport.period}\n` +
+                          `Organization: ${complianceReport.organization}\n` +
+                          `Generated: ${new Date().toLocaleString()}\n\n`;
+
+                        let csvContent = csvHeader +
+                          "Compliance Summary\n" +
+                          `Waste Collected,${formatNumber(complianceReport.metrics.wasteCollected)} kg\n` +
+                          `Recycling Rate,${complianceReport.metrics.recyclingRate}%\n` +
+                          `Schedule Compliance,${complianceReport.metrics.scheduleCompliance}%\n\n`;
+
+                        // Add collections status breakdown
+                        csvContent += "Collections Status\n" +
+                          `Total Collections,${complianceReport.metrics.collections.total}\n` +
+                          `Scheduled,${complianceReport.metrics.collections.scheduled}\n` +
+                          `Completed,${complianceReport.metrics.collections.completed}\n` +
+                          `Cancelled,${complianceReport.metrics.collections.cancelled}\n\n`;
+                          
+                        // Add waste composition if available
+                        if (complianceReport.metrics.wasteComposition.length > 0) {
+                          csvContent += "Waste Composition\n";
+                          csvContent += "Type,Amount (kg),Percentage\n";
+                          complianceReport.metrics.wasteComposition.forEach(type => {
+                            csvContent += `${type.type},${formatNumber(type.amount)},${type.percentage}%\n`;
+                          });
+                        }
+
+                        // Add compliance notes section
+                        csvContent += "\nCompliance Requirements\n" +
+                          "1. All waste must be properly sorted according to type\n" +
+                          "2. Hazardous waste must be clearly marked and separately contained\n" +
+                          "3. Maintain minimum 70% recycling rate as per local regulations\n" +
+                          "4. All scheduled pickups must be completed within 24 hours of scheduled time\n\n" +
+                          `Certification: This report certifies that ${complianceReport.organization} has maintained proper waste management practices for the period of ${complianceReport.period} in accordance with local environmental regulations.`;
+
+                        // Create and download file
+                        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.setAttribute('download', `PipaPal_Compliance_Report_${complianceReport.period.replace(/\s/g, '_')}.csv`);
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                      }}
+                    >
                       <Download className="h-4 w-4 mr-1" />
-                      Export
+                      Export CSV
                     </Button>
                   </div>
                 </div>
@@ -860,63 +1179,140 @@ export default function OrganizationDashboard({ user }: OrganizationDashboardPro
             </CardContent>
           </Card>
           
-          <Card>
-            <CardHeader>
+          <Card className="overflow-hidden">
+            <CardHeader className="border-b bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/30 dark:to-purple-900/20">
               <CardTitle className="flex items-center">
-                <Building className="mr-2 h-5 w-5" />
+                <Target className="mr-2 h-5 w-5 text-purple-600 dark:text-purple-400" />
                 Sustainability Goals
               </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Track progress towards environmental targets
+              </p>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="font-medium">Reduce non-recyclable waste by 50%</span>
-                    <span className="text-sm">{recyclingRate >= 50 ? '✓ Achieved' : 'In Progress'}</span>
+            <CardContent className="pt-6">
+              <div className="grid gap-6">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0 mr-4">
+                    <div className={`flex items-center justify-center h-12 w-12 rounded-full ${
+                      recyclingRate >= 50 
+                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
+                        : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                    }`}>
+                      {recyclingRate >= 50 
+                        ? <Check className="h-6 w-6" /> 
+                        : <RecycleIcon className="h-6 w-6" />
+                      }
+                    </div>
                   </div>
-                  <div className="w-full bg-muted rounded-full h-2.5">
-                    <div 
-                      className={`rounded-full h-2.5 ${recyclingRate >= 50 ? 'bg-green-500' : 'bg-primary'}`}
-                      style={{ width: `${Math.min(recyclingRate * 2, 100)}%` }}
-                    />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between mb-1">
+                      <h3 className="text-sm font-medium">Reduce non-recyclable waste by 50%</h3>
+                      <span className={`text-sm font-medium ${
+                        recyclingRate >= 50 ? 'text-green-600 dark:text-green-400' : 'text-blue-600 dark:text-blue-400'
+                      }`}>
+                        {recyclingRate >= 50 ? '✓ Achieved' : 'In Progress'}
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-2.5 mb-1">
+                      <div 
+                        className={`h-2.5 rounded-full ${recyclingRate >= 50 ? 'bg-green-500' : 'bg-blue-500'}`}
+                        style={{ width: `${Math.min(recyclingRate * 2, 100)}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground flex justify-between">
+                      <span>Target: 50% reduction</span>
+                      <span>Current: {recyclingRate >= 50 ? '50%+' : `${recyclingRate}%`}</span>
+                    </p>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Target: 50% reduction • Current: {recyclingRate >= 50 ? '50%+' : `${recyclingRate}%`}
-                  </p>
                 </div>
                 
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="font-medium">Achieve 90% pickup schedule compliance</span>
-                    <span className="text-sm">{scheduleCompliance >= 90 ? '✓ Achieved' : 'In Progress'}</span>
+                <div className="flex items-center">
+                  <div className="flex-shrink-0 mr-4">
+                    <div className={`flex items-center justify-center h-12 w-12 rounded-full ${
+                      scheduleCompliance >= 90 
+                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
+                        : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                    }`}>
+                      {scheduleCompliance >= 90 
+                        ? <Check className="h-6 w-6" /> 
+                        : <CalendarCheck className="h-6 w-6" />
+                      }
+                    </div>
                   </div>
-                  <div className="w-full bg-muted rounded-full h-2.5">
-                    <div 
-                      className={`rounded-full h-2.5 ${scheduleCompliance >= 90 ? 'bg-green-500' : 'bg-primary'}`}
-                      style={{ width: `${Math.min(scheduleCompliance * 1.1, 100)}%` }}
-                    />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between mb-1">
+                      <h3 className="text-sm font-medium">Achieve 90% pickup schedule compliance</h3>
+                      <span className={`text-sm font-medium ${
+                        scheduleCompliance >= 90 ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'
+                      }`}>
+                        {scheduleCompliance >= 90 ? '✓ Achieved' : 'In Progress'}
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-2.5 mb-1">
+                      <div 
+                        className={`h-2.5 rounded-full ${scheduleCompliance >= 90 ? 'bg-green-500' : 'bg-amber-500'}`}
+                        style={{ width: `${Math.min(scheduleCompliance * 1.1, 100)}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground flex justify-between">
+                      <span>Target: 90% compliance</span>
+                      <span>Current: {scheduleCompliance}%</span>
+                    </p>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Target: 90% compliance • Current: {scheduleCompliance}%
-                  </p>
                 </div>
                 
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="font-medium">Reduce CO₂ emissions by 1000kg</span>
-                    <span className="text-sm">
-                      {(impact?.co2Reduced || 0) >= 1000 ? '✓ Achieved' : 'In Progress'}
-                    </span>
+                <div className="flex items-center">
+                  <div className="flex-shrink-0 mr-4">
+                    <div className={`flex items-center justify-center h-12 w-12 rounded-full ${
+                      (impact?.co2Reduced || 0) >= 1000 
+                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
+                        : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                    }`}>
+                      {(impact?.co2Reduced || 0) >= 1000 
+                        ? <Check className="h-6 w-6" /> 
+                        : <Leaf className="h-6 w-6" />
+                      }
+                    </div>
                   </div>
-                  <div className="w-full bg-muted rounded-full h-2.5">
-                    <div 
-                      className={`rounded-full h-2.5 ${(impact?.co2Reduced || 0) >= 1000 ? 'bg-green-500' : 'bg-primary'}`}
-                      style={{ width: `${Math.min(((impact?.co2Reduced || 0) / 1000) * 100, 100)}%` }}
-                    />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between mb-1">
+                      <h3 className="text-sm font-medium">Reduce CO₂ emissions by 1000kg</h3>
+                      <span className={`text-sm font-medium ${
+                        (impact?.co2Reduced || 0) >= 1000 ? 'text-green-600 dark:text-green-400' : 'text-emerald-600 dark:text-emerald-400'
+                      }`}>
+                        {(impact?.co2Reduced || 0) >= 1000 ? '✓ Achieved' : 'In Progress'}
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-2.5 mb-1">
+                      <div 
+                        className={`h-2.5 rounded-full ${(impact?.co2Reduced || 0) >= 1000 ? 'bg-green-500' : 'bg-emerald-500'}`}
+                        style={{ width: `${Math.min(((impact?.co2Reduced || 0) / 1000) * 100, 100)}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground flex justify-between">
+                      <span>Target: 1000kg</span>
+                      <span>Current: {formatNumber(impact?.co2Reduced || 0)}kg</span>
+                    </p>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Target: 1000kg • Current: {formatNumber(impact?.co2Reduced || 0)}kg
-                  </p>
+                </div>
+                
+                {/* Call-to-action card */}
+                <div className="mt-4 bg-muted/40 rounded-lg p-4 border border-dashed flex items-center space-x-4">
+                  <div className="flex-shrink-0">
+                    <div className="flex items-center justify-center h-10 w-10 rounded-full bg-primary/10">
+                      <Trophy className="h-5 w-5 text-primary" />
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium">Set additional sustainability goals</h3>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Define custom environmental targets for your organization
+                    </p>
+                  </div>
+                  <Button size="sm" variant="outline" className="ml-auto">
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add Goal
+                  </Button>
                 </div>
               </div>
             </CardContent>
