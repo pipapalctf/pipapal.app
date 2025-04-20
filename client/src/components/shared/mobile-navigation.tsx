@@ -1,15 +1,47 @@
 import { Link, useLocation } from "wouter";
+import { useAuth } from "@/hooks/use-auth";
+import { UserRole } from "@shared/schema";
 
 export default function MobileNavigation() {
   const [location] = useLocation();
+  const { user } = useAuth();
   
-  const navLinks = [
-    { href: "/dashboard", label: "Home", icon: "home", active: location === "/dashboard" },
-    { href: "/schedule-pickup", label: "Schedule", icon: "calendar-alt", active: location === "/schedule-pickup" },
-    { href: "/ecotips", label: "Tips", icon: "lightbulb", active: location === "/ecotips" },
-    { href: "/impact", label: "Impact", icon: "chart-pie", active: location === "/impact" },
-    { href: "/profile", label: "Profile", icon: "user", active: location === "/profile" },
-  ];
+  const getNavLinks = () => {
+    const links = [
+      { href: "/dashboard", label: "Home", icon: "home", active: location === "/dashboard" },
+      { href: "/ecotips", label: "Tips", icon: "lightbulb", active: location === "/ecotips" },
+      { href: "/impact", label: "Impact", icon: "chart-pie", active: location === "/impact" },
+      { href: "/profile", label: "Profile", icon: "user", active: location === "/profile" },
+    ];
+    
+    // Add user-specific links
+    if (user?.role === UserRole.HOUSEHOLD) {
+      links.splice(1, 0, { 
+        href: "/schedule-pickup", 
+        label: "Schedule", 
+        icon: "calendar-alt", 
+        active: location === "/schedule-pickup" 
+      });
+    } else if (user?.role === UserRole.COLLECTOR) {
+      links.splice(1, 0, { 
+        href: "/collections", 
+        label: "Collections", 
+        icon: "truck", 
+        active: location === "/collections" 
+      });
+    } else if (user?.role === UserRole.RECYCLER) {
+      links.splice(1, 0, { 
+        href: "/materials", 
+        label: "Materials", 
+        icon: "recycle", 
+        active: location === "/materials" 
+      });
+    }
+    
+    return links;
+  };
+  
+  const navLinks = getNavLinks();
   
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 py-2 md:hidden z-40">

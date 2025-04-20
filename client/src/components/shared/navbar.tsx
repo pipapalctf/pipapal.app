@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Menu, Truck } from "lucide-react";
+import { Menu, Truck, Recycle } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { NotificationBell } from "@/components/shared/notification-bell";
 import { UserRole } from "@shared/schema";
@@ -46,6 +46,15 @@ export default function Navbar() {
         icon: <Truck className="w-4 h-4 mr-1" />
       });
     } 
+    // Add recycler-specific links
+    else if (user?.role === UserRole.RECYCLER) {
+      links.push({
+        href: "/materials",
+        label: "Materials",
+        active: location === "/materials",
+        icon: <Recycle className="w-4 h-4 mr-1" />
+      });
+    }
     // Add household-specific links
     else if (user?.role === UserRole.HOUSEHOLD) {
       links.push({
