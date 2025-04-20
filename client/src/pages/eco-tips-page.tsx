@@ -258,10 +258,114 @@ export default function EcoTipsPage() {
               </div>
             </div>
           </div>
+          {/* Custom Tip Generator Section */}
+          <div className="mt-8 mb-4">
+            <Card className="bg-gradient-to-br from-primary-50 to-primary/5 border border-primary/20 overflow-hidden">
+              <CardContent className="p-6">
+                <div className="flex flex-col md:flex-row gap-5">
+                  <div className="flex-1">
+                    <h3 className="text-xl font-semibold text-primary mb-2 flex items-center">
+                      <Sparkles className="h-5 w-5 mr-2" />
+                      AI Generator
+                    </h3>
+                    <p className="text-gray-600 mb-4">
+                      Let our AI create personalized eco-tips tailored to your sustainability interests.
+                    </p>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="font-medium text-primary mb-2 flex items-center">
+                          <Lightbulb className="h-4 w-4 mr-1.5" />
+                          Ask About Specific Topics
+                        </h4>
+                        <Input
+                          placeholder="e.g., how to recycle old tires"
+                          value={customTipPrompt}
+                          onChange={(e) => setCustomTipPrompt(e.target.value)}
+                          className="bg-white/90 border-primary/20"
+                        />
+                      </div>
+                      
+                      <div className="flex gap-3">
+                        <div className="flex-1">
+                          <select 
+                            className="w-full h-10 rounded-md border border-primary/30 px-3 py-2 text-sm bg-white/90"
+                            value={selectedCategory || "recycling"}
+                            onChange={(e) => setSelectedCategory(e.target.value)}
+                          >
+                            {ecoTipCategories.map(category => (
+                              <option key={category.value} value={category.value}>
+                                {category.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <Button
+                          onClick={handleGenerateCustomTip}
+                          disabled={generateTipMutation.isPending || !customTipPrompt.trim()}
+                          className="bg-primary hover:bg-primary/90 text-white px-6"
+                        >
+                          {generateTipMutation.isPending ? (
+                            <div className="flex items-center">
+                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                              <span>Generating...</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center">
+                              <Sparkles className="h-4 w-4 mr-2" />
+                              <span>Generate</span>
+                            </div>
+                          )}
+                        </Button>
+                      </div>
+                      
+                      <p className="text-xs text-muted-foreground">
+                        Ask about specific sustainability topics like "reusing plastic bottles" or "eco-friendly packaging"
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="hidden md:block border-l border-primary/10 pl-5">
+                    <h4 className="font-medium text-primary mb-3">Quick Generate by Category</h4>
+                    <div className="flex flex-col gap-2 max-w-xs">
+                      {ecoTipCategories.slice(0, 3).map(category => {
+                        const colors = getCategoryColors(category.value);
+                        return (
+                          <Button
+                            key={category.value}
+                            variant="outline"
+                            size="sm"
+                            className={`justify-start ${colors.bg} ${colors.text} border ${colors.border} overflow-hidden rounded-md hover:opacity-90 transition-opacity`}
+                            onClick={() => handleGenerateTip(category.value)}
+                            disabled={generateTipMutation.isPending}
+                          >
+                            <div className="flex items-center">
+                              <div className="flex-shrink-0 mr-2">
+                                {generateTipMutation.isPending && 
+                                 generateTipMutation.variables && 
+                                 typeof generateTipMutation.variables === 'object' && 
+                                 'category' in generateTipMutation.variables && 
+                                 generateTipMutation.variables.category === category.value ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  getCategoryIcon(category.value)
+                                )}
+                              </div>
+                              <span>Generate {category.label} Tip</span>
+                            </div>
+                          </Button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </section>
         
         {/* Content Section */}
-        <section className="container mx-auto px-4 py-10">
+        <section className="container mx-auto px-4 py-6">
           <div className="max-w-5xl mx-auto">
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
               {/* Sidebar */}
@@ -317,66 +421,14 @@ export default function EcoTipsPage() {
                   </CardContent>
                 </Card>
                 
-                <Card className="bg-gradient-to-b from-primary/5 to-transparent border-primary/20 overflow-hidden">
+                <Card className="bg-gradient-to-b from-primary/5 to-transparent border-primary/20 overflow-hidden md:hidden">
                   <CardHeader className="pb-3">
                     <CardTitle className="flex items-center text-lg font-montserrat text-primary">
                       <Sparkles className="h-4 w-4 mr-2 flex-shrink-0" />
-                      AI Generator
+                      Quick Generate
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm mb-4">
-                      Let our AI create personalized eco-tips tailored to your sustainability interests.
-                    </p>
-
-                    {/* Custom Tip Generator */}
-                    <div className="bg-white rounded-lg border border-primary/20 p-3 mb-4">
-                      <h4 className="font-medium text-sm mb-2 flex items-center text-primary">
-                        <Lightbulb className="h-4 w-4 mr-1.5" />
-                        Ask About Specific Topics
-                      </h4>
-                      <div className="space-y-3">
-                        <Input
-                          placeholder="e.g., how to recycle old tires"
-                          value={customTipPrompt}
-                          onChange={(e) => setCustomTipPrompt(e.target.value)}
-                          className="text-sm"
-                        />
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1">
-                            <select 
-                              className="w-full h-9 rounded-md border border-input px-3 py-1 text-sm bg-background"
-                              value={selectedCategory || "recycling"}
-                              onChange={(e) => setSelectedCategory(e.target.value)}
-                            >
-                              {ecoTipCategories.map(category => (
-                                <option key={category.value} value={category.value}>
-                                  {category.label}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                          <Button
-                            onClick={handleGenerateCustomTip}
-                            disabled={generateTipMutation.isPending || !customTipPrompt.trim()}
-                            className="flex-shrink-0"
-                          >
-                            {generateTipMutation.isPending ? (
-                              <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                            ) : (
-                              <Sparkles className="h-4 w-4 mr-1" />
-                            )}
-                            <span>Generate</span>
-                          </Button>
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          Ask about specific sustainability topics like "reusing plastic bottles" or "eco-friendly packaging"
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Standard Category Buttons */}
-                    <h4 className="font-medium text-sm mb-2">Quick Generate by Category</h4>
                     <div className="space-y-2">
                       {ecoTipCategories.map(category => {
                         const colors = getCategoryColors(category.value);
