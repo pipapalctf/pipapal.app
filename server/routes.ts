@@ -560,9 +560,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           console.log(`WebSocket authenticated for user ${userId}`);
           
-          // Send a connection status update (not a notification)
+          // Send a connection status update silently, with a type that won't be shown as a notification
           ws.send(JSON.stringify({
-            type: 'connection_status',
+            type: '_system',
+            event: 'connection_status',
             status: 'connected'
           }));
         }

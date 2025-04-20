@@ -4,7 +4,11 @@ import { useToast } from '@/hooks/use-toast';
 import { queryClient } from '@/lib/queryClient';
 
 type NotificationType = 'notification' | 'collection_update';
-type WSEventType = NotificationType | 'connection_status';
+// System events that should not be displayed as notifications
+type SystemEventType = '_system';
+// Legacy type kept for backward compatibility with existing server code
+type LegacyType = 'connection_status';
+type WSEventType = NotificationType | SystemEventType | LegacyType;
 
 type Notification = {
   id: string;
@@ -18,6 +22,7 @@ type Notification = {
 
 type WebSocketMessageEvent = {
   type: WSEventType;
+  event?: string;
   message?: string;
   collectionId?: number;
   status?: string;
@@ -70,9 +75,20 @@ export function useNotifications() {
       try {
         const data: WebSocketMessageEvent = JSON.parse(event.data);
         
-        // Handle connection status messages separately
+        // Handle system messages separately and silently
+        if (data.type === '_system') {
+          // Handle connection status
+          if (data.event === 'connection_status') {
+            console.log(`WebSocket connection status: ${data.status || 'unknown'}`);
+            setConnected(data.status === 'connected');
+          }
+          // Don't create notifications for system messages
+          return;
+        }
+        
+        // Handle legacy connection_status messages (don't display notification)
         if (data.type === 'connection_status') {
-          console.log(`WebSocket connection status: ${data.status || 'unknown'}`);
+          console.log(`WebSocket connection status (legacy): ${data.status || 'unknown'}`);
           setConnected(data.status === 'connected');
           return;
         }
