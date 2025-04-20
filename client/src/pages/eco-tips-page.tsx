@@ -295,10 +295,10 @@ export default function EcoTipsPage() {
                   </CardContent>
                 </Card>
                 
-                <Card className="bg-gradient-to-b from-primary/5 to-transparent border-primary/20">
+                <Card className="bg-gradient-to-b from-primary/5 to-transparent border-primary/20 overflow-hidden">
                   <CardHeader className="pb-3">
                     <CardTitle className="flex items-center text-lg font-montserrat text-primary">
-                      <Sparkles className="h-4 w-4 mr-2" />
+                      <Sparkles className="h-4 w-4 mr-2 flex-shrink-0" />
                       AI Generator
                     </CardTitle>
                   </CardHeader>
@@ -314,16 +314,20 @@ export default function EcoTipsPage() {
                             key={category.value}
                             variant="outline"
                             size="sm"
-                            className={`w-full justify-start ${colors.bg} ${colors.text} border ${colors.border}`}
+                            className={`w-full px-3 py-2.5 ${colors.bg} ${colors.text} border ${colors.border} overflow-hidden rounded-md hover:opacity-90 transition-opacity`}
                             onClick={() => handleGenerateTip(category.value)}
                             disabled={generateTipMutation.isPending}
                           >
-                            {generateTipMutation.isPending && generateTipMutation.variables === category.value ? (
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            ) : (
-                              getCategoryIcon(category.value)
-                            )}
-                            <span className="ml-2">Generate {category.label} Tip</span>
+                            <div className="flex items-center w-full min-w-0">
+                              <div className="flex-shrink-0 mr-2">
+                                {generateTipMutation.isPending && generateTipMutation.variables === category.value ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  getCategoryIcon(category.value)
+                                )}
+                              </div>
+                              <span className="truncate text-sm">Generate {category.label}</span>
+                            </div>
                           </Button>
                         );
                       })}
