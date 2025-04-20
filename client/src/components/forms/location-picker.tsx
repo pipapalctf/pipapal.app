@@ -79,27 +79,83 @@ export default function LocationPicker({ defaultValue, onChange }: LocationPicke
           const { latitude, longitude } = position.coords;
           const location = { lat: latitude, lng: longitude };
           
-          // Reverse geocode to get address from coordinates
-          const response = await fetch(
-            `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}`
-          );
-          
-          const data = await response.json();
-          
-          if (data.status === "OK" && data.results && data.results.length > 0) {
-            const formattedAddress = data.results[0].formatted_address;
-            setAddress(formattedAddress);
-            onChange(formattedAddress, location);
+          // Use the Geocoder service from Google Maps API instead of direct fetch
+          if (isLoaded && !loadError) {
+            const geocoder = new google.maps.Geocoder();
+            geocoder.geocode({ 
+              location: { lat: latitude, lng: longitude },
+              // Add the country restriction for Kenya
+              componentRestrictions: { country: 'ke' }
+            }, (results, status) => {
+              if (status === "OK" && results && results.length > 0) {
+                // Check if any result is in Kenya
+                const isInKenya = results.some(result => {
+                  return result.address_components.some(component => 
+                    component.types.includes('country') && 
+                    component.short_name === 'KE'
+                  );
+                });
+                
+                if (isInKenya) {
+                  const formattedAddress = results[0].formatted_address;
+                  setAddress(formattedAddress);
+                  onChange(formattedAddress, location);
+                } else {
+                  toast({
+                    title: "Location Not in Kenya",
+                    description: "PipaPal currently only operates in Kenya. Please enter a Kenyan address.",
+                    variant: "destructive"
+                  });
+                }
+              } else {
+                toast({
+                  title: "Geocoding Failed",
+                  description: `Could not find address for your location (Status: ${status || 'unknown'}). Please enter it manually.`,
+                  variant: "destructive"
+                });
+              }
+              setIsDetectingLocation(false);
+            });
           } else {
-            throw new Error("No address found");
+            // Fallback to direct API call if Maps API isn't loaded yet
+            const response = await fetch(
+              `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&region=ke`
+            );
+            
+            const data = await response.json();
+            
+            if (data.status === "OK" && data.results && data.results.length > 0) {
+              // Check if location is in Kenya
+              const isInKenya = data.results.some(result => {
+                return result.address_components.some(component => 
+                  component.types.includes('country') && 
+                  component.short_name === 'KE'
+                );
+              });
+              
+              if (isInKenya) {
+                const formattedAddress = data.results[0].formatted_address;
+                setAddress(formattedAddress);
+                onChange(formattedAddress, location);
+              } else {
+                toast({
+                  title: "Location Not in Kenya",
+                  description: "PipaPal currently only operates in Kenya. Please enter a Kenyan address.",
+                  variant: "destructive"
+                });
+              }
+            } else {
+              throw new Error(`No address found (Status: ${data.status || 'unknown'})`);
+            }
+            setIsDetectingLocation(false);
           }
         } catch (error) {
+          console.error("Geocoding error:", error);
           toast({
             title: "Geocoding Failed",
             description: "Failed to get your address. Please enter it manually.",
             variant: "destructive"
           });
-        } finally {
           setIsDetectingLocation(false);
         }
       },
@@ -141,7 +197,7 @@ export default function LocationPicker({ defaultValue, onChange }: LocationPicke
       <div className="space-y-2">
         <div className="flex w-full items-center gap-2">
           <Input 
-            placeholder="Enter your address manually" 
+            placeholder="Enter your Kenya address manually" 
             value={address}
             onChange={handleAddressChange}
             className="flex-1"
@@ -162,7 +218,7 @@ export default function LocationPicker({ defaultValue, onChange }: LocationPicke
         </div>
         {loadError && (
           <p className="text-xs text-destructive">
-            Google Maps not available. Please enter your address manually.
+            Google Maps not available. Please enter your Kenya address manually.
           </p>
         )}
       </div>
@@ -179,13 +235,14 @@ export default function LocationPicker({ defaultValue, onChange }: LocationPicke
             }}
             onPlaceChanged={onPlaceSelected}
             options={{
-              componentRestrictions: { country: ['us', 'ca'] }, // Restrict to US and Canada (modify as needed)
+              // Restrict to Kenya locations only
+              componentRestrictions: { country: ['ke'] },
               fields: ['formatted_address', 'geometry.location'],
               types: ['address']
             }}
           >
             <Input 
-              placeholder="Start typing your address or detect location"
+              placeholder="Enter your Kenya address (e.g., Kayole Junction, Nairobi)"
               value={address}
               onChange={handleAddressChange}
               className="w-full pr-8"
