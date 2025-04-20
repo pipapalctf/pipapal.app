@@ -13,6 +13,7 @@ import ImpactPage from "@/pages/impact-page";
 import ProfilePage from "@/pages/profile-page";
 import CollectionDetailsPage from "@/pages/collection-details-page";
 import CollectorCollectionsPage from "@/pages/collector-collections-page";
+import RecyclerMaterialsPage from "@/pages/recycler-materials-page";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 import { ThemeProvider } from "next-themes";
