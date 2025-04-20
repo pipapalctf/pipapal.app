@@ -735,174 +735,262 @@ export default function OrganizationDashboard({ user }: OrganizationDashboardPro
                   <Scale className="mr-2 h-5 w-5 text-green-600 dark:text-green-400" />
                   Waste Composition
                 </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Breakdown of collected waste by type
+                </p>
               </CardHeader>
-              <CardContent>
-                <div className="h-[250px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={wasteTypes}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        paddingAngle={5}
-                        dataKey="value"
-                        nameKey="name"
-                        label={({ name, percent }) => 
-                          `${name}: ${(percent * 100).toFixed(0)}%`
-                        }
-                      >
-                        {wasteTypes.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-4">
-                  {wasteTypes.map((type, index) => (
-                    <div key={type.name} className="flex items-center">
-                      <div 
-                        className="w-3 h-3 rounded-full mr-2" 
-                        style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                      />
-                      <span className="text-sm">{type.name}: {formatNumber(type.value)} kg</span>
+              <CardContent className="pt-6">
+                {wasteTypes.length > 0 ? (
+                  <>
+                    <div className="h-[250px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <defs>
+                            {wasteTypes.map((entry, index) => (
+                              <filter key={`shadow-${index}`} id={`shadow-${index}`} x="-10%" y="-10%" width="120%" height="120%">
+                                <feDropShadow dx="0" dy="0" stdDeviation="3" floodColor={COLORS[index % COLORS.length]} floodOpacity="0.3"/>
+                              </filter>
+                            ))}
+                          </defs>
+                          <Pie
+                            data={wasteTypes}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={60}
+                            outerRadius={80}
+                            fill="#8884d8"
+                            paddingAngle={5}
+                            dataKey="value"
+                            nameKey="name"
+                            filter="url(#shadow)"
+                          >
+                            {wasteTypes.map((entry, index) => (
+                              <Cell 
+                                key={`cell-${index}`} 
+                                fill={COLORS[index % COLORS.length]} 
+                                filter={`url(#shadow-${index})`}
+                                stroke="white"
+                                strokeWidth={2}
+                              />
+                            ))}
+                          </Pie>
+                          <Tooltip 
+                            formatter={(value, name) => [
+                              `${formatNumber(value)} kg (${((value / totalWasteWeight) * 100).toFixed(1)}%)`, 
+                              name
+                            ]}
+                            contentStyle={{ 
+                              backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                              borderRadius: '8px',
+                              border: '1px solid #e5e7eb',
+                              boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+                            }}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
                     </div>
-                  ))}
-                </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-6">
+                      {wasteTypes.map((type, index) => (
+                        <div key={type.name} className="flex items-center p-2 rounded-lg border bg-slate-50 dark:bg-slate-950/20">
+                          <div 
+                            className="w-4 h-4 rounded-full mr-2 border border-white" 
+                            style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                          />
+                          <div className="flex flex-col">
+                            <span className="text-sm font-medium capitalize">{type.name}</span>
+                            <span className="text-xs text-muted-foreground">{formatNumber(type.value)} kg</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-[300px] bg-muted/10 rounded-lg border border-dashed">
+                    <div className="bg-muted/20 p-3 rounded-full mb-4">
+                      <Scale className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                    <h3 className="text-lg font-medium mb-2">No waste data available</h3>
+                    <p className="text-sm text-muted-foreground text-center max-w-xs">
+                      Data will be displayed once waste collections have been completed.
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
             
-            <Card>
-              <CardHeader>
+            {/* Recycling vs. General Waste Card */}
+            <Card className="overflow-hidden">
+              <CardHeader className="border-b bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/20">
                 <CardTitle className="flex items-center">
-                  <TrendingUp className="mr-2 h-5 w-5" />
-                  Recycling vs. General Waste
+                  <RecycleIcon className="mr-2 h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  Recycling Analysis
                 </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Recyclable vs. non-recyclable waste
+                </p>
               </CardHeader>
-              <CardContent>
-                <div className="text-center mb-2">
-                  <span className="text-4xl font-bold text-primary">{recyclingRate}%</span>
-                  <p className="text-sm text-muted-foreground">of waste is recyclable</p>
-                </div>
-                <div className="h-[200px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={[
-                          { name: 'Recyclable', value: recyclableWaste },
-                          { name: 'Non-Recyclable', value: totalWasteWeight - recyclableWaste }
-                        ]}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        paddingAngle={5}
-                        dataKey="value"
-                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                      >
-                        <Cell fill="#4ade80" /> {/* Green for recycled */}
-                        <Cell fill="#f87171" /> {/* Red for non-recycled */}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
+              <CardContent className="pt-6">
+                {totalWasteWeight > 0 ? (
+                  <>
+                    <div className="flex items-center justify-center mb-5">
+                      <div className="relative w-32 h-32">
+                        <svg viewBox="0 0 36 36" className="h-32 w-32 -rotate-90">
+                          <path
+                            className="stroke-slate-100 dark:stroke-slate-900/40 fill-none"
+                            strokeWidth="3.8"
+                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                          />
+                          <path
+                            className="stroke-green-500 dark:stroke-green-400 fill-none"
+                            strokeWidth="3.8"
+                            strokeDasharray={`${recyclingRate}, 100`}
+                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                          />
+                        </svg>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                          <span className="text-3xl font-bold text-green-600 dark:text-green-400">{recyclingRate}%</span>
+                          <span className="text-xs text-muted-foreground">Recycling Rate</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center p-4 rounded-lg bg-green-50 dark:bg-green-950/20">
+                      <div>
+                        <h3 className="text-sm font-medium text-green-700 dark:text-green-300">Recyclable</h3>
+                        <p className="text-2xl font-bold text-green-700 dark:text-green-300">{formatNumber(recyclableWaste)} kg</p>
+                      </div>
+                      <div className="h-10 w-10 rounded-full flex items-center justify-center bg-green-100 dark:bg-green-900/30">
+                        <RecycleIcon className="h-5 w-5 text-green-600 dark:text-green-400" />
+                      </div>
+                    </div>
+                    
+                    <div className="flex justify-between items-center p-4 rounded-lg bg-red-50 dark:bg-red-950/20 mt-3">
+                      <div>
+                        <h3 className="text-sm font-medium text-red-700 dark:text-red-300">Non-Recyclable</h3>
+                        <p className="text-2xl font-bold text-red-700 dark:text-red-300">{formatNumber(totalWasteWeight - recyclableWaste)} kg</p>
+                      </div>
+                      <div className="h-10 w-10 rounded-full flex items-center justify-center bg-red-100 dark:bg-red-900/30">
+                        <div className="text-lg text-red-600 dark:text-red-400">🗑️</div>
+                      </div>
+                    </div>
+                    
+                    <p className="text-xs text-muted-foreground mt-4 text-center">
+                      {recyclingRate >= 70 
+                        ? "Excellent recycling rate! You're exceeding sustainability targets." 
+                        : recyclingRate >= 50 
+                          ? "Good progress on recycling. Keep improving to reach your targets."
+                          : "Increase recycling practices to improve environmental impact."}
+                    </p>
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-[300px] bg-muted/10 rounded-lg border border-dashed">
+                    <div className="bg-muted/20 p-3 rounded-full mb-4">
+                      <RecycleIcon className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                    <h3 className="text-lg font-medium mb-2">No recycling data available</h3>
+                    <p className="text-sm text-muted-foreground text-center max-w-xs">
+                      Recycling metrics will be calculated as collections are completed.
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
           
-          <Card>
-            <CardHeader>
+          {/* Pickup Schedule Compliance Card */}
+          <Card className="overflow-hidden">
+            <CardHeader className="border-b bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-950/30 dark:to-amber-900/20">
               <CardTitle className="flex items-center">
-                <CalendarClock className="mr-2 h-5 w-5" />
+                <CalendarCheck className="mr-2 h-5 w-5 text-amber-600 dark:text-amber-400" />
                 Pickup Schedule Compliance
               </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Analysis of collection schedule adherence
+              </p>
             </CardHeader>
-            <CardContent>
-              <div className="flex flex-col space-y-6">
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span>Overall Compliance</span>
-                    <span className="font-medium">{scheduleCompliance}%</span>
-                  </div>
-                  <div className="w-full bg-muted rounded-full h-2.5">
-                    <div 
-                      className="bg-primary rounded-full h-2.5" 
-                      style={{ width: `${scheduleCompliance}%` }}
-                    />
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <h3 className="font-medium text-sm">On-Time Completion Rate</h3>
-                    <div className="flex justify-between text-sm">
-                      <span>Current Month</span>
-                      <span className="font-medium">
-                        {scheduledPickups > 0 
-                          ? Math.round((completedOnTime / scheduledPickups) * 100) 
-                          : 0}%
-                      </span>
-                    </div>
-                    <div className="w-full bg-muted rounded-full h-2">
-                      <div 
-                        className="bg-green-500 rounded-full h-2" 
-                        style={{ 
-                          width: `${scheduledPickups > 0 
-                            ? Math.round((completedOnTime / scheduledPickups) * 100) 
-                            : 0}%` 
-                        }}
-                      />
+            <CardContent className="pt-6">
+              {scheduledPickups > 0 ? (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div className="flex flex-col items-center space-y-2 p-4 rounded-lg bg-amber-50 dark:bg-amber-950/20">
+                      <div className="h-10 w-10 rounded-full flex items-center justify-center bg-amber-100 dark:bg-amber-900/30">
+                        <CalendarCheck className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                      </div>
+                      <h3 className="text-sm font-medium text-center">Overall Compliance</h3>
+                      <p className="text-2xl font-bold">{scheduleCompliance}%</p>
                     </div>
                     
-                    <div className="flex justify-between text-sm mt-4">
-                      <span>Previous Month</span>
-                      <span className="font-medium">92%</span>
+                    <div className="flex flex-col items-center space-y-2 p-4 rounded-lg bg-emerald-50 dark:bg-emerald-950/20">
+                      <div className="h-10 w-10 rounded-full flex items-center justify-center bg-emerald-100 dark:bg-emerald-900/30">
+                        <Check className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                      </div>
+                      <h3 className="text-sm font-medium text-center">Completed On-Time</h3>
+                      <p className="text-2xl font-bold">{completedOnTime}</p>
                     </div>
-                    <div className="w-full bg-muted rounded-full h-2">
-                      <div className="bg-green-500 rounded-full h-2" style={{ width: '92%' }} />
+                    
+                    <div className="flex flex-col items-center space-y-2 p-4 rounded-lg bg-blue-50 dark:bg-blue-950/20">
+                      <div className="h-10 w-10 rounded-full flex items-center justify-center bg-blue-100 dark:bg-blue-900/30">
+                        <Truck className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <h3 className="text-sm font-medium text-center">Total Scheduled</h3>
+                      <p className="text-2xl font-bold">{scheduledPickups}</p>
                     </div>
                   </div>
                   
-                  <div className="space-y-2">
-                    <h3 className="font-medium text-sm">Waste Type Breakdown</h3>
-                    {['plastic', 'paper', 'glass', 'electronic'].map((type) => {
-                      // Calculate compliance per waste type
-                      const typePickups = collections.filter(c => c.wasteType === type).length;
-                      const typeCompleted = collections.filter(
-                        c => c.wasteType === type && 
-                        c.status === CollectionStatus.COMPLETED &&
-                        c.completedDate && 
-                        new Date(c.completedDate) <= new Date(c.scheduledDate)
-                      ).length;
-                      
-                      const typeCompliance = typePickups > 0 
-                        ? Math.round((typeCompleted / typePickups) * 100) 
-                        : 0;
-                      
-                      return (
-                        <div key={type} className="space-y-1">
-                          <div className="flex justify-between text-xs">
-                            <span className="capitalize">{type}</span>
-                            <span>{typeCompliance}%</span>
-                          </div>
-                          <div className="w-full bg-muted rounded-full h-1.5">
-                            <div 
-                              className="bg-blue-500 rounded-full h-1.5" 
-                              style={{ width: `${typeCompliance}%` }}
-                            />
-                          </div>
-                        </div>
-                      );
-                    })}
+                  <div className="space-y-6">
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-sm font-medium">Overall Schedule Compliance</span>
+                        <span className="text-sm font-medium">{scheduleCompliance}%</span>
+                      </div>
+                      <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-2.5">
+                        <div 
+                          className={`h-2.5 rounded-full ${
+                            scheduleCompliance >= 90 ? 'bg-green-500' : 
+                            scheduleCompliance >= 70 ? 'bg-amber-500' : 
+                            'bg-red-500'
+                          }`}
+                          style={{ width: `${scheduleCompliance}%` }}
+                        />
+                      </div>
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>Target: 90%+</span>
+                        <span>
+                          {scheduleCompliance >= 90 
+                            ? '✓ Excellent' 
+                            : scheduleCompliance >= 70 
+                              ? '↗ Good' 
+                              : '↑ Needs Improvement'}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-sm font-medium">On-time Completion Rate</span>
+                        <span className="text-sm font-medium">
+                          {completedOnTime}/{scheduledPickups} ({Math.round((completedOnTime / scheduledPickups) * 100)}%)
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-2.5">
+                        <div 
+                          className="h-2.5 bg-emerald-500 rounded-full" 
+                          style={{ width: `${(completedOnTime / scheduledPickups) * 100}%` }}
+                        />
+                      </div>
+                    </div>
                   </div>
+                </>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-[250px] bg-muted/10 rounded-lg border border-dashed">
+                  <div className="bg-muted/20 p-3 rounded-full mb-4">
+                    <CalendarCheck className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-lg font-medium mb-2">No schedule data available</h3>
+                  <p className="text-sm text-muted-foreground text-center max-w-xs">
+                    Schedule compliance will display once pickups have been scheduled.
+                  </p>
                 </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
