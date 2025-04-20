@@ -258,105 +258,343 @@ export default function OrganizationDashboard({ user }: OrganizationDashboardPro
         {/* Trends Tab */}
         <TabsContent value="trends" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card>
-              <CardHeader>
+            {/* Monthly Waste Trends Card */}
+            <Card className="overflow-hidden">
+              <CardHeader className="border-b bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/20">
                 <CardTitle className="flex items-center">
-                  <BarChart4 className="mr-2 h-5 w-5" />
+                  <BarChart4 className="mr-2 h-5 w-5 text-blue-600 dark:text-blue-400" />
                   Monthly Waste Trends
                 </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Waste collection volume by month
+                </p>
               </CardHeader>
-              <CardContent>
-                <div className="h-[250px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={monthlyData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <Tooltip />
-                      <Bar dataKey="wasteCollected" name="Waste (kg)" fill="#3b82f6" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
+              <CardContent className="pt-6">
+                {monthlyData.length > 0 ? (
+                  <>
+                    <div className="flex justify-between items-center mb-4">
+                      <div>
+                        <div className="flex items-center">
+                          <div className="w-3 h-3 rounded-full bg-blue-500 mr-2"></div>
+                          <span className="text-sm font-medium">Waste Collected</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Monthly tracking of all waste types
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-xl font-bold">
+                          {formatNumber(monthlyData.reduce((total, month) => total + month.wasteCollected, 0))} kg
+                        </span>
+                        <p className="text-xs text-muted-foreground">Total this year</p>
+                      </div>
+                    </div>
+                    <div className="h-[250px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={monthlyData}>
+                          <defs>
+                            <linearGradient id="wasteGradient" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
+                              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.2}/>
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+                          <XAxis 
+                            dataKey="name" 
+                            axisLine={{ stroke: '#e5e7eb', strokeWidth: 1 }}
+                            tick={{ fontSize: 12 }}
+                          />
+                          <YAxis 
+                            axisLine={{ stroke: '#e5e7eb', strokeWidth: 1 }} 
+                            tick={{ fontSize: 12 }}
+                            width={35}
+                          />
+                          <Tooltip 
+                            contentStyle={{ 
+                              backgroundColor: 'rgba(255, 255, 255, 0.96)', 
+                              borderRadius: '6px',
+                              border: '1px solid #e5e7eb',
+                              boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+                            }}
+                            itemStyle={{ padding: '4px 0' }}
+                            labelStyle={{ fontWeight: 'bold', marginBottom: '4px' }}
+                          />
+                          <Bar 
+                            dataKey="wasteCollected" 
+                            name="Waste (kg)" 
+                            fill="url(#wasteGradient)" 
+                            radius={[4, 4, 0, 0]}
+                            barSize={24}
+                          />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-[300px] bg-muted/10 rounded-lg border border-dashed">
+                    <div className="bg-muted/20 p-3 rounded-full mb-4">
+                      <BarChart4 className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                    <h3 className="text-lg font-medium mb-2">No data yet</h3>
+                    <p className="text-sm text-muted-foreground text-center max-w-xs">
+                      Monthly waste data will appear here once you have some collection history.
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
             
-            <Card>
-              <CardHeader>
+            {/* Environmental Impact Card */}
+            <Card className="overflow-hidden">
+              <CardHeader className="border-b bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950/30 dark:to-emerald-900/20">
                 <CardTitle className="flex items-center">
-                  <Leaf className="mr-2 h-5 w-5" />
+                  <Leaf className="mr-2 h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                   Environmental Impact
                 </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Measured impact of sustainable waste management
+                </p>
               </CardHeader>
-              <CardContent>
-                <div className="h-[250px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={monthlyData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <Tooltip />
-                      <Line 
-                        type="monotone" 
-                        dataKey="co2Reduced" 
-                        name="CO₂ Reduced (kg)" 
-                        stroke="#4ade80" 
-                        activeDot={{ r: 8 }} 
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
+              <CardContent className="pt-6">
+                {monthlyData.length > 0 ? (
+                  <>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+                      <div className="flex flex-col items-center justify-center p-2 bg-emerald-50 dark:bg-emerald-950/20 rounded-lg">
+                        <Leaf className="h-6 w-6 text-emerald-500 mb-1" />
+                        <span className="text-sm font-medium text-center">{formatNumber(
+                          monthlyData.reduce((total, month) => total + month.co2Reduced, 0)
+                        )} kg</span>
+                        <span className="text-xs text-muted-foreground">CO₂ Reduced</span>
+                      </div>
+                      <div className="flex flex-col items-center justify-center p-2 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
+                        <div className="mb-1">💧</div>
+                        <span className="text-sm font-medium text-center">{formatNumber(
+                          monthlyData.reduce((total, month) => total + month.waterSaved, 0)
+                        )} L</span>
+                        <span className="text-xs text-muted-foreground">Water Saved</span>
+                      </div>
+                      <div className="flex flex-col items-center justify-center p-2 bg-amber-50 dark:bg-amber-950/20 rounded-lg">
+                        <div className="mb-1">🌲</div>
+                        <span className="text-sm font-medium text-center">{formatNumber(
+                          monthlyData.reduce((total, month) => total + month.treesEquivalent, 0), 1
+                        )}</span>
+                        <span className="text-xs text-muted-foreground">Trees Equiv.</span>
+                      </div>
+                      <div className="flex flex-col items-center justify-center p-2 bg-purple-50 dark:bg-purple-950/20 rounded-lg">
+                        <div className="mb-1">⚡</div>
+                        <span className="text-sm font-medium text-center">{formatNumber(
+                          monthlyData.reduce((total, month) => total + month.energyConserved, 0)
+                        )} kWh</span>
+                        <span className="text-xs text-muted-foreground">Energy Saved</span>
+                      </div>
+                    </div>
+                    <div className="h-[200px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={monthlyData}>
+                          <defs>
+                            <linearGradient id="colorCO2" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#4ade80" stopOpacity={0.8}/>
+                              <stop offset="95%" stopColor="#4ade80" stopOpacity={0.1}/>
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+                          <XAxis 
+                            dataKey="name" 
+                            axisLine={{ stroke: '#e5e7eb', strokeWidth: 1 }}
+                            tick={{ fontSize: 12 }}
+                          />
+                          <YAxis 
+                            axisLine={{ stroke: '#e5e7eb', strokeWidth: 1 }} 
+                            tick={{ fontSize: 12 }}
+                            width={40}
+                          />
+                          <Tooltip 
+                            contentStyle={{ 
+                              backgroundColor: 'rgba(255, 255, 255, 0.96)', 
+                              borderRadius: '6px',
+                              border: '1px solid #e5e7eb',
+                              boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+                            }}
+                            itemStyle={{ padding: '4px 0' }}
+                            labelStyle={{ fontWeight: 'bold', marginBottom: '4px' }}
+                          />
+                          <Line 
+                            type="monotone" 
+                            dataKey="co2Reduced" 
+                            name="CO₂ Reduced (kg)" 
+                            stroke="#4ade80"
+                            fill="url(#colorCO2)"
+                            strokeWidth={2}
+                            dot={{ stroke: '#4ade80', strokeWidth: 2, r: 4, fill: 'white' }}
+                            activeDot={{ r: 6, stroke: '#4ade80', strokeWidth: 2, fill: 'white' }}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-[300px] bg-muted/10 rounded-lg border border-dashed">
+                    <div className="bg-muted/20 p-3 rounded-full mb-4">
+                      <Leaf className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                    <h3 className="text-lg font-medium mb-2">No impact data yet</h3>
+                    <p className="text-sm text-muted-foreground text-center max-w-xs">
+                      Environmental impact metrics will be calculated based on your waste collection history.
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
           
-          <Card>
-            <CardHeader>
+          {/* Organization Sustainability Score Card */}
+          <Card className="overflow-hidden">
+            <CardHeader className="border-b bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/30 dark:to-purple-900/20">
               <CardTitle className="flex items-center">
-                <Building className="mr-2 h-5 w-5" />
+                <Building className="mr-2 h-5 w-5 text-purple-600 dark:text-purple-400" />
                 Organization Sustainability Score
               </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Performance metrics and achievement rating
+              </p>
             </CardHeader>
-            <CardContent>
-              <div className="text-center mb-4">
-                <div className="inline-flex items-center justify-center rounded-full bg-primary/10 p-4 mb-3">
-                  <Leaf className="h-10 w-10 text-primary" />
+            <CardContent className="pt-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="flex flex-col items-center justify-center">
+                  <div className="relative inline-flex items-center justify-center">
+                    {/* Circular progress indicator */}
+                    <svg className="w-40 h-40" viewBox="0 0 120 120">
+                      <circle 
+                        cx="60" 
+                        cy="60" 
+                        r="54" 
+                        fill="none" 
+                        stroke="#f3f4f6" 
+                        strokeWidth="12" 
+                      />
+                      <circle 
+                        cx="60" 
+                        cy="60" 
+                        r="54" 
+                        fill="none" 
+                        stroke="#8b5cf6" 
+                        strokeWidth="12" 
+                        strokeLinecap="round"
+                        strokeDasharray="339.292"
+                        strokeDashoffset={339.292 * (1 - (user.sustainabilityScore || 0) / 1000)}
+                        transform="rotate(-90 60 60)"
+                      />
+                    </svg>
+                    <div className="absolute flex flex-col items-center justify-center">
+                      <span className="text-4xl font-bold text-purple-600 dark:text-purple-400">
+                        {user.sustainabilityScore || 0}
+                      </span>
+                      <span className="text-sm font-medium">points</span>
+                    </div>
+                  </div>
+                  <p className="mt-4 text-center text-sm text-muted-foreground max-w-[250px]">
+                    Your organization's sustainability score is calculated based on your waste management practices and environmental impact.
+                  </p>
                 </div>
-                <h3 className="text-3xl font-bold">{user.sustainabilityScore || 0} points</h3>
-                <p className="text-sm text-muted-foreground mb-6">Your organization's sustainability rating</p>
                 
-                <div className="grid grid-cols-3 gap-4 max-w-md mx-auto">
-                  <div className="flex flex-col items-center">
-                    <div className="h-24 w-2 bg-muted rounded-full relative mb-2">
+                <div className="flex flex-col space-y-4">
+                  <h3 className="text-lg font-medium">Performance Metrics</h3>
+                  
+                  {/* Recycling Rate Metric */}
+                  <div>
+                    <div className="flex justify-between mb-1">
+                      <span className="text-sm font-medium">Recycling Rate</span>
+                      <span className="text-sm">{recyclingRate}%</span>
+                    </div>
+                    <div className="h-2 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                       <div 
-                        className="absolute bottom-0 left-0 right-0 bg-green-500 rounded-full"
-                        style={{ height: `${recyclingRate}%` }}
+                        className="h-full bg-green-500 rounded-full" 
+                        style={{ width: `${recyclingRate}%` }}
                       />
                     </div>
-                    <span className="text-sm font-medium">{recyclingRate}%</span>
-                    <span className="text-xs text-muted-foreground">Recycling</span>
+                    <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                      <span>Target: 70%</span>
+                      <span>
+                        {recyclingRate >= 70 ? '✓ Achieved' : 'In progress'}
+                      </span>
+                    </div>
                   </div>
                   
-                  <div className="flex flex-col items-center">
-                    <div className="h-24 w-2 bg-muted rounded-full relative mb-2">
+                  {/* Schedule Compliance Metric */}
+                  <div>
+                    <div className="flex justify-between mb-1">
+                      <span className="text-sm font-medium">Schedule Compliance</span>
+                      <span className="text-sm">{scheduleCompliance}%</span>
+                    </div>
+                    <div className="h-2 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                       <div 
-                        className="absolute bottom-0 left-0 right-0 bg-blue-500 rounded-full"
-                        style={{ height: `${scheduleCompliance}%` }}
+                        className="h-full bg-blue-500 rounded-full" 
+                        style={{ width: `${scheduleCompliance}%` }}
                       />
                     </div>
-                    <span className="text-sm font-medium">{scheduleCompliance}%</span>
-                    <span className="text-xs text-muted-foreground">Schedule</span>
+                    <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                      <span>Target: 90%</span>
+                      <span>
+                        {scheduleCompliance >= 90 ? '✓ Achieved' : 'In progress'}
+                      </span>
+                    </div>
                   </div>
                   
-                  <div className="flex flex-col items-center">
-                    <div className="h-24 w-2 bg-muted rounded-full relative mb-2">
+                  {/* Waste Reduction Metric - Based on real data */}
+                  <div>
+                    <div className="flex justify-between mb-1">
+                      <span className="text-sm font-medium">Waste Reduction</span>
+                      {/* Calculate a metric based on collections and impact data */}
+                      <span className="text-sm">{
+                        collections.length > 0 ? 
+                          Math.min(100, Math.round((impact?.co2Reduced || 0) / (totalWasteWeight * 2) * 100)) : 0
+                      }%</span>
+                    </div>
+                    <div className="h-2 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                       <div 
-                        className="absolute bottom-0 left-0 right-0 bg-purple-500 rounded-full"
-                        style={{ height: `85%` }}
+                        className="h-full bg-amber-500 rounded-full" 
+                        style={{ 
+                          width: `${collections.length > 0 ? 
+                            Math.min(100, Math.round((impact?.co2Reduced || 0) / (totalWasteWeight * 2) * 100)) : 0}%` 
+                        }}
                       />
                     </div>
-                    <span className="text-sm font-medium">85%</span>
-                    <span className="text-xs text-muted-foreground">Overall</span>
+                    <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                      <span>Target: 50%</span>
+                      <span>
+                        {collections.length > 0 && (impact?.co2Reduced || 0) / (totalWasteWeight * 2) * 100 >= 50 
+                          ? '✓ Achieved' 
+                          : 'In progress'}
+                      </span>
+                    </div>
                   </div>
+                </div>
+              </div>
+              
+              {/* Achievement badges */}
+              <div className="mt-6 pt-6 border-t">
+                <h3 className="text-sm font-medium mb-4">Achievement Badges</h3>
+                <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+                  {[
+                    { name: 'Eco Champion', achieved: user.sustainabilityScore >= 500, icon: '🏆' },
+                    { name: 'Recycling Pro', achieved: recyclingRate >= 75, icon: '♻️' },
+                    { name: 'On-Time Hero', achieved: scheduleCompliance >= 90, icon: '⏱️' },
+                    { name: 'Carbon Reducer', achieved: impact?.co2Reduced > 100, icon: '🌿' },
+                    { name: 'Tree Saver', achieved: impact?.treesEquivalent > 5, icon: '🌳' },
+                    { name: 'Water Conserver', achieved: impact?.waterSaved > 1000, icon: '💧' }
+                  ].map((badge, index) => (
+                    <div 
+                      key={index} 
+                      className={`flex flex-col items-center justify-center p-2 rounded-lg text-center ${
+                        badge.achieved 
+                          ? 'bg-purple-100 dark:bg-purple-900/20 text-purple-900 dark:text-purple-100' 
+                          : 'bg-gray-100 dark:bg-gray-800/30 text-gray-400 dark:text-gray-500'
+                      }`}
+                    >
+                      <div className="text-xl mb-1">{badge.icon}</div>
+                      <span className="text-xs font-medium">{badge.name}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
             </CardContent>
