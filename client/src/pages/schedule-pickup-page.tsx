@@ -3,7 +3,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import Navbar from "@/components/shared/navbar";
 import Footer from "@/components/shared/footer";
 import MobileNavigation from "@/components/shared/mobile-navigation";
-import SchedulePickupForm from "@/components/forms/schedule-pickup-form";
+import SchedulePickupWizard from "@/components/forms/schedule-wizard/schedule-pickup-wizard";
 import { useQuery } from "@tanstack/react-query";
 import { Collection, CollectionStatus } from "@shared/schema";
 import { 
