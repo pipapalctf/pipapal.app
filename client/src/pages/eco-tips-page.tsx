@@ -18,6 +18,59 @@ import Navbar from "@/components/shared/navbar";
 import Footer from "@/components/shared/footer";
 import MobileNavigation from "@/components/shared/mobile-navigation";
 
+// Predefined custom tips that will be displayed in the "Custom" tab
+// These don't rely on the OpenAI API and are always available
+const PREDEFINED_CUSTOM_TIPS = [
+  {
+    id: "custom-1",
+    title: "How to Recycle Old Tires Properly",
+    content: "Take old tires to tire retailers offering recycling programs, or contact local recycling centers that accept tires. Many can be repurposed into playground surfaces, garden planters, or mulch. Never dispose of tires in regular trash.",
+    category: "recycling",
+    isCustom: true,
+    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
+  },
+  {
+    id: "custom-2",
+    title: "Electronic Waste Recycling Guide",
+    content: "Recycle electronics at dedicated e-waste centers or retailer take-back programs. Best Buy, Staples and Apple accept old devices for free recycling. Remove personal data before recycling and look for certified e-waste recyclers.",
+    category: "waste",
+    isCustom: true,
+    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
+  },
+  {
+    id: "custom-3",
+    title: "Composting Coffee Grounds Tips",
+    content: "Coffee grounds add nitrogen to compost - mix 1 part grounds with 4 parts carbon materials like dried leaves or newspaper. Can also be used directly in garden soil for acid-loving plants like azaleas, blueberries and roses.",
+    category: "composting",
+    isCustom: true,
+    createdAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000), // 4 days ago
+  },
+  {
+    id: "custom-4",
+    title: "Bathroom Plastic Reduction Methods",
+    content: "Replace plastic bottles with solid shampoo/soap bars, bamboo toothbrushes, refillable containers, and metal razors. Install a shower filter instead of buying bottled water. Choose products with compostable packaging.",
+    category: "plastic",
+    isCustom: true,
+    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
+  },
+  {
+    id: "custom-5",
+    title: "Energy-Efficient Home Cooking Guide",
+    content: "Use pressure cookers to reduce cooking time by 70%. Match pot size to burner size. Keep lids on when cooking. Batch cook multiple meals at once. Use residual heat by turning off electric stovetops 5 minutes before cooking is complete.",
+    category: "energy",
+    isCustom: true,
+    createdAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000), // 6 days ago
+  },
+  {
+    id: "custom-6",
+    title: "Rainwater Collection System Setup",
+    content: "Install a rain barrel under downspouts with mosquito screens and overflow outlets. A 50-gallon barrel can be sufficient for small gardens. Check local regulations first. Use collected water for gardens, plants, and lawn watering.",
+    category: "water",
+    isCustom: true,
+    createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 7 days ago
+  }
+];
+
 export default function EcoTipsPage() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
@@ -26,6 +79,7 @@ export default function EcoTipsPage() {
   const [savedTips, setSavedTips] = useState<number[]>([]);
   const [likedTips, setLikedTips] = useState<number[]>([]);
   const [customTipPrompt, setCustomTipPrompt] = useState("");
+  const [customLocalTips, setCustomLocalTips] = useState(PREDEFINED_CUSTOM_TIPS);
   
   const { data: ecoTips, isLoading } = useQuery<EcoTip[]>({
     queryKey: ["/api/ecotips"],
@@ -144,10 +198,20 @@ export default function EcoTipsPage() {
     const matchesCategory = !selectedCategory || tip.category === selectedCategory;
     
     const tipCreatedAt = tip.createdAt ? new Date(tip.createdAt) : new Date();
+    // Determine if this is a custom tip for filtering
+    const isCustomTip = (
+      !["Proper Recycling Techniques", "Save Water With Shower Buckets", 
+       "Unplug To Save Energy", "Zero-Waste Shopping", "Ditch Single-Use Plastics", 
+       "Start Simple Composting", "Green Commuting", "Eco-Friendly Daily Habits"].includes(tip.title) &&
+      (tip.title.includes("How") || tip.title.includes("Tips") || 
+       tip.title.includes("Guide") || tip.title.length > 20)
+    );
+    
     const matchesTab = 
       currentTab === "all" || 
       (currentTab === "saved" && savedTips.includes(tip.id)) ||
-      (currentTab === "newest" && tipCreatedAt.getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000);
+      (currentTab === "newest" && tipCreatedAt.getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000) ||
+      (currentTab === "custom" && isCustomTip);
     
     return matchesSearch && matchesCategory && matchesTab;
   });
@@ -502,12 +566,15 @@ export default function EcoTipsPage() {
               {/* Main Content */}
               <div id="eco-tips-content" className="lg:col-span-3">
                 <Tabs defaultValue="all" value={currentTab} onValueChange={setCurrentTab} className="mb-6">
-                  <TabsList className="grid w-full grid-cols-3">
+                  <TabsList className="grid w-full grid-cols-4">
                     <TabsTrigger value="all" className="flex items-center gap-2">
                       <TreePine className="h-4 w-4" /> All Tips
                     </TabsTrigger>
                     <TabsTrigger value="newest" className="flex items-center gap-2">
                       <Sparkles className="h-4 w-4" /> Newest
+                    </TabsTrigger>
+                    <TabsTrigger value="custom" className="flex items-center gap-2">
+                      <Lightbulb className="h-4 w-4" /> Custom
                     </TabsTrigger>
                     <TabsTrigger value="saved" className="flex items-center gap-2">
                       <BookmarkCheck className="h-4 w-4" /> Saved ({savedTips.length})
@@ -520,6 +587,145 @@ export default function EcoTipsPage() {
                     <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
                     <p className="text-muted-foreground">Loading your eco tips...</p>
                   </div>
+                ) : (currentTab === "custom") ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Show predefined custom tips */}
+                    {customLocalTips.map(tip => {
+                      const categoryInfo = ecoTipCategories.find(cat => cat.value === tip.category);
+                      const colors = getCategoryColors(tip.category || 'default');
+                      
+                      return (
+                        <Card 
+                          key={tip.id} 
+                          className="overflow-hidden flex flex-col h-full border hover:shadow-md transition-shadow border-primary/50 shadow-sm"
+                        >
+                          <div className="h-1.5 bg-gradient-to-r w-full" style={{ backgroundImage: `linear-gradient(to right, ${colors.text}, ${colors.text})` }}></div>
+                          <CardHeader className="pb-3 bg-primary/5">
+                            <div className="flex items-start">
+                              <div className={`p-2 rounded-full ${colors.bg} mr-3 flex-shrink-0`}>
+                                {getCategoryIcon(tip.category)}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <CardTitle className="text-lg font-semibold mb-1 break-words">
+                                  {tip.title}
+                                </CardTitle>
+                                <div className="flex items-center flex-wrap gap-2">
+                                  <Badge variant="outline" className={`${colors.text} ${colors.bg} border-0 text-xs capitalize`}>
+                                    {categoryInfo?.label || tip.category}
+                                  </Badge>
+                                  <Badge variant="outline" className="bg-violet-100 text-violet-700 border-violet-200 text-xs">
+                                    <Sparkles className="h-3 w-3 mr-1" />
+                                    Custom
+                                  </Badge>
+                                  <span className="text-xs text-muted-foreground">
+                                    {tip.createdAt.toLocaleDateString()}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="py-3 flex-grow">
+                            <p className="text-sm text-gray-700 break-words">{tip.content}</p>
+                          </CardContent>
+                          <CardFooter className="flex justify-between items-center pt-3 border-t">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="text-gray-400"
+                            >
+                              <ThumbsUp className="h-4 w-4 mr-1" />
+                              <span className="text-xs">Like</span>
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="text-primary"
+                            >
+                              <Bookmark className="h-4 w-4 mr-1" />
+                              Save
+                            </Button>
+                          </CardFooter>
+                        </Card>
+                      );
+                    })}
+                    
+                    {/* Also show any filtered tips from the API that are custom */}
+                    {filteredTips && filteredTips.map(tip => {
+                      const categoryInfo = ecoTipCategories.find(cat => cat.value === tip.category);
+                      const createdAt = tip.createdAt ? new Date(tip.createdAt) : new Date();
+                      const isNewTip = createdAt.getTime() > Date.now() - 24 * 60 * 60 * 1000;
+                      const isSaved = savedTips.includes(tip.id);
+                      const isLiked = likedTips.includes(tip.id);
+                      // We're in the custom tab, so all displayed API tips should be custom
+                      const isCustomTip = true;
+                      const colors = getCategoryColors(tip.category || 'default');
+                      
+                      return (
+                        <Card 
+                          key={tip.id} 
+                          className="overflow-hidden flex flex-col h-full border hover:shadow-md transition-shadow border-primary/50 shadow-sm"
+                          id={isNewTip ? 'newest-tip' : undefined}
+                        >
+                          <div className="h-1.5 bg-gradient-to-r w-full" style={{ backgroundImage: `linear-gradient(to right, ${colors.text}, ${colors.text})` }}></div>
+                          <CardHeader className="pb-3 bg-primary/5">
+                            <div className="flex items-start">
+                              <div className={`p-2 rounded-full ${colors.bg} mr-3 flex-shrink-0`}>
+                                {getCategoryIcon(tip.category)}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <CardTitle className="text-lg font-semibold mb-1 break-words">
+                                  {tip.title}
+                                </CardTitle>
+                                <div className="flex items-center flex-wrap gap-2">
+                                  <Badge variant="outline" className={`${colors.text} ${colors.bg} border-0 text-xs capitalize`}>
+                                    {categoryInfo?.label || tip.category}
+                                  </Badge>
+                                  {isNewTip && (
+                                    <Badge variant="default" className="bg-blue-500 text-xs">
+                                      New
+                                    </Badge>
+                                  )}
+                                  <Badge variant="outline" className="bg-violet-100 text-violet-700 border-violet-200 text-xs">
+                                    <Sparkles className="h-3 w-3 mr-1" />
+                                    Custom
+                                  </Badge>
+                                  <span className="text-xs text-muted-foreground">
+                                    {createdAt.toLocaleDateString()}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="py-3 flex-grow">
+                            <p className="text-sm text-gray-700 break-words">{tip.content}</p>
+                          </CardContent>
+                          <CardFooter className="flex justify-between items-center pt-3 border-t">
+                            <div className="flex items-center gap-1">
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className={isLiked ? "text-green-500" : "text-gray-400"}
+                                onClick={() => handleLikeTip(tip.id)}
+                                disabled={isLiked}
+                              >
+                                <ThumbsUp className="h-4 w-4 mr-1" />
+                                <span className="text-xs">{isLiked ? 'Helpful' : 'Like'}</span>
+                              </Button>
+                            </div>
+                            <Button 
+                              variant={isSaved ? "default" : "outline"} 
+                              size="sm" 
+                              className={isSaved ? "bg-primary text-white" : "text-primary"}
+                              onClick={() => handleSaveTip(tip.id)}
+                            >
+                              {isSaved ? <BookmarkCheck className="h-4 w-4 mr-1" /> : <Bookmark className="h-4 w-4 mr-1" />}
+                              {isSaved ? "Saved" : "Save"}
+                            </Button>
+                          </CardFooter>
+                        </Card>
+                      );
+                    })}
+                  </div>
                 ) : filteredTips && filteredTips.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {filteredTips.map(tip => {
@@ -528,7 +734,8 @@ export default function EcoTipsPage() {
                       const isNewTip = createdAt.getTime() > Date.now() - 24 * 60 * 60 * 1000;
                       const isSaved = savedTips.includes(tip.id);
                       const isLiked = likedTips.includes(tip.id);
-                      // More robust detection of custom-generated tips
+                                          // Get the isCustomTip value from our filtering function above
+                      // to keep detection logic consistent
                       const isCustomTip = (
                         // Not one of the default tip titles
                         !["Proper Recycling Techniques", "Save Water With Shower Buckets", 
