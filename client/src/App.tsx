@@ -12,10 +12,12 @@ import EcoTipsPage from "@/pages/eco-tips-page";
 import ImpactPage from "@/pages/impact-page";
 import ProfilePage from "@/pages/profile-page";
 import CollectionDetailsPage from "@/pages/collection-details-page";
+import CollectorCollectionsPage from "@/pages/collector-collections-page";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 import { ThemeProvider } from "next-themes";
 import { NotificationsProvider } from "@/hooks/notifications-provider";
+import { UserRole } from "@shared/schema";
 
 function Router() {
   return (
@@ -26,6 +28,7 @@ function Router() {
       <ProtectedRoute path="/ecotips" component={EcoTipsPage} />
       <ProtectedRoute path="/impact" component={ImpactPage} />
       <ProtectedRoute path="/collections/:id" component={CollectionDetailsPage} />
+      <ProtectedRoute path="/collections" component={CollectorCollectionsPage} roleCheck={UserRole.COLLECTOR} />
       <ProtectedRoute path="/profile" component={ProfilePage} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
