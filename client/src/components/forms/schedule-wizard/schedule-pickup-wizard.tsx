@@ -14,10 +14,10 @@ import { Loader2, Package2, BadgeCheck, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 // Steps
-import WasteDetailsStep from "./steps/waste-details-step";
-import LocationStep from "./steps/location-step";
-import ScheduleStep from "./steps/schedule-step";
-import ReviewStep from "./steps/review-step";
+import WasteDetailsStep from "@/components/forms/schedule-wizard/steps/waste-details-step";
+import LocationStep from "@/components/forms/schedule-wizard/steps/location-step";
+import ScheduleStep from "@/components/forms/schedule-wizard/steps/schedule-step";
+import ReviewStep from "@/components/forms/schedule-wizard/steps/review-step";
 
 // Define form schema
 const formSchema = z.object({
