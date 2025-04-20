@@ -121,9 +121,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           timestamp: new Date()
         });
         
-        // Create environmental impact data (per kg of waste)
-        const estimatedWeightKg = 10; // Default to 10kg for each collection
-        
         // Calculate environmental impact based on waste type and weight
         const impactFactors = {
           waterSaved: 50, // liters of water saved per kg
@@ -134,11 +131,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         await storage.createImpact({
           userId: req.user.id,
-          waterSaved: estimatedWeightKg * impactFactors.waterSaved,
-          co2Reduced: estimatedWeightKg * impactFactors.co2Reduced,
-          treesEquivalent: estimatedWeightKg * impactFactors.treesEquivalent,
-          energyConserved: estimatedWeightKg * impactFactors.energyConserved,
-          wasteAmount: estimatedWeightKg,
+          waterSaved: wasteAmount * impactFactors.waterSaved,
+          co2Reduced: wasteAmount * impactFactors.co2Reduced,
+          treesEquivalent: wasteAmount * impactFactors.treesEquivalent,
+          energyConserved: wasteAmount * impactFactors.energyConserved,
+          wasteAmount: wasteAmount,
           collectionId: collection.id
         });
         

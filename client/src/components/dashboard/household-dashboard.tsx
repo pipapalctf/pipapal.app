@@ -359,7 +359,36 @@ export default function HouseholdDashboard({ user }: HouseholdDashboardProps) {
                 <Award className="h-10 w-10 text-primary" />
               </div>
               <h3 className="text-3xl font-bold">{user.sustainabilityScore || 0} points</h3>
-              <p className="text-sm text-muted-foreground">Keep scheduling pickups to earn more points!</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Points earned based on waste type and amount
+              </p>
+              
+              <div className="mt-4 grid grid-cols-2 gap-2 text-left text-xs bg-muted/20 p-3 rounded-md">
+                <div className="flex items-center">
+                  <div className="w-2 h-2 rounded-full bg-red-500 mr-2"></div>
+                  <span>Hazardous: 2.0 pts/kg</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-2 h-2 rounded-full bg-purple-500 mr-2"></div>
+                  <span>Electronic: 1.5 pts/kg</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-2 h-2 rounded-full bg-gray-500 mr-2"></div>
+                  <span>Metal: 1.2 pts/kg</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-2 h-2 rounded-full bg-blue-500 mr-2"></div>
+                  <span>Glass/Plastic: 1.0 pts/kg</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-2 h-2 rounded-full bg-yellow-500 mr-2"></div>
+                  <span>Paper/Organic: 0.8 pts/kg</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500 mr-2"></div>
+                  <span>General: 0.5 pts/kg</span>
+                </div>
+              </div>
             </CardContent>
           </Card>
           
