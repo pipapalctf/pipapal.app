@@ -1,5 +1,5 @@
-import React from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
@@ -23,6 +23,26 @@ import {
 import { Button } from '@/components/ui/button';
 import { User, CollectionStatus } from '@shared/schema';
 import { formatNumber } from '@/lib/utils';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue 
+} from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
+import { useToast } from "@/hooks/use-toast";
 
 interface OrganizationDashboardProps {
   user: User;
@@ -33,6 +53,33 @@ interface OrganizationDashboardProps {
  * Shows sustainability metrics and CSR reporting
  */
 export default function OrganizationDashboard({ user }: OrganizationDashboardProps) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  // Custom sustainability goals state
+  const [customGoals, setCustomGoals] = useState<Array<{
+    id: string;
+    name: string;
+    target: number;
+    current: number;
+    metric: string;
+    icon: string;
+    color: string;
+  }>>([]);
+  
+  // New goal form state
+  const [newGoal, setNewGoal] = useState({
+    name: '',
+    target: 100,
+    current: 0,
+    metric: 'kg',
+    icon: '🌱',
+    color: 'blue'
+  });
+  
+  // Dialog state
+  const [dialogOpen, setDialogOpen] = useState(false);
+  
   // Fetch collections data for this organization
   const { data: collections = [] } = useQuery({
     queryKey: ['/api/collections'],
@@ -57,6 +104,67 @@ export default function OrganizationDashboard({ user }: OrganizationDashboardPro
   const { data: monthlyData = [] } = useQuery({
     queryKey: ['/api/impact/monthly'],
   });
+  
+  // Handle goal form input changes
+  const handleGoalChange = (field: string, value: string | number) => {
+    setNewGoal(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  }
+  
+  // Handle goal creation
+  const handleAddGoal = () => {
+    if (!newGoal.name) {
+      toast({
+        title: "Goal name required",
+        description: "Please provide a name for your sustainability goal",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Add the new goal to state
+    const id = `goal-${Date.now()}`;
+    setCustomGoals(prev => [
+      ...prev,
+      {
+        id,
+        ...newGoal
+      }
+    ]);
+    
+    // Reset form and close dialog
+    setNewGoal({
+      name: '',
+      target: 100,
+      current: 0,
+      metric: 'kg',
+      icon: '🌱',
+      color: 'blue'
+    });
+    setDialogOpen(false);
+    
+    // Show success message
+    toast({
+      title: "Goal added",
+      description: "Your new sustainability goal has been added",
+      variant: "default"
+    });
+  }
+  
+  // Array of available icons to choose from
+  const availableIcons = ['🌱', '🌲', '♻️', '💧', '🔋', '🚮', '📉', '🏭', '🚗', '🏆'];
+  
+  // Color options for goals
+  const colorOptions = [
+    { name: 'Blue', value: 'blue', bg: 'bg-blue-100', text: 'text-blue-700', accent: 'bg-blue-500' },
+    { name: 'Green', value: 'green', bg: 'bg-green-100', text: 'text-green-700', accent: 'bg-green-500' },
+    { name: 'Amber', value: 'amber', bg: 'bg-amber-100', text: 'text-amber-700', accent: 'bg-amber-500' },
+    { name: 'Purple', value: 'purple', bg: 'bg-purple-100', text: 'text-purple-700', accent: 'bg-purple-500' },
+    { name: 'Rose', value: 'rose', bg: 'bg-rose-100', text: 'text-rose-700', accent: 'bg-rose-500' },
+    { name: 'Emerald', value: 'emerald', bg: 'bg-emerald-100', text: 'text-emerald-700', accent: 'bg-emerald-500' },
+  ];
 
   // Calculate total waste weight
   const totalWasteWeight = collections.reduce((total, collection) => {
@@ -1296,6 +1404,51 @@ export default function OrganizationDashboard({ user }: OrganizationDashboardPro
                   </div>
                 </div>
                 
+                {/* Display custom goals */}
+                {customGoals.map(goal => {
+                  // Get color classes based on the color choice
+                  const colorOption = colorOptions.find(c => c.value === goal.color) || colorOptions[0];
+                  const progress = Math.min(100, Math.round((goal.current / goal.target) * 100));
+                  const achieved = goal.current >= goal.target;
+                  
+                  return (
+                    <div className="flex items-center" key={goal.id}>
+                      <div className="flex-shrink-0 mr-4">
+                        <div className={`flex items-center justify-center h-12 w-12 rounded-full ${
+                          achieved 
+                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
+                            : `${colorOption.bg} ${colorOption.text}`
+                        }`}>
+                          {achieved 
+                            ? <Check className="h-6 w-6" /> 
+                            : <div className="text-xl">{goal.icon}</div>
+                          }
+                        </div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between mb-1">
+                          <h3 className="text-sm font-medium">{goal.name}</h3>
+                          <span className={`text-sm font-medium ${
+                            achieved ? 'text-green-600 dark:text-green-400' : `${colorOption.text}`
+                          }`}>
+                            {achieved ? '✓ Achieved' : 'In Progress'}
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-2.5 mb-1">
+                          <div 
+                            className={`h-2.5 rounded-full ${achieved ? 'bg-green-500' : colorOption.accent}`}
+                            style={{ width: `${progress}%` }}
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground flex justify-between">
+                          <span>Target: {formatNumber(goal.target)} {goal.metric}</span>
+                          <span>Current: {formatNumber(goal.current)} {goal.metric}</span>
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+                
                 {/* Call-to-action card */}
                 <div className="mt-4 bg-muted/40 rounded-lg p-4 border border-dashed flex items-center space-x-4">
                   <div className="flex-shrink-0">
@@ -1309,10 +1462,126 @@ export default function OrganizationDashboard({ user }: OrganizationDashboardPro
                       Define custom environmental targets for your organization
                     </p>
                   </div>
-                  <Button size="sm" variant="outline" className="ml-auto">
-                    <Plus className="h-4 w-4 mr-1" />
-                    Add Goal
-                  </Button>
+                  <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button size="sm" variant="outline" className="ml-auto">
+                        <Plus className="h-4 w-4 mr-1" />
+                        Add Goal
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[425px]">
+                      <DialogHeader>
+                        <DialogTitle>Add Sustainability Goal</DialogTitle>
+                        <DialogDescription>
+                          Create a custom goal to track your organization's environmental initiatives.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                          <Label htmlFor="goal-name" className="text-right">
+                            Goal Name
+                          </Label>
+                          <Input
+                            id="goal-name"
+                            className="col-span-3"
+                            placeholder="Reduce plastic waste"
+                            value={newGoal.name}
+                            onChange={(e) => handleGoalChange('name', e.target.value)}
+                          />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                          <Label htmlFor="target" className="text-right">
+                            Target
+                          </Label>
+                          <div className="flex items-center col-span-3 gap-2">
+                            <Input
+                              id="target"
+                              type="number"
+                              className="flex-1"
+                              placeholder="100"
+                              value={newGoal.target.toString()}
+                              onChange={(e) => handleGoalChange('target', parseFloat(e.target.value) || 0)}
+                            />
+                            <Select 
+                              value={newGoal.metric} 
+                              onValueChange={(value) => handleGoalChange('metric', value)}
+                            >
+                              <SelectTrigger className="w-[100px]">
+                                <SelectValue placeholder="Unit" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="kg">kg</SelectItem>
+                                <SelectItem value="%">percent</SelectItem>
+                                <SelectItem value="L">liters</SelectItem>
+                                <SelectItem value="kWh">kWh</SelectItem>
+                                <SelectItem value="units">units</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                          <Label htmlFor="current" className="text-right">
+                            Current Progress
+                          </Label>
+                          <Input
+                            id="current"
+                            type="number"
+                            className="col-span-3"
+                            placeholder="0"
+                            value={newGoal.current.toString()}
+                            onChange={(e) => handleGoalChange('current', parseFloat(e.target.value) || 0)}
+                          />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                          <Label className="text-right">
+                            Icon
+                          </Label>
+                          <div className="flex flex-wrap gap-2 col-span-3">
+                            {availableIcons.map((icon) => (
+                              <button
+                                key={icon}
+                                type="button"
+                                onClick={() => handleGoalChange('icon', icon)}
+                                className={`w-8 h-8 flex items-center justify-center rounded-md text-lg
+                                  ${newGoal.icon === icon ? 'bg-primary/20 border border-primary' : 'hover:bg-muted'}
+                                `}
+                              >
+                                {icon}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                          <Label className="text-right">
+                            Color
+                          </Label>
+                          <div className="flex flex-wrap gap-2 col-span-3">
+                            {colorOptions.map((color) => (
+                              <button
+                                key={color.value}
+                                type="button"
+                                onClick={() => handleGoalChange('color', color.value)}
+                                className={`w-8 h-8 flex items-center justify-center rounded-md
+                                  ${color.bg}
+                                  ${newGoal.color === color.value ? 'ring-2 ring-primary' : ''}
+                                `}
+                              >
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button 
+                          type="submit"
+                          onClick={handleAddGoal}
+                          disabled={!newGoal.name || newGoal.target <= 0}
+                        >
+                          Add Goal
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
                 </div>
               </div>
             </CardContent>
