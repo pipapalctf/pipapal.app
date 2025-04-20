@@ -42,6 +42,13 @@ const formSchema = z.object({
   wasteType: z.string({
     required_error: "Please select the type of waste",
   }),
+  wasteAmount: z.coerce
+    .number({ 
+      required_error: "Please enter the amount of waste",
+      invalid_type_error: "Amount must be a number"
+    })
+    .min(1, "Amount must be at least 1 kg")
+    .max(1000, "Amount cannot exceed 1000 kg"),
   scheduledDate: z.date({
     required_error: "Please select a date and time",
   }),
@@ -68,6 +75,7 @@ export default function SchedulePickupForm() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       address: user?.address || "",
+      wasteAmount: 10, // Default to 10kg
       notes: "",
     },
   });
@@ -84,6 +92,7 @@ export default function SchedulePickupForm() {
       setIsRescheduling(true);
       form.reset({
         wasteType: editCollection.wasteType,
+        wasteAmount: editCollection.wasteAmount || 10,
         scheduledDate: new Date(editCollection.scheduledDate),
         address: editCollection.address,
         notes: editCollection.notes || "",
@@ -215,6 +224,35 @@ export default function SchedulePickupForm() {
               </Select>
               <FormDescription>
                 Select the main type of waste for this collection
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="wasteAmount"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Waste Amount (kg)</FormLabel>
+              <FormControl>
+                <div className="relative">
+                  <Input 
+                    type="number" 
+                    min="1"
+                    max="1000"
+                    placeholder="10" 
+                    {...field}
+                    className="pr-12" 
+                  />
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                    <span className="text-sm text-muted-foreground">kg</span>
+                  </div>
+                </div>
+              </FormControl>
+              <FormDescription>
+                Enter the estimated weight of your waste in kilograms
               </FormDescription>
               <FormMessage />
             </FormItem>

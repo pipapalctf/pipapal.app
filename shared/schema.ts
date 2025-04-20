@@ -143,10 +143,12 @@ export const insertCollectionSchema = createInsertSchema(collections, {
     }
     return val;
   }),
+  wasteAmount: z.coerce.number().min(1).default(10),
 })
   .pick({
     userId: true,
     wasteType: true,
+    wasteAmount: true,
     status: true,
     scheduledDate: true,
     address: true,
