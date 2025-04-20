@@ -3,7 +3,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import Navbar from "@/components/shared/navbar";
 import Footer from "@/components/shared/footer";
 import MobileNavigation from "@/components/shared/mobile-navigation";
-import SchedulePickupWizard from "@/components/forms/schedule-wizard/schedule-pickup-wizard";
+import SchedulePickupForm from "@/components/forms/schedule-pickup-form";
 import { useQuery } from "@tanstack/react-query";
 import { Collection, CollectionStatus } from "@shared/schema";
 import { 
@@ -208,7 +208,7 @@ export default function SchedulePickupPage() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <SchedulePickupWizard collectionToEdit={collectionToEdit} onSuccess={() => {
+                      <SchedulePickupForm collectionToEdit={collectionToEdit} onSuccess={() => {
                         setCollectionToEdit(null);
                         navigate('/schedule-pickup?tab=pickups');
                         scrollToElement('pickups-tab-content', 80);
