@@ -315,7 +315,10 @@ export default function SchedulePickupPage() {
                   ) : upcomingCollections.length > 0 ? (
                     <div className="space-y-4">
                       <h3 className="text-lg font-medium mb-2">Upcoming Pickups</h3>
-                      {upcomingCollections.map((collection) => {
+                      {upcomingCollections
+                        .slice()
+                        .sort((a, b) => new Date(b.scheduledDate).getTime() - new Date(a.scheduledDate).getTime())
+                        .map((collection) => {
                         const scheduledDate = new Date(collection.scheduledDate);
                         return (
                           <div key={collection.id} className="flex items-center justify-between p-4 border rounded-lg bg-card">
@@ -391,7 +394,10 @@ export default function SchedulePickupPage() {
                         collections.filter(c => 
                           c.status === CollectionStatus.COMPLETED || 
                           c.status === CollectionStatus.CANCELLED
-                        ).map((collection) => {
+                        )
+                        .slice()
+                        .sort((a, b) => new Date(b.scheduledDate).getTime() - new Date(a.scheduledDate).getTime())
+                        .map((collection) => {
                           const scheduledDate = new Date(collection.scheduledDate);
                           return (
                             <div key={collection.id} className="flex items-center justify-between p-4 border rounded-lg bg-card/50">
