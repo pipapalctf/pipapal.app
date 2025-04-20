@@ -328,6 +328,55 @@ export default function EcoTipsPage() {
                     <p className="text-sm mb-4">
                       Let our AI create personalized eco-tips tailored to your sustainability interests.
                     </p>
+
+                    {/* Custom Tip Generator */}
+                    <div className="bg-white rounded-lg border border-primary/20 p-3 mb-4">
+                      <h4 className="font-medium text-sm mb-2 flex items-center text-primary">
+                        <Lightbulb className="h-4 w-4 mr-1.5" />
+                        Ask About Specific Topics
+                      </h4>
+                      <div className="space-y-3">
+                        <Input
+                          placeholder="e.g., how to recycle old tires"
+                          value={customTipPrompt}
+                          onChange={(e) => setCustomTipPrompt(e.target.value)}
+                          className="text-sm"
+                        />
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1">
+                            <select 
+                              className="w-full h-9 rounded-md border border-input px-3 py-1 text-sm bg-background"
+                              value={selectedCategory || "recycling"}
+                              onChange={(e) => setSelectedCategory(e.target.value)}
+                            >
+                              {ecoTipCategories.map(category => (
+                                <option key={category.value} value={category.value}>
+                                  {category.label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <Button
+                            onClick={handleGenerateCustomTip}
+                            disabled={generateTipMutation.isPending || !customTipPrompt.trim()}
+                            className="flex-shrink-0"
+                          >
+                            {generateTipMutation.isPending ? (
+                              <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                            ) : (
+                              <Sparkles className="h-4 w-4 mr-1" />
+                            )}
+                            <span>Generate</span>
+                          </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Ask about specific sustainability topics like "reusing plastic bottles" or "eco-friendly packaging"
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Standard Category Buttons */}
+                    <h4 className="font-medium text-sm mb-2">Quick Generate by Category</h4>
                     <div className="space-y-2">
                       {ecoTipCategories.map(category => {
                         const colors = getCategoryColors(category.value);
