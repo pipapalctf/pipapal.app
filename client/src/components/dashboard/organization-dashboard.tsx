@@ -78,8 +78,11 @@ export default function OrganizationDashboard({ user }: OrganizationDashboardPro
       {/* User Welcome Section */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold">Organization Dashboard</h1>
-        <p className="text-muted-foreground mt-2">
-          Welcome back, {user?.organizationName || user?.fullName?.split(' ')[0] || user?.username || 'Partner'}! Track your sustainability metrics here.
+        <h2 className="text-xl font-medium text-primary mt-2">
+          Welcome back, {user?.organizationName || user?.fullName?.split(' ')[0] || user?.username || 'Partner'}!
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          Track your sustainability metrics here.
         </p>
       </div>
       

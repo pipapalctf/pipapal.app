@@ -92,8 +92,11 @@ export default function CollectorDashboard({ user }: CollectorDashboardProps) {
       {/* User Welcome Section */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold">Collector Dashboard</h1>
-        <p className="text-muted-foreground mt-2">
-          Welcome back, {user?.fullName?.split(' ')[0] || user?.username || 'Collector'}! Ready for today's collection routes?
+        <h2 className="text-xl font-medium text-primary mt-2">
+          Welcome back, {user?.fullName?.split(' ')[0] || user?.username || 'Collector'}!
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          Ready for today's collection routes?
         </p>
       </div>
       

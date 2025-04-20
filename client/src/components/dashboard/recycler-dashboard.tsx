@@ -99,8 +99,11 @@ export default function RecyclerDashboard({ user }: RecyclerDashboardProps) {
       {/* User Welcome Section */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold">Recycler Dashboard</h1>
-        <p className="text-muted-foreground mt-2">
-          Welcome back, {user?.fullName?.split(' ')[0] || user?.username || 'Recycler'}! Today's materials are waiting to be transformed.
+        <h2 className="text-xl font-medium text-primary mt-2">
+          Welcome back, {user?.fullName?.split(' ')[0] || user?.username || 'Recycler'}!
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          Today's materials are waiting to be transformed.
         </p>
       </div>
       

@@ -76,8 +76,11 @@ export default function HouseholdDashboard({ user }: HouseholdDashboardProps) {
       {/* User Welcome Section */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold">My Environmental Dashboard</h1>
-        <p className="text-muted-foreground mt-2">
-          Welcome back, {user?.fullName?.split(' ')[0] || user?.username || 'Eco Hero'}! Your sustainability journey is making a difference.
+        <h2 className="text-xl font-medium text-primary mt-2">
+          Welcome back, {user?.fullName?.split(' ')[0] || user?.username || 'Eco Hero'}!
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          Your sustainability journey is making a difference.
         </p>
       </div>
       
