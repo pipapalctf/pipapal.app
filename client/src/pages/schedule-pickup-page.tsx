@@ -32,7 +32,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useMutation } from "@tanstack/react-query";
@@ -40,7 +40,18 @@ import { useLocation } from "wouter";
 
 export default function SchedulePickupPage() {
   const { toast } = useToast();
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
+  const [activeTab, setActiveTab] = useState("schedule");
+  
+  // Handle tab selection based on URL parameter
+  useEffect(() => {
+    // Check if there's a tab parameter
+    if (location.includes("?tab=pickups")) {
+      setActiveTab("pickups");
+    } else {
+      setActiveTab("schedule");
+    }
+  }, [location]);
   
   // Fetch collections
   const { data: collections = [], isLoading } = useQuery<Collection[]>({
@@ -123,7 +134,7 @@ export default function SchedulePickupPage() {
             </p>
           </div>
           
-          <Tabs defaultValue="schedule" className="mb-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
             <TabsList className="grid w-full grid-cols-2 mb-8">
               <TabsTrigger value="schedule" className="flex items-center">
                 <CalendarPlus className="mr-2 h-4 w-4" />
@@ -377,7 +388,7 @@ export default function SchedulePickupPage() {
                       <p className="text-muted-foreground mb-6">
                         You haven't scheduled any waste collections. Start reducing your environmental footprint today!
                       </p>
-                      <Button onClick={() => document.querySelector('[data-value="schedule"]')?.click()}>
+                      <Button onClick={() => setActiveTab("schedule")}>
                         <PlusCircle className="mr-2 h-4 w-4" />
                         Schedule Your First Pickup
                       </Button>
