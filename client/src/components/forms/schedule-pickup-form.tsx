@@ -181,21 +181,36 @@ export default function SchedulePickupForm() {
                     const wasteConfig = wasteTypeConfig[value];
                     const IconComponent = iconMap[wasteConfig.icon] || Trash2;
                     
+                    // Set standard waste weight in kg (for calculation purposes)
+                    const standardWeight = 10; // kg
+                    
                     return (
-                      <SelectItem key={value} value={value}>
-                        <div className="flex items-center justify-between w-full">
-                          <div className="flex items-center">
-                            <IconComponent className="mr-2 h-4 w-4" 
-                              style={{ color: wasteConfig.textColor.replace('text-', '').includes('-') 
-                                ? `var(--${wasteConfig.textColor.replace('text-', '')})` 
-                                : `var(--${wasteConfig.textColor.replace('text-', '')}-500)` 
-                              }} 
-                            />
-                            {wasteConfig.label}
+                      <SelectItem key={value} value={value} className="px-0 py-0.5">
+                        <div className="flex items-center w-full pl-2 pr-3 py-1.5 hover:bg-muted/20 rounded-sm">
+                          <div className="flex items-center flex-1">
+                            <div className={`flex items-center justify-center rounded-full ${wasteConfig.bgColor} p-1.5 mr-3`}>
+                              <IconComponent className="h-4 w-4" 
+                                style={{ color: wasteConfig.textColor.replace('text-', '').includes('-') 
+                                  ? `var(--${wasteConfig.textColor.replace('text-', '')})` 
+                                  : `var(--${wasteConfig.textColor.replace('text-', '')}-500)` 
+                                }} 
+                              />
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="font-medium">{wasteConfig.label}</span>
+                              <span className="text-xs text-muted-foreground">
+                                Earn points for responsible disposal
+                              </span>
+                            </div>
                           </div>
-                          <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
-                            +{wasteConfig.points} pts
-                          </span>
+                          <div className="flex flex-col items-end ml-2">
+                            <span className="text-sm font-medium text-primary">
+                              {wasteConfig.points} pts/{standardWeight} kg
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {(wasteConfig.points / standardWeight).toFixed(1)} pts per kg
+                            </span>
+                          </div>
                         </div>
                       </SelectItem>
                     );

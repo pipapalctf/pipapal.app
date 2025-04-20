@@ -37,7 +37,7 @@ export default function SchedulePickupPage() {
             
             <div className="space-y-6">
               <Card className="bg-primary/5 border-primary/20">
-                <CardHeader>
+                <CardHeader className="pb-3">
                   <CardTitle className="flex items-center text-primary">
                     <i className="fas fa-info-circle mr-2"></i>
                     Tips for Collection
@@ -65,8 +65,53 @@ export default function SchedulePickupPage() {
                 </CardContent>
               </Card>
               
+              <Card className="bg-green-50 border-green-200">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center text-green-600">
+                    <i className="fas fa-leaf mr-2"></i>
+                    Points System
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm mb-3">
+                    Earn sustainability points based on waste type:
+                  </p>
+                  <div className="space-y-2 text-sm mb-3">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="flex items-center">
+                        <div className="w-2 h-2 rounded-full bg-red-500 mr-2"></div>
+                        <span>Hazardous: 20 pts</span>
+                      </div>
+                      <div className="flex items-center">
+                        <div className="w-2 h-2 rounded-full bg-purple-500 mr-2"></div>
+                        <span>Electronic: 15 pts</span>
+                      </div>
+                      <div className="flex items-center">
+                        <div className="w-2 h-2 rounded-full bg-gray-500 mr-2"></div>
+                        <span>Metal: 12 pts</span>
+                      </div>
+                      <div className="flex items-center">
+                        <div className="w-2 h-2 rounded-full bg-blue-500 mr-2"></div>
+                        <span>Glass/Plastic: 10 pts</span>
+                      </div>
+                      <div className="flex items-center">
+                        <div className="w-2 h-2 rounded-full bg-yellow-500 mr-2"></div>
+                        <span>Paper/Organic: 8 pts</span>
+                      </div>
+                      <div className="flex items-center">
+                        <div className="w-2 h-2 rounded-full bg-emerald-500 mr-2"></div>
+                        <span>General: 5 pts</span>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Points shown are for standard 10kg waste collection. Points accumulate to unlock badges and rewards!
+                  </p>
+                </CardContent>
+              </Card>
+              
               <Card className="bg-accent/5 border-accent/20">
-                <CardHeader>
+                <CardHeader className="pb-3">
                   <CardTitle className="flex items-center text-accent">
                     <i className="fas fa-star mr-2"></i>
                     Collector Rating
