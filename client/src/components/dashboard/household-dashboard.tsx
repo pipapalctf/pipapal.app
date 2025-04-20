@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PieChart, Pie, BarChart, Bar, XAxis, YAxis, Tooltip, Cell, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 import { Leaf, Recycle, Truck, Award, Scale, CalendarCheck, CalendarPlus, PlusCircle } from 'lucide-react';
 import { User } from '@shared/schema';
-import { formatNumber, scrollToTop } from '@/lib/utils';
+import { formatNumber, scrollToElement } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Link, useLocation } from 'wouter';
 
@@ -214,13 +214,13 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
       
       <Tabs defaultValue="recycling">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="recycling" onClick={() => scrollToTop()}>Recycling</TabsTrigger>
-          <TabsTrigger value="timeline" onClick={() => scrollToTop()}>Timeline</TabsTrigger>
-          <TabsTrigger value="achievements" onClick={() => scrollToTop()}>Achievements</TabsTrigger>
+          <TabsTrigger value="recycling" onClick={() => scrollToElement('recycling-tab-content', 80)}>Recycling</TabsTrigger>
+          <TabsTrigger value="timeline" onClick={() => scrollToElement('timeline-tab-content', 80)}>Timeline</TabsTrigger>
+          <TabsTrigger value="achievements" onClick={() => scrollToElement('achievements-tab-content', 80)}>Achievements</TabsTrigger>
         </TabsList>
         
         {/* Recycling Tab */}
-        <TabsContent value="recycling" className="space-y-4">
+        <TabsContent value="recycling" className="space-y-4" id="recycling-tab-content">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Card>
               <CardHeader>
@@ -337,7 +337,7 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
         </TabsContent>
         
         {/* Timeline Tab */}
-        <TabsContent value="timeline" className="space-y-4">
+        <TabsContent value="timeline" className="space-y-4" id="timeline-tab-content">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
@@ -485,7 +485,7 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
         </TabsContent>
         
         {/* Achievements Tab */}
-        <TabsContent value="achievements" className="space-y-4">
+        <TabsContent value="achievements" className="space-y-4" id="achievements-tab-content">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
