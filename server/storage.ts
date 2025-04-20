@@ -26,6 +26,7 @@ export interface IStorage {
   
   // Collections
   getCollection(id: number): Promise<Collection | undefined>;
+  getAllCollections(): Promise<Collection[]>;
   getCollectionsByUser(userId: number): Promise<Collection[]>;
   getUpcomingCollectionsByUser(userId: number): Promise<Collection[]>;
   createCollection(collection: InsertCollection): Promise<Collection>;
@@ -161,6 +162,11 @@ export class MemStorage implements IStorage {
   // Collections
   async getCollection(id: number): Promise<Collection | undefined> {
     return this.collections.get(id);
+  }
+  
+  async getAllCollections(): Promise<Collection[]> {
+    return Array.from(this.collections.values())
+      .sort((a, b) => new Date(b.scheduledDate).getTime() - new Date(a.scheduledDate).getTime());
   }
   
   async getCollectionsByUser(userId: number): Promise<Collection[]> {
@@ -481,6 +487,11 @@ export class DatabaseStorage implements IStorage {
   async getCollection(id: number): Promise<Collection | undefined> {
     const [collection] = await db.select().from(collections).where(eq(collections.id, id));
     return collection;
+  }
+  
+  async getAllCollections(): Promise<Collection[]> {
+    return db.select().from(collections)
+      .orderBy(desc(collections.scheduledDate));
   }
   
   async getCollectionsByUser(userId: number): Promise<Collection[]> {

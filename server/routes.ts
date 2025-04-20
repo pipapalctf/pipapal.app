@@ -43,6 +43,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     requirePermission(Permissions.VIEW_PICKUP_HISTORY),
     async (req, res) => {
       if (!req.user) return res.sendStatus(401);
+      
+      // For collectors, we need to include collections they can claim
+      if (req.user.role === UserRole.COLLECTOR) {
+        const allCollections = await storage.getAllCollections();
+        // Filter collections to include:
+        // 1. Collections assigned to this collector
+        // 2. Unassigned SCHEDULED collections available for pickup
+        const collectorCollections = allCollections.filter(collection => 
+          collection.collectorId === req.user!.id || 
+          (!collection.collectorId && collection.status === CollectionStatus.SCHEDULED)
+        );
+        return res.json(collectorCollections);
+      }
+      
+      // For other users, just return their own collections
       const collections = await storage.getCollectionsByUser(req.user.id);
       res.json(collections);
     }
