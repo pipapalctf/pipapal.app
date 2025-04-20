@@ -71,9 +71,25 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
     ? Math.round((recycledWaste / totalWasteWeight) * 100) 
     : 0;
 
-  // Calculate pickup frequency (collections per month)
-  const collectionsPerMonth = monthlyData.length > 0
-    ? monthlyData.reduce((sum, month) => sum + month.wasteCollected, 0) / monthlyData.length
+  // Calculate pickup frequency (number of collections per month)
+  const collectionsCountByMonth = new Map();
+  
+  // Count collections by month
+  collections.forEach((collection: any) => {
+    const collectionDate = new Date(collection.scheduledDate);
+    const monthIndex = collectionDate.getMonth();
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthName = months[monthIndex];
+    
+    if (!collectionsCountByMonth.has(monthName)) {
+      collectionsCountByMonth.set(monthName, 0);
+    }
+    collectionsCountByMonth.set(monthName, collectionsCountByMonth.get(monthName) + 1);
+  });
+  
+  // Calculate average collections per month
+  const collectionsPerMonth = collectionsCountByMonth.size > 0
+    ? Array.from(collectionsCountByMonth.values()).reduce((sum, count) => sum + count, 0) / collectionsCountByMonth.size
     : 0;
 
   // Random colors for the pie chart
@@ -294,12 +310,23 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
               </div>
               <div className="h-[200px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={monthlyData}>
+                  <BarChart 
+                    data={Array.from(collectionsCountByMonth.entries())
+                      .map(([month, count]) => ({ 
+                        name: month, 
+                        pickupCount: count 
+                      }))
+                      .sort((a, b) => {
+                        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                        return months.indexOf(a.name) - months.indexOf(b.name);
+                      })
+                    }
+                  >
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="name" />
                     <YAxis />
                     <Tooltip />
-                    <Bar dataKey="wasteCollected" name="Waste (kg)" fill="#4ade80" />
+                    <Bar dataKey="pickupCount" name="Pickups" fill="#4ade80" />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
