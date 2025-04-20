@@ -208,7 +208,7 @@ export default function SchedulePickupPage() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <SchedulePickupForm collectionToEdit={collectionToEdit} onSuccess={() => {
+                      <SchedulePickupWizard collectionToEdit={collectionToEdit} onSuccess={() => {
                         setCollectionToEdit(null);
                         navigate('/schedule-pickup?tab=pickups');
                         scrollToElement('pickups-tab-content', 80);
