@@ -25,14 +25,15 @@ export default function EcoTipsPage() {
   const [currentTab, setCurrentTab] = useState("all");
   const [savedTips, setSavedTips] = useState<number[]>([]);
   const [likedTips, setLikedTips] = useState<number[]>([]);
+  const [customTipPrompt, setCustomTipPrompt] = useState("");
   
   const { data: ecoTips, isLoading } = useQuery<EcoTip[]>({
     queryKey: ["/api/ecotips"],
   });
   
   const generateTipMutation = useMutation({
-    mutationFn: async (category: string) => {
-      const res = await apiRequest("POST", "/api/ecotips/generate", { category });
+    mutationFn: async (payload: { category: string, customPrompt?: string }) => {
+      const res = await apiRequest("POST", "/api/ecotips/generate", payload);
       return await res.json();
     },
     onSuccess: (data) => {
@@ -41,6 +42,7 @@ export default function EcoTipsPage() {
         title: "New tip generated",
         description: `'${data.title}' has been added to your collection`,
       });
+      setCustomTipPrompt(""); // Reset the custom prompt input after successful generation
     },
     onError: (error: Error) => {
       toast({
@@ -52,7 +54,23 @@ export default function EcoTipsPage() {
   });
   
   const handleGenerateTip = (category: string) => {
-    generateTipMutation.mutate(category);
+    generateTipMutation.mutate({ category });
+  };
+  
+  const handleGenerateCustomTip = () => {
+    if (!customTipPrompt.trim()) {
+      toast({
+        title: "Please enter a topic",
+        description: "Enter a specific sustainability topic you'd like a tip about",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    generateTipMutation.mutate({ 
+      category: selectedCategory || "recycling", 
+      customPrompt: customTipPrompt.trim() 
+    });
   };
   
   const handleSaveTip = (tipId: number) => {
@@ -199,7 +217,11 @@ export default function EcoTipsPage() {
                             disabled={generateTipMutation.isPending}
                           >
                             <div className="flex items-center min-w-0">
-                              {generateTipMutation.isPending && generateTipMutation.variables === category.value ? (
+                              {generateTipMutation.isPending && 
+                               generateTipMutation.variables && 
+                               typeof generateTipMutation.variables === 'object' &&
+                               'category' in generateTipMutation.variables &&
+                               generateTipMutation.variables.category === category.value ? (
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin flex-shrink-0" />
                               ) : (
                                 <span className="mr-2 flex-shrink-0">{getCategoryIcon(category.value)}</span>
@@ -320,7 +342,11 @@ export default function EcoTipsPage() {
                           >
                             <div className="flex items-center w-full min-w-0">
                               <div className="flex-shrink-0 mr-2">
-                                {generateTipMutation.isPending && generateTipMutation.variables === category.value ? (
+                                {generateTipMutation.isPending && 
+                                 generateTipMutation.variables && 
+                                 typeof generateTipMutation.variables === 'object' && 
+                                 'category' in generateTipMutation.variables && 
+                                 generateTipMutation.variables.category === category.value ? (
                                   <Loader2 className="h-4 w-4 animate-spin" />
                                 ) : (
                                   getCategoryIcon(category.value)

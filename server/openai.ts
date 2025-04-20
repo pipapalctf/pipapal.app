@@ -8,14 +8,22 @@ type EcoTipResponse = {
   icon: string;
 }
 
-export async function generateEcoTip(category: string): Promise<EcoTipResponse> {
+export async function generateEcoTip(category: string, customPrompt?: string): Promise<EcoTipResponse> {
   try {
     // If no API key is provided, return a predefined tip
     if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === "dummy-key-for-development") {
       return getFallbackEcoTip(category);
     }
     
-    const prompt = `Generate a short, practical eco-friendly tip related to "${category}". The tip should be actionable advice for sustainable living that users of the PipaPal waste management app can immediately implement.
+    let prompt = "";
+    
+    if (customPrompt) {
+      prompt = `Generate a practical, eco-friendly tip about "${customPrompt}" related to the category "${category}". The user wants specific advice on this sustainability topic. The tip should be actionable advice that can be immediately implemented.`;
+    } else {
+      prompt = `Generate a short, practical eco-friendly tip related to "${category}". The tip should be actionable advice for sustainable living that users of the PipaPal waste management app can immediately implement.`;
+    }
+    
+    prompt += `
     
     Format the response as JSON with these fields:
     - title: A short, catchy title for the tip (maximum 40 characters)

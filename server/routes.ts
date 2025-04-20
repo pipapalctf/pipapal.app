@@ -419,10 +419,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     },
     async (req, res) => {
       try {
-        const { category } = req.body;
+        const { category, customPrompt } = req.body;
         if (!category) return res.status(400).send("Category is required");
         
-        const aiTip = await generateEcoTip(category);
+        const aiTip = await generateEcoTip(category, customPrompt);
         
         try {
           const ecoTip = insertEcoTipSchema.parse({
