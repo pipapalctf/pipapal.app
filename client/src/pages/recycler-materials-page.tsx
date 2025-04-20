@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Recycle, Leaf, Package, Filter, MapPin, ArrowRight, Calendar, CircleDollarSign, Truck, AlertCircle, CheckCircle2, Scale, Clock } from 'lucide-react';
+import { Recycle, Leaf, Package, Filter, MapPin, ArrowRight, Calendar, CircleDollarSign, Truck, AlertCircle, CheckCircle2, Scale, Clock, Cpu, Apple, FlaskConical } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { 
   Collection,
@@ -125,9 +125,9 @@ export default function RecyclerMaterialsPage() {
         case 'file': return <Package className="h-4 w-4" />;
         case 'wine-glass': return <Package className="h-4 w-4" />;
         case 'shopping-bag': return <Package className="h-4 w-4" />;
-        case 'cpu': return <Package className="h-4 w-4" />;
-        case 'apple': return <Package className="h-4 w-4" />;
-        case 'flask': return <Package className="h-4 w-4" />;
+        case 'cpu': return <Cpu className="h-4 w-4" />;
+        case 'apple': return <Apple className="h-4 w-4" />;
+        case 'flask': return <FlaskConical className="h-4 w-4" />;
         case 'package': return <Package className="h-4 w-4" />;
         default: return <Package className="h-4 w-4" />;
       }
@@ -296,8 +296,12 @@ export default function RecyclerMaterialsPage() {
                             {typeInfo.name}
                           </Badge>
                         </div>
-                        <CardDescription>
-                          Collected on {new Date(collection.completedDate || collection.scheduledDate).toLocaleDateString()}
+                        <CardDescription className="flex items-center justify-between">
+                          <span>Collected on {new Date(collection.completedDate || collection.scheduledDate).toLocaleDateString()}</span>
+                          <Badge variant="outline" className="ml-auto text-xs bg-green-50 text-green-700 border-green-200">
+                            <CheckCircle2 className="h-3 w-3 mr-1" />
+                            Available
+                          </Badge>
                         </CardDescription>
                       </CardHeader>
                       <CardContent className="space-y-3">
