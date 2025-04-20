@@ -393,7 +393,7 @@ export default function SchedulePickupPage() {
                           c.status === CollectionStatus.CANCELLED
                         )
                         .slice()
-                        .sort((a, b) => new Date(b.scheduledDate).getTime() - new Date(a.scheduledDate).getTime())
+                        .sort((a, b) => new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime())
                         .map((collection) => {
                           const scheduledDate = new Date(collection.scheduledDate);
                           return (

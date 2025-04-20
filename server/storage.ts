@@ -177,7 +177,7 @@ export class MemStorage implements IStorage {
         new Date(collection.scheduledDate) >= now &&
         collection.status !== CollectionStatus.CANCELLED
       )
-      .sort((a, b) => new Date(b.scheduledDate).getTime() - new Date(a.scheduledDate).getTime());
+      .sort((a, b) => new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime());
   }
   
   async createCollection(insertCollection: InsertCollection): Promise<Collection> {
@@ -497,7 +497,7 @@ export class DatabaseStorage implements IStorage {
         gte(collections.scheduledDate, now),
         ne(collections.status, CollectionStatus.CANCELLED)
       ))
-      .orderBy(desc(collections.scheduledDate));
+      .orderBy(collections.scheduledDate);
   }
   
   async createCollection(insertCollection: InsertCollection): Promise<Collection> {
