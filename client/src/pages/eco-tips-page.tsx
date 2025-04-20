@@ -59,13 +59,26 @@ export default function EcoTipsPage() {
       
       setCustomTipPrompt(""); // Reset the custom prompt input after successful generation
       
-      // Scroll to the tips section
+      // Scroll to the tips section, with a delay to allow for DOM updates
       setTimeout(() => {
-        const tipsSection = document.getElementById("eco-tips-content");
-        if (tipsSection) {
-          tipsSection.scrollIntoView({ behavior: "smooth", block: "start" });
+        // First try to scroll to the newest tip if it exists
+        const newestTip = document.getElementById("newest-tip");
+        if (newestTip) {
+          newestTip.scrollIntoView({ behavior: "smooth", block: "center" });
+          
+          // Add a subtle highlight animation to draw attention
+          newestTip.classList.add('animate-pulse');
+          setTimeout(() => {
+            newestTip.classList.remove('animate-pulse');
+          }, 2000);
+        } else {
+          // Otherwise just scroll to the content section
+          const tipsSection = document.getElementById("eco-tips-content");
+          if (tipsSection) {
+            tipsSection.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
         }
-      }, 100);
+      }, 300); // Slightly longer delay to ensure tips are loaded
     },
     onError: (error: Error) => {
       toast({
@@ -515,12 +528,17 @@ export default function EcoTipsPage() {
                       const isNewTip = createdAt.getTime() > Date.now() - 24 * 60 * 60 * 1000;
                       const isSaved = savedTips.includes(tip.id);
                       const isLiked = likedTips.includes(tip.id);
+                      const isCustomTip = tip.title.length > 20 && !tip.title.startsWith("Proper Recycling"); // Detect custom tips by title length/pattern
                       const colors = getCategoryColors(tip.category || 'default');
                       
                       return (
-                        <Card key={tip.id} className="overflow-hidden flex flex-col h-full border hover:shadow-md transition-shadow">
+                        <Card 
+                          key={tip.id} 
+                          className={`overflow-hidden flex flex-col h-full border hover:shadow-md transition-shadow ${isCustomTip ? 'border-primary/50 shadow-sm' : ''}`}
+                          id={isNewTip ? 'newest-tip' : undefined}
+                        >
                           <div className="h-1.5 bg-gradient-to-r w-full" style={{ backgroundImage: `linear-gradient(to right, ${colors.text}, ${colors.text})` }}></div>
-                          <CardHeader className="pb-3">
+                          <CardHeader className={`pb-3 ${isCustomTip ? 'bg-primary/5' : ''}`}>
                             <div className="flex items-start">
                               <div className={`p-2 rounded-full ${colors.bg} mr-3 flex-shrink-0`}>
                                 {getCategoryIcon(tip.category)}
@@ -536,6 +554,12 @@ export default function EcoTipsPage() {
                                   {isNewTip && (
                                     <Badge variant="default" className="bg-blue-500 text-xs">
                                       New
+                                    </Badge>
+                                  )}
+                                  {isCustomTip && (
+                                    <Badge variant="outline" className="bg-violet-100 text-violet-700 border-violet-200 text-xs">
+                                      <Sparkles className="h-3 w-3 mr-1" />
+                                      Custom
                                     </Badge>
                                   )}
                                   <span className="text-xs text-muted-foreground">
