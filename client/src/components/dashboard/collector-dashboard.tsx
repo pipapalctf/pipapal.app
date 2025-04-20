@@ -102,50 +102,110 @@ export default function CollectorDashboard({ user }: CollectorDashboardProps) {
       
       {/* Key Stats */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Jobs</CardTitle>
+        {/* Total Jobs Card */}
+        <Card className="overflow-hidden">
+          <CardHeader className="pb-2 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/20 border-b">
+            <CardTitle className="text-sm font-medium flex items-center">
+              <Package className="mr-2 h-5 w-5 text-blue-600 dark:text-blue-400" />
+              Total Jobs
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="flex items-center">
-              <Package className="mr-2 h-4 w-4 text-muted-foreground" />
-              <span className="text-2xl font-bold">{collectorJobs.length}</span>
+          <CardContent className="pt-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-3xl font-bold text-blue-600 dark:text-blue-400">{collectorJobs.length}</span>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {collectorJobs.length > 0 
+                    ? `${collectorJobs.filter(job => job.status === CollectionStatus.PENDING).length} pending collection` 
+                    : "No jobs assigned yet"}
+                </p>
+              </div>
+              <div className="h-14 w-14 flex items-center justify-center bg-gradient-to-br from-blue-100 to-blue-50 dark:from-blue-900/40 dark:to-blue-800/20 rounded-full">
+                <Package className="h-8 w-8 text-blue-500 dark:text-blue-400" />
+              </div>
             </div>
           </CardContent>
         </Card>
         
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Completed Jobs</CardTitle>
+        {/* Completed Jobs Card */}
+        <Card className="overflow-hidden">
+          <CardHeader className="pb-2 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/30 dark:to-green-900/20 border-b">
+            <CardTitle className="text-sm font-medium flex items-center">
+              <Truck className="mr-2 h-5 w-5 text-green-600 dark:text-green-400" />
+              Completed Jobs
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="flex items-center">
-              <Truck className="mr-2 h-4 w-4 text-muted-foreground" />
-              <span className="text-2xl font-bold">{completedJobs.length}</span>
+          <CardContent className="pt-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-3xl font-bold text-green-600 dark:text-green-400">{completedJobs.length}</span>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {collectorJobs.length > 0 
+                    ? `${Math.round((completedJobs.length / collectorJobs.length) * 100)}% completion rate` 
+                    : "No jobs assigned yet"}
+                </p>
+              </div>
+              <div className="h-14 w-14 flex items-center justify-center bg-gradient-to-br from-green-100 to-green-50 dark:from-green-900/40 dark:to-green-800/20 rounded-full">
+                <Truck className="h-8 w-8 text-green-500 dark:text-green-400" />
+              </div>
             </div>
           </CardContent>
         </Card>
         
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Waste Collected</CardTitle>
+        {/* Waste Collected Card */}
+        <Card className="overflow-hidden">
+          <CardHeader className="pb-2 bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-950/30 dark:to-amber-900/20 border-b">
+            <CardTitle className="text-sm font-medium flex items-center">
+              <Scale className="mr-2 h-5 w-5 text-amber-600 dark:text-amber-400" />
+              Waste Collected
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="flex items-center">
-              <Scale className="mr-2 h-4 w-4 text-muted-foreground" />
-              <span className="text-2xl font-bold">{formatNumber(totalWasteCollected)} kg</span>
+          <CardContent className="pt-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-baseline">
+                  <span className="text-3xl font-bold text-amber-600 dark:text-amber-400">{formatNumber(totalWasteCollected)}</span>
+                  <span className="text-sm ml-1 font-medium text-amber-500 dark:text-amber-400">kg</span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {completedJobs.length > 0 
+                    ? `Avg ${formatNumber(totalWasteCollected / completedJobs.length, 1)} kg per job` 
+                    : "No completed jobs yet"}
+                </p>
+              </div>
+              <div className="h-14 w-14 flex items-center justify-center bg-gradient-to-br from-amber-100 to-amber-50 dark:from-amber-900/40 dark:to-amber-800/20 rounded-full">
+                <Scale className="h-8 w-8 text-amber-500 dark:text-amber-400" />
+              </div>
             </div>
           </CardContent>
         </Card>
         
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Avg. Completion Time</CardTitle>
+        {/* Avg. Completion Time Card */}
+        <Card className="overflow-hidden">
+          <CardHeader className="pb-2 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/30 dark:to-purple-900/20 border-b">
+            <CardTitle className="text-sm font-medium flex items-center">
+              <Clock className="mr-2 h-5 w-5 text-purple-600 dark:text-purple-400" />
+              Avg. Completion Time
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="flex items-center">
-              <Clock className="mr-2 h-4 w-4 text-muted-foreground" />
-              <span className="text-2xl font-bold">{formatNumber(avgCompletionTimeHours, 1)} hrs</span>
+          <CardContent className="pt-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-baseline">
+                  <span className="text-3xl font-bold text-purple-600 dark:text-purple-400">{formatNumber(avgCompletionTimeHours, 1)}</span>
+                  <span className="text-sm ml-1 font-medium text-purple-500 dark:text-purple-400">hrs</span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {avgCompletionTimeHours <= 24 
+                    ? "Same-day completion" 
+                    : avgCompletionTimeHours <= 48 
+                      ? "2-day completion" 
+                      : "Multi-day completion"}
+                </p>
+              </div>
+              <div className="h-14 w-14 flex items-center justify-center bg-gradient-to-br from-purple-100 to-purple-50 dark:from-purple-900/40 dark:to-purple-800/20 rounded-full">
+                <Clock className="h-8 w-8 text-purple-500 dark:text-purple-400" />
+              </div>
             </div>
           </CardContent>
         </Card>
