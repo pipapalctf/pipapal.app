@@ -89,7 +89,13 @@ export default function CollectorDashboard({ user }: CollectorDashboardProps) {
 
   return (
     <div className="space-y-6 p-2 md:p-4">
-      <h1 className="text-3xl font-bold mb-8">Collector Dashboard</h1>
+      {/* User Welcome Section */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold">Collector Dashboard</h1>
+        <p className="text-muted-foreground mt-2">
+          Welcome back, {user?.fullName?.split(' ')[0] || user?.username || 'Collector'}! Ready for today's collection routes?
+        </p>
+      </div>
       
       {/* Key Stats */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
