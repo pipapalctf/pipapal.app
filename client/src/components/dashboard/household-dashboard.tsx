@@ -2,7 +2,7 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PieChart, Pie, BarChart, Bar, XAxis, YAxis, Tooltip, Cell, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { PieChart, Pie, BarChart, Bar, XAxis, YAxis, Tooltip, Cell, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 import { Leaf, Recycle, Truck, Award, Scale, CalendarCheck } from 'lucide-react';
 import { User } from '@shared/schema';
 import { formatNumber } from '@/lib/utils';
@@ -364,29 +364,41 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
               </div>
               
               <div className="mt-4 space-y-2">
-                <div className="flex items-center justify-center space-x-6">
+                <div className="flex flex-wrap items-center justify-center space-x-4 px-2">
                   <div className="flex items-center">
                     <div className="w-3 h-3 rounded-sm bg-emerald-500 mr-2"></div>
-                    <span className="text-xs">Waste Collected (kg)</span>
+                    <span className="text-xs">Waste (kg)</span>
                   </div>
                   <div className="flex items-center">
                     <div className="w-3 h-3 rounded-sm bg-blue-500 mr-2"></div>
-                    <span className="text-xs">CO₂ Reduced (kg)</span>
+                    <span className="text-xs">CO₂ (kg)</span>
                   </div>
                   <div className="flex items-center">
                     <div className="w-3 h-3 rounded-sm bg-yellow-500 mr-2"></div>
-                    <span className="text-xs">Trees Equivalent (×100)</span>
+                    <span className="text-xs">Trees (×100)</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 rounded-sm bg-purple-500 mr-2"></div>
+                    <span className="text-xs">Water (L/10)</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 rounded-sm bg-orange-500 mr-2"></div>
+                    <span className="text-xs">Energy (kWh)</span>
                   </div>
                 </div>
                 
                 <div className="h-[250px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart 
-                      data={monthlyData.map((month: any) => ({
+                      data={Array.isArray(monthlyData) ? monthlyData.map((month: any) => ({
                         ...month,
                         // Scale trees for visibility (multiply by 100)
-                        treesEquivalent: month.wasteCollected * 0.01 * 100
-                      }))}
+                        treesEquivalent: (month.wasteCollected || 0) * 0.01 * 100,
+                        // Scale water saved for better visualization (divide by 10)
+                        waterSaved: (month.wasteCollected || 0) * 50 / 10,
+                        // Energy conserved
+                        energyConserved: (month.wasteCollected || 0) * 5
+                      })) : []}
                       margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" />
@@ -394,23 +406,36 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
                       <YAxis yAxisId="left" orientation="left" />
                       <Tooltip 
                         formatter={(value: any, name: string) => {
-                          if (name === 'Trees Equivalent') {
-                            // Convert back to actual value for tooltip
-                            return [(value / 100).toFixed(2), name];
+                          switch(name) {
+                            case 'Trees Equivalent':
+                              return [(value / 100).toFixed(2), 'Trees Equivalent'];
+                            case 'Water Saved':
+                              return [(value * 10).toFixed(0), 'Water Saved (L)'];
+                            case 'Waste Collected':
+                              return [value, 'Waste Collected (kg)'];
+                            case 'CO₂ Reduced':
+                              return [value, 'CO₂ Reduced (kg)'];
+                            case 'Energy Conserved':
+                              return [value, 'Energy Conserved (kWh)'];
+                            default:
+                              return [value, name];
                           }
-                          return [value, name];
                         }}
                         labelFormatter={(label) => `Month: ${label}`}
                       />
                       <Legend 
                         formatter={(value: string) => {
                           switch(value) {
-                            case 'wasteCollected': return 'Waste Collected (kg)';
-                            case 'co2Reduced': return 'CO₂ Reduced (kg)';
+                            case 'wasteCollected': return 'Waste Collected';
+                            case 'co2Reduced': return 'CO₂ Reduced';
                             case 'treesEquivalent': return 'Trees Equivalent';
+                            case 'waterSaved': return 'Water Saved';
+                            case 'energyConserved': return 'Energy Conserved';
                             default: return value;
                           }
                         }}
+                        iconType="circle"
+                        wrapperStyle={{ fontSize: '12px' }}
                       />
                       <Bar 
                         yAxisId="left" 
@@ -433,12 +458,26 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
                         fill="#eab308" 
                         radius={[4, 4, 0, 0]}
                       />
+                      <Bar 
+                        yAxisId="left" 
+                        dataKey="waterSaved" 
+                        name="Water Saved" 
+                        fill="#a855f7" 
+                        radius={[4, 4, 0, 0]}
+                      />
+                      <Bar 
+                        yAxisId="left" 
+                        dataKey="energyConserved" 
+                        name="Energy Conserved" 
+                        fill="#f97316" 
+                        radius={[4, 4, 0, 0]}
+                      />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
                 
                 <div className="text-xs text-center text-muted-foreground">
-                  <p>Environmental impact calculations: 2kg CO₂ reduced, 0.01 trees saved, and 50L water saved per kg of waste</p>
+                  <p>Environmental impact per kg of waste: 2kg CO₂ reduced, 0.01 trees saved, 50L water saved, 5kWh energy conserved</p>
                 </div>
               </div>
             </CardContent>
