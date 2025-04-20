@@ -70,17 +70,24 @@ export default function WasteDetailsStep({ form, calculateEstimatedPoints }: Was
                     <div className="flex items-center">
                       {field.value && (
                         <div className={`flex items-center`}>
-                          <div className={`flex items-center justify-center rounded-full ${wasteTypeConfig[field.value]?.bgColor || 'bg-gray-100'} p-1.5 mr-3`}>
+                          <div className={`flex items-center justify-center rounded-full ${wasteTypeConfig[field.value as keyof typeof wasteTypeConfig]?.bgColor || 'bg-gray-100'} p-1.5 mr-3`}>
                             {(() => {
-                              const IconComponent = field.value ? iconMap[wasteTypeConfig[field.value]?.icon] || Trash2 : Trash2;
+                              const wasteConfig = wasteTypeConfig[field.value as keyof typeof wasteTypeConfig] || {
+                                label: 'General Waste',
+                                icon: 'trash',
+                                bgColor: 'bg-gray-100',
+                                textColor: 'text-gray-600',
+                                points: 5
+                              };
+                              const IconComponent = field.value ? iconMap[wasteConfig?.icon || 'trash'] || Trash2 : Trash2;
                               return (
                                 <IconComponent 
                                   className="h-4 w-4" 
                                   style={{ 
                                     color: field.value 
-                                      ? wasteTypeConfig[field.value]?.textColor.replace('text-', '').includes('-') 
-                                        ? `var(--${wasteTypeConfig[field.value]?.textColor.replace('text-', '')})` 
-                                        : `var(--${wasteTypeConfig[field.value]?.textColor.replace('text-', '')}-500)` 
+                                      ? wasteConfig?.textColor.replace('text-', '').includes('-') 
+                                        ? `var(--${wasteConfig.textColor.replace('text-', '')})` 
+                                        : `var(--${wasteConfig.textColor.replace('text-', '')}-500)` 
                                       : undefined 
                                   }} 
                                 />
@@ -89,11 +96,11 @@ export default function WasteDetailsStep({ form, calculateEstimatedPoints }: Was
                           </div>
                           <div>
                             <span className="font-medium capitalize">
-                              {field.value ? wasteTypeConfig[field.value]?.label : 'Select waste type'}
+                              {field.value ? wasteTypeConfig[field.value as keyof typeof wasteTypeConfig]?.label || field.value : 'Select waste type'}
                             </span>
                             {field.value && (
                               <div className="mt-0.5 flex items-center">
-                                <span className="text-xs text-primary font-medium">{wasteTypeConfig[field.value]?.points} pts per 10kg</span>
+                                <span className="text-xs text-primary font-medium">{wasteTypeConfig[field.value as keyof typeof wasteTypeConfig]?.points || 5} pts per 10kg</span>
                               </div>
                             )}
                           </div>
@@ -107,8 +114,14 @@ export default function WasteDetailsStep({ form, calculateEstimatedPoints }: Was
               </FormControl>
               <SelectContent>
                 {Object.entries(WasteType).map(([key, value]) => {
-                  const wasteConfig = wasteTypeConfig[value];
-                  const IconComponent = iconMap[wasteConfig.icon] || Trash2;
+                  const wasteConfig = wasteTypeConfig[value as keyof typeof wasteTypeConfig] || {
+                    label: 'General Waste',
+                    icon: 'trash',
+                    bgColor: 'bg-gray-100',
+                    textColor: 'text-gray-600',
+                    points: 5
+                  };
+                  const IconComponent = iconMap[wasteConfig?.icon || 'trash'] || Trash2;
                   
                   // Set standard waste weight in kg (for calculation purposes)
                   const standardWeight = 10; // kg
@@ -117,23 +130,23 @@ export default function WasteDetailsStep({ form, calculateEstimatedPoints }: Was
                     <SelectItem key={value} value={value} className="px-0 py-0.5">
                       <div className="flex items-center w-full pl-2 pr-3 py-1.5 hover:bg-muted/20 rounded-sm">
                         <div className="flex items-center flex-1">
-                          <div className={`flex items-center justify-center rounded-full ${wasteConfig.bgColor} p-1.5 mr-3`}>
+                          <div className={`flex items-center justify-center rounded-full ${wasteConfig?.bgColor || 'bg-gray-100'} p-1.5 mr-3`}>
                             <IconComponent className="h-4 w-4" 
-                              style={{ color: wasteConfig.textColor.replace('text-', '').includes('-') 
+                              style={{ color: wasteConfig?.textColor.replace('text-', '').includes('-') 
                                 ? `var(--${wasteConfig.textColor.replace('text-', '')})` 
                                 : `var(--${wasteConfig.textColor.replace('text-', '')}-500)` 
                               }} 
                             />
                           </div>
-                          <span className="font-medium">{wasteConfig.label}:</span>
+                          <span className="font-medium">{wasteConfig?.label || value}:</span>
                           <span className="ml-2 font-medium text-primary">
-                            {wasteConfig.points} pts
+                            {wasteConfig?.points || 5} pts
                           </span>
                           <span className="text-xs text-muted-foreground ml-1">
                             per {standardWeight}kg
                           </span>
                           <span className="text-xs ml-1 text-primary font-medium">
-                            ({(wasteConfig.points / standardWeight).toFixed(1)} pts/kg)
+                            ({((wasteConfig?.points || 5) / standardWeight).toFixed(1)} pts/kg)
                           </span>
                         </div>
                       </div>

@@ -18,24 +18,39 @@ export default function ReviewStep({ form, calculateEstimatedPoints, isReschedul
   // Get the waste type label
   const getWasteTypeLabel = () => {
     if (!formValues.wasteType) return "Unknown";
-    return wasteTypeConfig[formValues.wasteType]?.label || "Unknown";
+    return wasteTypeConfig[formValues.wasteType as keyof typeof wasteTypeConfig]?.label || "Unknown";
   };
   
   // Get icon for waste type
   const getWasteTypeIcon = () => {
     if (!formValues.wasteType) return Box;
-    const iconName = wasteTypeConfig[formValues.wasteType]?.icon || "package";
+    const wasteConfig = wasteTypeConfig[formValues.wasteType as keyof typeof wasteTypeConfig] || {
+      label: 'General Waste',
+      icon: 'package',
+      bgColor: 'bg-gray-100',
+      textColor: 'text-gray-600',
+      points: 5
+    };
+    const iconName = wasteConfig?.icon || "package";
     return iconMap[iconName] || Box;
   };
   
   // Get style for waste type
   const getWasteTypeStyle = () => {
-    if (!formValues.wasteType) return {};
+    if (!formValues.wasteType) return { bgColor: "bg-gray-100", textColor: "var(--gray-500)" };
     
-    const bgColor = wasteTypeConfig[formValues.wasteType]?.bgColor || "bg-gray-100";
-    const textColor = wasteTypeConfig[formValues.wasteType]?.textColor.replace('text-', '').includes('-')
-      ? `var(--${wasteTypeConfig[formValues.wasteType]?.textColor.replace('text-', '')})`
-      : `var(--${wasteTypeConfig[formValues.wasteType]?.textColor.replace('text-', '')}-500)`;
+    const wasteConfig = wasteTypeConfig[formValues.wasteType as keyof typeof wasteTypeConfig] || {
+      label: 'General Waste',
+      icon: 'package',
+      bgColor: 'bg-gray-100',
+      textColor: 'text-gray-600',
+      points: 5
+    };
+    
+    const bgColor = wasteConfig?.bgColor || "bg-gray-100";
+    const textColor = wasteConfig?.textColor.replace('text-', '').includes('-')
+      ? `var(--${wasteConfig.textColor.replace('text-', '')})`
+      : `var(--${wasteConfig.textColor.replace('text-', '')}-500)`;
     
     return { bgColor, textColor };
   };

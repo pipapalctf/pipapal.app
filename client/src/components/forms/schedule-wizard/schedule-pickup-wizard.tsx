@@ -232,7 +232,8 @@ export default function SchedulePickupWizard({ collectionToEdit, onSuccess }: Sc
     
     if (!wasteType) return 0;
     
-    const pointsPerKg = wasteTypeConfig[wasteType]?.points / 10 || 0; // Points per kg (standard is per 10kg)
+    const wasteConfig = wasteTypeConfig[wasteType as keyof typeof wasteTypeConfig];
+    const pointsPerKg = wasteConfig?.points / 10 || 0; // Points per kg (standard is per 10kg)
     return Math.round(pointsPerKg * wasteAmount);
   };
   
