@@ -34,15 +34,38 @@ export default function EcoTipsPage() {
   const generateTipMutation = useMutation({
     mutationFn: async (payload: { category: string, customPrompt?: string }) => {
       const res = await apiRequest("POST", "/api/ecotips/generate", payload);
-      return await res.json();
+      return { 
+        ...await res.json(),
+        _requestPayload: payload // Keep track of what we requested
+      };
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/ecotips"] });
+      
+      // Automatically select the "newest" tab to show the new tip
+      setCurrentTab("newest");
+      
+      // Clear category filter only for non-custom prompts
+      if (data._requestPayload?.customPrompt) {
+        // For custom prompts, don't clear category filter
+      } else {
+        setSelectedCategory(null);
+      }
+      
       toast({
         title: "New tip generated",
         description: `'${data.title}' has been added to your collection`,
       });
+      
       setCustomTipPrompt(""); // Reset the custom prompt input after successful generation
+      
+      // Scroll to the tips section
+      setTimeout(() => {
+        const tipsSection = document.getElementById("eco-tips-content");
+        if (tipsSection) {
+          tipsSection.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }, 100);
     },
     onError: (error: Error) => {
       toast({
@@ -464,7 +487,7 @@ export default function EcoTipsPage() {
               </div>
               
               {/* Main Content */}
-              <div className="lg:col-span-3">
+              <div id="eco-tips-content" className="lg:col-span-3">
                 <Tabs defaultValue="all" value={currentTab} onValueChange={setCurrentTab} className="mb-6">
                   <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="all" className="flex items-center gap-2">

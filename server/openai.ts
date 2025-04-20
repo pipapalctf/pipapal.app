@@ -18,16 +18,25 @@ export async function generateEcoTip(category: string, customPrompt?: string): P
     let prompt = "";
     
     if (customPrompt) {
-      prompt = `Generate a practical, eco-friendly tip about "${customPrompt}" related to the category "${category}". The user wants specific advice on this sustainability topic. The tip should be actionable advice that can be immediately implemented.`;
+      prompt = `Generate a detailed, specific eco-friendly tip addressing this EXACT query: "${customPrompt}".
+      
+      The user is specifically asking about this topic and expects precise, actionable advice for THIS EXACT TOPIC. Do not generate generic advice about ${category}. Stay completely focused on answering the user's specific question about "${customPrompt}".
+      
+      For example:
+      - If they ask about "recycling old tires", provide specific ways to recycle or repurpose old tires
+      - If they ask about "composting coffee grounds", provide detailed steps for that specific material
+      - If they ask about "reducing plastic in the bathroom", focus only on bathroom-specific tips
+      
+      Your response must directly address their query in detail with practical, actionable steps.`;
     } else {
-      prompt = `Generate a short, practical eco-friendly tip related to "${category}". The tip should be actionable advice for sustainable living that users of the PipaPal waste management app can immediately implement.`;
+      prompt = `Generate a practical eco-friendly tip related to "${category}". The tip should be actionable advice for sustainable living that users of the PipaPal waste management app can immediately implement.`;
     }
     
     prompt += `
     
     Format the response as JSON with these fields:
-    - title: A short, catchy title for the tip (maximum 40 characters)
-    - content: The detailed tip with practical advice (maximum 200 characters). Include specific steps or measurable impacts when possible.
+    - title: A short, descriptive title that clearly indicates what the tip is about (maximum 50 characters). The title MUST reflect the content - if it's about recycling tires, the title should mention tires.
+    - content: The detailed tip with practical advice (maximum 250 characters). Include specific steps, measurable impacts, and concrete how-to information. Be thorough and precise.
     - icon: A single Font Awesome icon name that represents this tip (e.g., 'recycle', 'leaf', 'tint', 'trash', 'seedling', etc.)
     
     The tip should be factual, environmentally sound, and focused on reducing waste or improving recycling habits. Make it engaging and motivational for users.`;
@@ -38,7 +47,7 @@ export async function generateEcoTip(category: string, customPrompt?: string): P
       messages: [
         {
           role: "system",
-          content: "You are an environmental sustainability expert providing practical eco-friendly tips."
+          content: "You are an environmental sustainability expert providing practical, specific eco-friendly tips. Always address the user's exact query with specific, actionable advice that directly responds to their question. Your answers should be practical, detailed, and focused precisely on what the user is asking about. Never provide generic advice when a specific question is asked."
         },
         {
           role: "user",
