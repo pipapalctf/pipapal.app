@@ -99,6 +99,12 @@ export function useNotifications() {
         }
         
         // At this point we know it's a notification type with a message
+        
+        // Filter out connection status messages to prevent them from appearing in the notification bell
+        if (data.message === "Connected to real-time notifications") {
+          return;
+        }
+        
         const notificationType: NotificationType = 
           data.type === 'notification' || data.type === 'collection_update' 
             ? data.type 
@@ -117,11 +123,13 @@ export function useNotifications() {
         // Add notification to state
         setNotifications(prev => [newNotification, ...prev]);
         
-        // Show toast notification
-        toast({
-          title: data.type === 'collection_update' ? 'Collection Update' : 'Notification',
-          description: data.message
-        });
+        // Only show toast notification for actual updates, not system/connection messages
+        if (data.type === 'collection_update') {
+          toast({
+            title: 'Collection Update',
+            description: data.message
+          });
+        }
         
         // If it's a collection update, refresh the collections data
         if (data.type === 'collection_update') {
