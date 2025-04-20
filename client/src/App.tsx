@@ -22,7 +22,7 @@ function Router() {
     <Switch>
       <Route path="/" component={LandingPage} />
       <ProtectedRoute path="/dashboard" component={HomePage} />
-      <ProtectedRoute path="/schedule" component={SchedulePickupPage} />
+      <ProtectedRoute path="/schedule-pickup" component={SchedulePickupPage} />
       <ProtectedRoute path="/ecotips" component={EcoTipsPage} />
       <ProtectedRoute path="/impact" component={ImpactPage} />
       <ProtectedRoute path="/collections/:id" component={CollectionDetailsPage} />

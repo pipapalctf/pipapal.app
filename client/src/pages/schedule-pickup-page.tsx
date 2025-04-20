@@ -142,8 +142,7 @@ export default function SchedulePickupPage() {
   const handleEditRequest = (collection: Collection) => {
     setCollectionToEdit(collection);
     setActiveTab("schedule");
-    // Update URL using hash to avoid navigation issues
-    navigate(`/schedule-pickup#edit=${collection.id}`);
+    // No URL update needed, just manage with state
   };
   
   // Get status badge configuration
