@@ -199,173 +199,127 @@ export default function OrganizationDashboard({ user }: OrganizationDashboardPro
 
   return (
     <div className="space-y-6 p-2 md:p-4">
-      {/* User Welcome Section */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">Organization Dashboard</h1>
-        <h2 className="text-xl font-medium text-primary mt-2">
-          Welcome back, {user?.organizationName || user?.fullName?.split(' ')[0] || user?.username || 'Partner'}!
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          Track your sustainability metrics here.
-        </p>
+      {/* User Welcome Section with Hero Banner */}
+      <div className="mb-6 bg-gradient-to-r from-blue-50 to-teal-50 dark:from-blue-950/30 dark:to-teal-900/20 p-6 rounded-lg border border-blue-100 dark:border-blue-800 shadow-sm">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100">Organization Dashboard</h1>
+            <h2 className="text-xl font-medium text-primary mt-2">
+              Welcome back, {user?.organizationName || user?.fullName?.split(' ')[0] || user?.username || 'Partner'}!
+            </h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Track your sustainability metrics and corporate environmental impact.
+            </p>
+          </div>
+          <div className="mt-4 md:mt-0">
+            <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 dark:bg-blue-800/60 text-blue-800 dark:text-blue-200">
+              <Building className="h-4 w-4 mr-1" />
+              Corporate Sustainability
+            </div>
+          </div>
+        </div>
       </div>
       
-      {/* Key Stats */}
+      {/* Key Stats Cards */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         {/* Total Pickups Card */}
-        <Card className="overflow-hidden">
-          <CardHeader className="pb-2 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/20 border-b">
-            <CardTitle className="text-sm font-medium flex items-center">
-              <Truck className="mr-2 h-5 w-5 text-blue-600 dark:text-blue-400" />
-              Total Pickups
-            </CardTitle>
+        <Card className="overflow-hidden border-0 shadow-md">
+          <div className="h-2 bg-gradient-to-r from-blue-400 to-blue-600"></div>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Pickups</CardTitle>
           </CardHeader>
-          <CardContent className="pt-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="text-3xl font-bold text-blue-600 dark:text-blue-400">{collections.length}</span>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {collections.length > 0 
-                    ? `${completedOnTime} completed on time` 
-                    : "No pickups scheduled yet"}
-                </p>
+          <CardContent>
+            <div className="flex items-center">
+              <div className="p-2 rounded-full bg-blue-100 dark:bg-blue-900/40 mr-3">
+                <Truck className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               </div>
-              <div className="h-16 w-16 relative">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="h-14 w-14 rounded-full border-4 border-blue-100 dark:border-blue-900/40"></div>
-                  <div 
-                    className="absolute inset-0 rounded-full border-4 border-blue-500 dark:border-blue-400"
-                    style={{ 
-                      clipPath: `polygon(50% 50%, 50% 0%, ${scheduleCompliance > 0 ? '100%' : '50%'} 0%, ${
-                        scheduleCompliance >= 25 ? '100%' : '50%'
-                      } ${scheduleCompliance >= 25 ? '100%' : '0%'}, ${
-                        scheduleCompliance >= 50 ? '100%' : '50%'
-                      } ${scheduleCompliance >= 50 ? '100%' : '0%'}, ${
-                        scheduleCompliance >= 75 ? '0%' : '50%'
-                      } ${scheduleCompliance >= 75 ? '100%' : '0%'}, 0% ${scheduleCompliance >= 100 ? '100%' : '50%'})` 
-                    }}
-                  ></div>
+              <div>
+                <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                  {collections.length}
                 </div>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-xs font-medium">{scheduleCompliance}%</span>
-                </div>
+                <p className="text-xs text-muted-foreground">
+                  {collections.length > 0 
+                    ? `${completedOnTime} completed on time (${scheduleCompliance}%)` 
+                    : "No collections scheduled yet"}
+                </p>
               </div>
             </div>
           </CardContent>
         </Card>
         
         {/* Waste Managed Card */}
-        <Card className="overflow-hidden">
-          <CardHeader className="pb-2 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/30 dark:to-green-900/20 border-b">
-            <CardTitle className="text-sm font-medium flex items-center">
-              <Scale className="mr-2 h-5 w-5 text-green-600 dark:text-green-400" />
-              Waste Managed
-            </CardTitle>
+        <Card className="overflow-hidden border-0 shadow-md">
+          <div className="h-2 bg-gradient-to-r from-amber-400 to-amber-600"></div>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Waste Managed</CardTitle>
           </CardHeader>
-          <CardContent className="pt-4">
-            <div className="flex items-center justify-between">
+          <CardContent>
+            <div className="flex items-center">
+              <div className="p-2 rounded-full bg-amber-100 dark:bg-amber-900/40 mr-3">
+                <Scale className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+              </div>
               <div>
-                <span className="text-3xl font-bold text-green-600 dark:text-green-400">{formatNumber(totalWasteWeight)}</span> 
-                <span className="text-sm ml-1 font-medium">kg</span>
-                <p className="text-xs text-muted-foreground mt-1">
+                <div className="flex items-baseline">
+                  <span className="text-3xl font-bold text-amber-600 dark:text-amber-400">{formatNumber(totalWasteWeight || 0)}</span>
+                  <span className="text-sm ml-1 font-medium text-amber-500 dark:text-amber-400">kg</span>
+                </div>
+                <p className="text-xs text-muted-foreground">
                   {wasteTypes.length > 0 
                     ? `${wasteTypes[0]?.name}: ${formatNumber(wasteTypes[0]?.value || 0)} kg` 
                     : "No waste data yet"}
                 </p>
-              </div>
-              <div className="h-12 w-32">
-                <div className="w-full h-4 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                  {wasteTypes.map((type, index) => {
-                    // Calculate percentage width for each segment
-                    const percentage = (type.value / totalWasteWeight) * 100;
-                    const colors = ["bg-green-500", "bg-blue-500", "bg-yellow-500", "bg-purple-500", "bg-red-500"];
-                    
-                    return (
-                      <div 
-                        key={type.name} 
-                        className={`h-full float-left ${colors[index % colors.length]}`}
-                        style={{ width: `${percentage}%` }}
-                        title={`${type.name}: ${percentage.toFixed(1)}%`}
-                      ></div>
-                    );
-                  })}
-                </div>
-                <div className="flex justify-between mt-2">
-                  <span className="text-xs text-muted-foreground">Composition</span>
-                  <span className="text-xs font-medium">{wasteTypes.length} types</span>
-                </div>
               </div>
             </div>
           </CardContent>
         </Card>
         
         {/* Recycling Rate Card */}
-        <Card className="overflow-hidden">
-          <CardHeader className="pb-2 bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-950/30 dark:to-amber-900/20 border-b">
-            <CardTitle className="text-sm font-medium flex items-center">
-              <TrendingUp className="mr-2 h-5 w-5 text-amber-600 dark:text-amber-400" />
-              Recycling Rate
-            </CardTitle>
+        <Card className="overflow-hidden border-0 shadow-md">
+          <div className="h-2 bg-gradient-to-r from-green-400 to-green-600"></div>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Recycling Rate</CardTitle>
           </CardHeader>
-          <CardContent className="pt-4">
-            <div className="flex items-center justify-between">
+          <CardContent>
+            <div className="flex items-center">
+              <div className="p-2 rounded-full bg-green-100 dark:bg-green-900/40 mr-3">
+                <RecycleIcon className="h-5 w-5 text-green-600 dark:text-green-400" />
+              </div>
               <div>
-                <span className="text-3xl font-bold text-amber-600 dark:text-amber-400">{recyclingRate}%</span>
-                <p className="text-xs text-muted-foreground mt-1">
+                <div className="flex items-baseline">
+                  <span className="text-3xl font-bold text-green-600 dark:text-green-400">{recyclingRate}</span>
+                  <span className="text-sm ml-1 font-medium text-green-500 dark:text-green-400">%</span>
+                </div>
+                <p className="text-xs text-muted-foreground">
                   {recyclableWaste > 0 
                     ? `${formatNumber(recyclableWaste)} kg recycled waste` 
                     : "No recycling data yet"}
                 </p>
-              </div>
-              <div className="relative h-14 w-14">
-                <svg viewBox="0 0 36 36" className="h-14 w-14 -rotate-90">
-                  <path
-                    className="stroke-amber-100 dark:stroke-amber-900/40 fill-none"
-                    strokeWidth="3.8"
-                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                  />
-                  <path
-                    className="stroke-amber-500 dark:stroke-amber-400 fill-none"
-                    strokeWidth="3.8"
-                    strokeDasharray={`${recyclingRate}, 100`}
-                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                  />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className={`p-1 rounded-full ${
-                    recyclingRate >= 70 ? 'bg-green-100 text-green-700' : 
-                    recyclingRate >= 40 ? 'bg-amber-100 text-amber-700' : 
-                    'bg-red-100 text-red-700'
-                  }`}>
-                    {recyclingRate >= 70 ? '↑' : recyclingRate >= 40 ? '→' : '↓'}
-                  </div>
-                </div>
               </div>
             </div>
           </CardContent>
         </Card>
         
         {/* CO₂ Reduced Card */}
-        <Card className="overflow-hidden">
-          <CardHeader className="pb-2 bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950/30 dark:to-emerald-900/20 border-b">
-            <CardTitle className="text-sm font-medium flex items-center">
-              <Leaf className="mr-2 h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-              CO₂ Reduced
-            </CardTitle>
+        <Card className="overflow-hidden border-0 shadow-md">
+          <div className="h-2 bg-gradient-to-r from-purple-400 to-purple-600"></div>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">CO₂ Reduced</CardTitle>
           </CardHeader>
-          <CardContent className="pt-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{formatNumber(impact?.co2Reduced || 0)}</span> 
-                <span className="text-sm ml-1 font-medium">kg</span>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {impact?.treesEquivalent 
-                    ? `Equivalent to ${formatNumber(impact.treesEquivalent)} trees` 
-                    : "Environmental impact data"}
-                </p>
+          <CardContent>
+            <div className="flex items-center">
+              <div className="p-2 rounded-full bg-purple-100 dark:bg-purple-900/40 mr-3">
+                <Leaf className="h-5 w-5 text-purple-600 dark:text-purple-400" />
               </div>
-              <div className="h-14 w-14 flex items-center justify-center bg-gradient-to-br from-emerald-100 to-emerald-50 dark:from-emerald-900/40 dark:to-emerald-800/20 rounded-full">
-                <Leaf className="h-8 w-8 text-emerald-500 dark:text-emerald-400" />
+              <div>
+                <div className="flex items-baseline">
+                  <span className="text-3xl font-bold text-purple-600 dark:text-purple-400">{formatNumber(impact?.co2Reduced || 0)}</span>
+                  <span className="text-sm ml-1 font-medium text-purple-500 dark:text-purple-400">kg</span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {impact?.treesEquivalent 
+                    ? `Equivalent to ${formatNumber(impact?.treesEquivalent || 0)} trees` 
+                    : "carbon footprint reduction"}
+                </p>
               </div>
             </div>
           </CardContent>
