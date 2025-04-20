@@ -5,9 +5,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PieChart, Pie, BarChart, Bar, XAxis, YAxis, Tooltip, Cell, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 import { Leaf, Recycle, Truck, Award, Scale, CalendarCheck, CalendarPlus, PlusCircle } from 'lucide-react';
 import { User } from '@shared/schema';
-import { formatNumber } from '@/lib/utils';
+import { formatNumber, scrollToTop } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 
 interface HouseholdDashboardProps {
   user: User;
@@ -214,9 +214,9 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
       
       <Tabs defaultValue="recycling">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="recycling">Recycling</TabsTrigger>
-          <TabsTrigger value="timeline">Timeline</TabsTrigger>
-          <TabsTrigger value="achievements">Achievements</TabsTrigger>
+          <TabsTrigger value="recycling" onClick={() => scrollToTop()}>Recycling</TabsTrigger>
+          <TabsTrigger value="timeline" onClick={() => scrollToTop()}>Timeline</TabsTrigger>
+          <TabsTrigger value="achievements" onClick={() => scrollToTop()}>Achievements</TabsTrigger>
         </TabsList>
         
         {/* Recycling Tab */}
@@ -602,7 +602,7 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
               ))}
               
               {upcomingCollections.length > 2 && (
-                <Link href="/schedule-pickup?tab=pickups" className="block text-center text-sm text-primary hover:underline mt-3">
+                <Link href="/schedule-pickup?tab=pickups" className="block text-center text-sm text-primary hover:underline mt-3" onClick={() => scrollToTop()}>
                   + {upcomingCollections.length - 2} more scheduled pickups
                 </Link>
               )}
@@ -613,7 +613,7 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
                 <CalendarPlus className="h-6 w-6 text-primary" />
               </div>
               <p className="text-muted-foreground mb-4">No upcoming pickups scheduled.</p>
-              <Link href="/schedule-pickup">
+              <Link href="/schedule-pickup" onClick={() => scrollToTop()}>
                 <Button size="sm">
                   <PlusCircle className="mr-1 h-3.5 w-3.5" />
                   Schedule Your First Pickup

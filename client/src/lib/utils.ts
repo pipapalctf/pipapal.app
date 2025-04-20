@@ -18,3 +18,14 @@ export function formatNumber(value?: number, decimals: number = 0): string {
     maximumFractionDigits: decimals
   }).format(value);
 }
+
+/**
+ * Scroll to the top of the page with a smooth animation
+ * Used when navigating between pages or sections
+ */
+export function scrollToTop(smooth: boolean = true): void {
+  window.scrollTo({
+    top: 0,
+    behavior: smooth ? 'smooth' : 'auto'
+  });
+}
