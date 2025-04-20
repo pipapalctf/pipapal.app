@@ -789,7 +789,7 @@ export default function EcoTipsPage() {
                             </div>
                           </CardHeader>
                           <CardContent className="py-3 flex-grow">
-                            <p className="text-sm text-gray-700 break-words">{tip.content}</p>
+                            <TipContent content={tip.content} />
                           </CardContent>
                           <CardFooter className="flex justify-between items-center pt-3 border-t">
                             <div className="flex items-center gap-1">
