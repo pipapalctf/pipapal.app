@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PieChart, Pie, BarChart, Bar, XAxis, YAxis, Tooltip, Cell, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
-import { Leaf, Recycle, Truck, Award, Scale, CalendarCheck, CalendarPlus, PlusCircle, TrendingUp } from 'lucide-react';
+import { Leaf, Recycle, Truck, Award, Scale, CalendarCheck, CalendarPlus, PlusCircle, TrendingUp, Star } from 'lucide-react';
 import { User, Collection, Impact, Badge } from '@shared/schema';
 import { formatNumber, scrollToElement } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -391,170 +391,260 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
         </TabsContent>
         
         {/* Timeline Tab */}
-        <TabsContent value="timeline" className="space-y-4" id="timeline-tab-content">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Leaf className="mr-2 h-5 w-5" />
-                Environmental Impact
+        <TabsContent value="timeline" className="space-y-6 mt-6" id="timeline-tab-content">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card className="overflow-hidden border-0 shadow-md">
+              <div className="h-1 bg-gradient-to-r from-blue-400 to-blue-600"></div>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Water Saved</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center">
+                  <div className="p-2 rounded-full bg-blue-100 dark:bg-blue-900/40 mr-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600 dark:text-blue-400">
+                      <path d="M12 2v6m0 0a5 5 0 0 1 5 5c0 2.8-2.2 5-5 5s-5-2.2-5-5c0-2.2 1.4-4 3.3-4.7"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <div className="flex items-baseline">
+                      <span className="text-3xl font-bold text-blue-600 dark:text-blue-400">{formatNumber(impact?.waterSaved || 0)}</span>
+                      <span className="text-sm ml-1 font-medium text-blue-500 dark:text-blue-400">L</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">water saved from recycling</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="overflow-hidden border-0 shadow-md">
+              <div className="h-1 bg-gradient-to-r from-green-400 to-green-600"></div>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">CO₂ Reduced</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center">
+                  <div className="p-2 rounded-full bg-green-100 dark:bg-green-900/40 mr-3">
+                    <Leaf className="h-5 w-5 text-green-600 dark:text-green-400" />
+                  </div>
+                  <div>
+                    <div className="flex items-baseline">
+                      <span className="text-3xl font-bold text-green-600 dark:text-green-400">{formatNumber(impact?.co2Reduced || 0)}</span>
+                      <span className="text-sm ml-1 font-medium text-green-500 dark:text-green-400">kg</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">carbon dioxide emissions</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="overflow-hidden border-0 shadow-md">
+              <div className="h-1 bg-gradient-to-r from-amber-400 to-amber-600"></div>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Trees Equivalent</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center">
+                  <div className="p-2 rounded-full bg-amber-100 dark:bg-amber-900/40 mr-3">
+                    <TrendingUp className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <div>
+                    <div className="flex items-baseline">
+                      <span className="text-3xl font-bold text-amber-600 dark:text-amber-400">{formatNumber(impact?.treesEquivalent || 0, 1)}</span>
+                      <span className="text-sm ml-1 font-medium text-amber-500 dark:text-amber-400">trees</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">equivalent forest impact</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="overflow-hidden border-0 shadow-md">
+              <div className="h-1 bg-gradient-to-r from-purple-400 to-purple-600"></div>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Energy Conserved</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center">
+                  <div className="p-2 rounded-full bg-purple-100 dark:bg-purple-900/40 mr-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-purple-600 dark:text-purple-400">
+                      <path d="M8 3h8l2 14H6L8 3Z"/>
+                      <path d="M12 17v4"/>
+                      <path d="M8 21h8"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <div className="flex items-baseline">
+                      <span className="text-3xl font-bold text-purple-600 dark:text-purple-400">{formatNumber(impact?.energyConserved || 0)}</span>
+                      <span className="text-sm ml-1 font-medium text-purple-500 dark:text-purple-400">kWh</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">energy consumption saved</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+          
+          <Card className="overflow-hidden border-0 shadow-md">
+            <div className="h-1 bg-gradient-to-r from-blue-400 to-green-400"></div>
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center text-base">
+                <TrendingUp className="mr-2 h-5 w-5 text-primary" />
+                Monthly Environmental Impact
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                <div className="bg-card rounded-lg p-4 text-center">
-                  <h3 className="text-sm font-medium text-muted-foreground">Water Saved</h3>
-                  <p className="text-xl font-bold">{formatNumber(impact?.waterSaved || 0)} L</p>
+              <div className="flex flex-wrap items-center justify-center space-x-4 px-2 mb-4">
+                <div className="flex items-center">
+                  <div className="w-3 h-3 rounded-sm bg-emerald-500 mr-2"></div>
+                  <span className="text-xs">Waste (kg)</span>
                 </div>
-                <div className="bg-card rounded-lg p-4 text-center">
-                  <h3 className="text-sm font-medium text-muted-foreground">CO₂ Reduced</h3>
-                  <p className="text-xl font-bold">{formatNumber(impact?.co2Reduced || 0)} kg</p>
+                <div className="flex items-center">
+                  <div className="w-3 h-3 rounded-sm bg-blue-500 mr-2"></div>
+                  <span className="text-xs">CO₂ (kg)</span>
                 </div>
-                <div className="bg-card rounded-lg p-4 text-center">
-                  <h3 className="text-sm font-medium text-muted-foreground">Trees Equivalent</h3>
-                  <p className="text-xl font-bold">{formatNumber(impact?.treesEquivalent || 0)}</p>
+                <div className="flex items-center">
+                  <div className="w-3 h-3 rounded-sm bg-yellow-500 mr-2"></div>
+                  <span className="text-xs">Trees (×100)</span>
                 </div>
-                <div className="bg-card rounded-lg p-4 text-center">
-                  <h3 className="text-sm font-medium text-muted-foreground">Energy Conserved</h3>
-                  <p className="text-xl font-bold">{formatNumber(impact?.energyConserved || 0)} kWh</p>
+                <div className="flex items-center">
+                  <div className="w-3 h-3 rounded-sm bg-purple-500 mr-2"></div>
+                  <span className="text-xs">Water (L/10)</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-3 h-3 rounded-sm bg-orange-500 mr-2"></div>
+                  <span className="text-xs">Energy (kWh)</span>
                 </div>
               </div>
               
-              <div className="mt-4 space-y-2">
-                <div className="flex flex-wrap items-center justify-center space-x-4 px-2">
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 rounded-sm bg-emerald-500 mr-2"></div>
-                    <span className="text-xs">Waste (kg)</span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 rounded-sm bg-blue-500 mr-2"></div>
-                    <span className="text-xs">CO₂ (kg)</span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 rounded-sm bg-yellow-500 mr-2"></div>
-                    <span className="text-xs">Trees (×100)</span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 rounded-sm bg-purple-500 mr-2"></div>
-                    <span className="text-xs">Water (L/10)</span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 rounded-sm bg-orange-500 mr-2"></div>
-                    <span className="text-xs">Energy (kWh)</span>
-                  </div>
-                </div>
-                
-                <div className="h-[250px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart 
-                      data={Array.isArray(monthlyData) ? monthlyData.map((month: any) => ({
-                        ...month,
-                        // Scale trees for visibility (multiply by 100)
-                        treesEquivalent: (month.treesEquivalent || 0) * 100,
-                        // Scale water saved for better visualization (divide by 10)
-                        waterSaved: (month.waterSaved || 0) / 10
-                      })) : []}
-                      margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis yAxisId="left" orientation="left" />
-                      <Tooltip 
-                        formatter={(value: any, name: string) => {
-                          switch(name) {
-                            case 'Trees Equivalent':
-                              return [(value / 100).toFixed(2), 'Trees Equivalent'];
-                            case 'Water Saved':
-                              return [(value * 10).toFixed(0), 'Water Saved (L)'];
-                            case 'Waste Collected':
-                              return [value, 'Waste Collected (kg)'];
-                            case 'CO₂ Reduced':
-                              return [value, 'CO₂ Reduced (kg)'];
-                            case 'Energy Conserved':
-                              return [value, 'Energy Conserved (kWh)'];
-                            default:
-                              return [value, name];
-                          }
-                        }}
-                        labelFormatter={(label) => `Month: ${label}`}
-                      />
-                      <Legend 
-                        formatter={(value: string) => {
-                          switch(value) {
-                            case 'wasteCollected': return 'Waste Collected';
-                            case 'co2Reduced': return 'CO₂ Reduced';
-                            case 'treesEquivalent': return 'Trees Equivalent';
-                            case 'waterSaved': return 'Water Saved';
-                            case 'energyConserved': return 'Energy Conserved';
-                            default: return value;
-                          }
-                        }}
-                        iconType="circle"
-                        wrapperStyle={{ fontSize: '12px' }}
-                      />
-                      <Bar 
-                        yAxisId="left" 
-                        dataKey="wasteCollected" 
-                        name="Waste Collected" 
-                        fill="#4ade80" 
-                        radius={[4, 4, 0, 0]}
-                      />
-                      <Bar 
-                        yAxisId="left" 
-                        dataKey="co2Reduced" 
-                        name="CO₂ Reduced" 
-                        fill="#3b82f6" 
-                        radius={[4, 4, 0, 0]}
-                      />
-                      <Bar 
-                        yAxisId="left" 
-                        dataKey="treesEquivalent" 
-                        name="Trees Equivalent" 
-                        fill="#eab308" 
-                        radius={[4, 4, 0, 0]}
-                      />
-                      <Bar 
-                        yAxisId="left" 
-                        dataKey="waterSaved" 
-                        name="Water Saved" 
-                        fill="#a855f7" 
-                        radius={[4, 4, 0, 0]}
-                      />
-                      <Bar 
-                        yAxisId="left" 
-                        dataKey="energyConserved" 
-                        name="Energy Conserved" 
-                        fill="#f97316" 
-                        radius={[4, 4, 0, 0]}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-                
-                <div className="text-xs text-center text-muted-foreground">
-                  <p>Environmental impact per kg of waste: 2kg CO₂ reduced, 0.01 trees saved, 50L water saved, 5kWh energy conserved</p>
-                </div>
+              <div className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart 
+                    data={Array.isArray(monthlyData) ? monthlyData.map((month: any) => ({
+                      ...month,
+                      // Scale trees for visibility (multiply by 100)
+                      treesEquivalent: (month.treesEquivalent || 0) * 100,
+                      // Scale water saved for better visualization (divide by 10)
+                      waterSaved: (month.waterSaved || 0) / 10
+                    })) : []}
+                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                    <XAxis dataKey="name" />
+                    <YAxis yAxisId="left" orientation="left" />
+                    <Tooltip 
+                      formatter={(value: any, name: string) => {
+                        switch(name) {
+                          case 'Trees Equivalent':
+                            return [(value / 100).toFixed(2), 'Trees Equivalent'];
+                          case 'Water Saved':
+                            return [(value * 10).toFixed(0), 'Water Saved (L)'];
+                          case 'Waste Collected':
+                            return [value, 'Waste Collected (kg)'];
+                          case 'CO₂ Reduced':
+                            return [value, 'CO₂ Reduced (kg)'];
+                          case 'Energy Conserved':
+                            return [value, 'Energy Conserved (kWh)'];
+                          default:
+                            return [value, name];
+                        }
+                      }}
+                      labelFormatter={(label) => `Month: ${label}`}
+                    />
+                    <Legend />
+                    <Bar 
+                      yAxisId="left" 
+                      dataKey="wasteAmount" 
+                      name="Waste Collected" 
+                      fill="#10b981" 
+                      radius={[4, 4, 0, 0]}
+                    />
+                    <Bar 
+                      yAxisId="left" 
+                      dataKey="co2Reduced" 
+                      name="CO₂ Reduced" 
+                      fill="#3b82f6" 
+                      radius={[4, 4, 0, 0]}
+                    />
+                    <Bar 
+                      yAxisId="left" 
+                      dataKey="treesEquivalent" 
+                      name="Trees Equivalent" 
+                      fill="#f59e0b" 
+                      radius={[4, 4, 0, 0]}
+                    />
+                    <Bar 
+                      yAxisId="left" 
+                      dataKey="waterSaved" 
+                      name="Water Saved" 
+                      fill="#8b5cf6" 
+                      radius={[4, 4, 0, 0]}
+                    />
+                    <Bar 
+                      yAxisId="left" 
+                      dataKey="energyConserved" 
+                      name="Energy Conserved" 
+                      fill="#f97316" 
+                      radius={[4, 4, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              
+              <div className="text-xs text-center text-muted-foreground mt-2">
+                <p>Environmental impact per kg of waste: 2kg CO₂ reduced, 0.01 trees saved, 50L water saved, 5kWh energy conserved</p>
               </div>
             </CardContent>
           </Card>
+          
+          {impact && (
+            <Card className="border-0 shadow-md bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-950/30 dark:to-blue-900/20">
+              <CardContent className="p-6">
+                <div className="flex items-start">
+                  <div className="p-3 rounded-full bg-green-100 dark:bg-green-900/40 mr-4">
+                    <Leaf className="h-6 w-6 text-green-600 dark:text-green-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-800 dark:text-gray-100">Your Environmental Impact</h3>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Your recycling efforts have saved <span className="font-medium text-blue-600 dark:text-blue-400">{formatNumber(impact.waterSaved || 0)} liters</span> of water, 
+                      reduced CO₂ emissions by <span className="font-medium text-green-600 dark:text-green-400">{formatNumber(impact.co2Reduced || 0)} kg</span>, 
+                      and conserved energy equivalent to <span className="font-medium text-purple-600 dark:text-purple-400">{formatNumber(impact.energyConserved || 0)} kWh</span>.
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      That's the same as planting <span className="font-medium text-amber-600 dark:text-amber-400">{formatNumber(impact.treesEquivalent || 0, 1)} trees</span>!
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
         
         {/* Achievements Tab */}
-        <TabsContent value="achievements" className="space-y-4" id="achievements-tab-content">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Award className="mr-2 h-5 w-5" />
+        <TabsContent value="achievements" className="space-y-6 mt-6" id="achievements-tab-content">
+          <Card className="overflow-hidden border-0 shadow-md">
+            <div className="h-1 bg-gradient-to-r from-yellow-400 to-amber-600"></div>
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center text-base">
+                <Award className="mr-2 h-5 w-5 text-amber-600" />
                 Sustainability Score
               </CardTitle>
             </CardHeader>
-            <CardContent className="text-center">
-              <div className="inline-flex items-center justify-center rounded-full bg-primary/10 p-4 mb-3">
-                <Award className="h-10 w-10 text-primary" />
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="flex items-baseline">
+                    <span className="text-3xl font-bold text-amber-600 dark:text-amber-400">{user?.sustainabilityScore || 0}</span>
+                    <span className="text-sm ml-1 font-medium text-amber-500 dark:text-amber-400">points</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Points earned based on waste type and amount
+                  </p>
+                </div>
+                <div className="p-3 rounded-full bg-amber-100 dark:bg-amber-900/40">
+                  <Award className="h-6 w-6 text-amber-500" />
+                </div>
               </div>
-              <h3 className="text-3xl font-bold">{user.sustainabilityScore || 0} points</h3>
-              <p className="text-sm text-muted-foreground mt-1">
-                Points earned based on waste type and amount
-              </p>
               
               <div className="mt-4 grid grid-cols-2 gap-2 text-left text-xs bg-muted/20 p-3 rounded-md">
                 <div className="flex items-center">
@@ -585,19 +675,23 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
             </CardContent>
           </Card>
           
-          <Card>
-            <CardHeader>
-              <CardTitle>Earned Badges</CardTitle>
+          <Card className="overflow-hidden border-0 shadow-md">
+            <div className="h-1 bg-gradient-to-r from-green-400 to-blue-400"></div>
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center text-base">
+                <Star className="mr-2 h-5 w-5 text-primary" />
+                Earned Badges
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {badges.map((badge) => (
-                  <div key={badge.id} className="flex flex-col items-center text-center p-4 bg-card rounded-lg">
-                    <div className="rounded-full bg-primary/10 p-2 mb-2">
-                      <Award className="h-8 w-8 text-primary" />
+                  <div key={badge.id} className="flex flex-col items-center text-center p-4 bg-card rounded-lg border border-muted hover:border-primary/20 transition-colors">
+                    <div className="rounded-full bg-primary/10 p-3 mb-2">
+                      <Award className="h-6 w-6 text-primary" />
                     </div>
                     <h3 className="font-medium capitalize">{badge.badgeType.replace('_', ' ')}</h3>
-                    <p className="text-xs text-muted-foreground">{badge.achievedDate ? new Date(badge.achievedDate).toLocaleDateString() : 'Achievement unlocked!'}</p>
+                    <p className="text-xs text-muted-foreground">Achievement unlocked!</p>
                   </div>
                 ))}
                 
