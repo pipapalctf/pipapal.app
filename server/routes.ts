@@ -205,19 +205,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const updates = { ...req.body };
       
-      // Ensure completedDate is properly handled as a Date object if provided
-      if (updates.completedDate) {
-        try {
-          updates.completedDate = new Date(updates.completedDate);
-        } catch (error) {
-          console.error("Error parsing completedDate:", error);
-          return res.status(400).json({ 
-            error: 'Invalid date format',
-            message: 'The provided completed date is not in a valid format'
-          });
-        }
-      }
-      
       const updatedCollection = await storage.updateCollection(id, updates);
       
       // Send notification if the status was updated

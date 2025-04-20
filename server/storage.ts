@@ -519,8 +519,27 @@ export class DatabaseStorage implements IStorage {
     const [collection] = await db.select().from(collections).where(eq(collections.id, id));
     if (!collection) return undefined;
     
+    // Process date fields if present
+    const processedUpdates = { ...updates };
+    
+    // Handle completedDate (ensure it's a proper Date object)
+    if (processedUpdates.completedDate !== undefined) {
+      if (processedUpdates.completedDate === null) {
+        // Keep it as null if explicitly set to null
+        processedUpdates.completedDate = null;
+      } else {
+        // Convert to Date object
+        try {
+          processedUpdates.completedDate = new Date(processedUpdates.completedDate);
+        } catch (error) {
+          console.error('Error converting completedDate:', error);
+          throw new Error('Invalid completedDate format');
+        }
+      }
+    }
+    
     const [updatedCollection] = await db.update(collections)
-      .set(updates)
+      .set(processedUpdates)
       .where(eq(collections.id, id))
       .returning();
     
