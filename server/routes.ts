@@ -20,6 +20,14 @@ import {
   hasPermission 
 } from "./permissions";
 
+// Simple middleware to require authentication
+const requireAuthentication = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.isAuthenticated() || !req.user) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+  return next();
+};
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication
   setupAuth(app);
@@ -156,40 +164,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
   );
   
   app.patch("/api/collections/:id", 
-    async (req, res, next) => {
-      // Custom middleware to handle different roles
+    (req, res, next) => {
       if (!req.isAuthenticated() || !req.user) {
         return res.status(401).json({ error: 'Authentication required' });
       }
-      
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) return res.status(400).send("Invalid ID format");
-      
-      const collection = await storage.getCollection(id);
-      if (!collection) return res.status(404).send("Collection not found");
-      
-      const isCollector = req.user.role === UserRole.COLLECTOR;
-      const isOwner = collection.userId === req.user.id;
-      
-      // Different permissions based on role:
-      // - Collectors can update status (MARK_JOB_COMPLETE permission)
-      // - Owners can update other details (their own collections)
-      if (isCollector && req.body.status) {
-        // No need for additional permission check here
-        // The collector role was already verified above
-        return next();
-      } else if (!isOwner) {
-        return res.status(403).json({
-          error: 'Access denied',
-          message: 'You do not own this collection'
-        });
-      }
-      
-      return next();
+      next();
     },
     async (req, res) => {
       try {
         const id = parseInt(req.params.id);
+        if (isNaN(id)) return res.status(400).send("Invalid ID format");
+        
+        const collection = await storage.getCollection(id);
+        if (!collection) return res.status(404).send("Collection not found");
+        
+        const isCollector = req.user.role === UserRole.COLLECTOR;
+        const isOwner = collection.userId === req.user.id;
+        
+        // Different permissions based on role:
+        // - Collectors can update status or claim collections (MARK_JOB_COMPLETE permission)
+        // - Owners can update other details (their own collections)
+        if (!(isCollector || isOwner)) {
+          return res.status(403).json({
+            error: 'Access denied',
+            message: 'You are not authorized to update this collection'
+          });
+        }
+        
+        // Collectors can only update status or claim collections
+        if (isCollector && !isOwner && Object.keys(req.body).some(key => key !== 'status' && key !== 'collectorId' && key !== 'notes' && key !== 'wasteAmount' && key !== 'completedDate')) {
+          return res.status(403).json({
+            error: 'Access denied',
+            message: 'Collectors can only update status, claim collections, or add notes'
+          });
+        }
+        
         const updates = req.body;
         const updatedCollection = await storage.updateCollection(id, updates);
         res.json(updatedCollection);
