@@ -6,7 +6,10 @@ import { useToast } from "@/hooks/use-toast";
 import { useJsApiLoader, Autocomplete } from '@react-google-maps/api';
 
 // Define the libraries to load for Google Maps
-const libraries = ["places"] as const;
+// Use an array with a specific type
+const libraries = ['places'] as Array<'places'>;
+// Alternatively we could use:
+// const libraries: ['places'] = ['places'];
 
 interface LocationPickerProps {
   defaultValue?: string;

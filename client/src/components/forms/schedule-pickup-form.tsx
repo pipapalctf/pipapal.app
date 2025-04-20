@@ -399,10 +399,23 @@ export default function SchedulePickupForm({ collectionToEdit, onSuccess }: Sche
             <FormItem>
               <FormLabel>Pickup Address</FormLabel>
               <FormControl>
-                <Input placeholder="123 Green Street, Eco City" {...field} />
+                <LocationPicker 
+                  defaultValue={field.value}
+                  onChange={(address, location) => {
+                    // Update the address field
+                    field.onChange(address);
+                    
+                    // Update the location field if coordinates are available
+                    if (location) {
+                      form.setValue("location", location);
+                    } else {
+                      form.unregister("location");
+                    }
+                  }}
+                />
               </FormControl>
               <FormDescription>
-                Enter the address where the waste will be collected
+                Start typing your address or use the detect location button
               </FormDescription>
               <FormMessage />
             </FormItem>
