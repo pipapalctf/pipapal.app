@@ -31,6 +31,12 @@ export default function CollectorCollectionsPage() {
   const [wasteAmount, setWasteAmount] = useState<string>('');
   const [statusUpdateModal, setStatusUpdateModal] = useState(false);
   const [notesInput, setNotesInput] = useState('');
+  
+  // Fetch users for requester information
+  const { data: users = [] } = useQuery({
+    queryKey: ['/api/users'],
+    enabled: !!user,
+  });
 
   // Make sure only collectors can access this page
   if (user?.role !== UserRole.COLLECTOR) {
@@ -238,6 +244,12 @@ export default function CollectorCollectionsPage() {
     }
     return address;
   };
+  
+  // Get requester (user) data for a collection
+  const getRequesterInfo = (userId: number) => {
+    if (!users || !users.length) return null;
+    return users.find((u: any) => u.id === userId);
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -427,9 +439,14 @@ export default function CollectorCollectionsPage() {
                                   setSelectedCollection(collection);
                                   setNotesInput(collection.notes || '');
                                 }}
+                                title="View Collection Details"
+                                className="relative group"
                               >
                                 <Activity className="h-4 w-4" />
                                 <span className="sr-only">View Details</span>
+                                <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-black text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                                  View Details
+                                </div>
                               </Button>
                             </div>
                           </TableCell>
