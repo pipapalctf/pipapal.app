@@ -75,7 +75,8 @@ export default function SchedulePickupPage() {
   const [location, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState("schedule");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8;
+  const [upcomingPage, setUpcomingPage] = useState(1);
+  const itemsPerPage = 4; // Reduced to show fewer items per page for better visibility
   
   // Handle tab selection based on URL parameter
   useEffect(() => {
@@ -187,6 +188,12 @@ export default function SchedulePickupPage() {
     }
   };
   
+  // Get upcoming collections for the selected page
+  const paginatedUpcomingCollections = upcomingCollections
+    .slice((upcomingPage - 1) * itemsPerPage, upcomingPage * itemsPerPage);
+  
+  const totalUpcomingPages = Math.ceil(upcomingCollections.length / itemsPerPage);
+  
   // Get past collections for the selected page
   const pastCollections = collections
     .filter(c => c.status === CollectionStatus.COMPLETED || c.status === CollectionStatus.CANCELLED)
@@ -195,7 +202,7 @@ export default function SchedulePickupPage() {
   const paginatedPastCollections = pastCollections
     .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
   
-  const totalPages = Math.ceil(pastCollections.length / itemsPerPage);
+  const totalPastPages = Math.ceil(pastCollections.length / itemsPerPage);
   
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -362,7 +369,7 @@ export default function SchedulePickupPage() {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {upcomingCollections.map((collection) => {
+                            {paginatedUpcomingCollections.map((collection) => {
                               const scheduledDate = new Date(collection.scheduledDate);
                               return (
                                 <TableRow key={collection.id}>
@@ -439,6 +446,57 @@ export default function SchedulePickupPage() {
                           </TableBody>
                         </Table>
                       </div>
+                      
+                      {/* Pagination for upcoming pickups */}
+                      {upcomingCollections.length > itemsPerPage && (
+                        <Pagination className="mt-4">
+                          <PaginationContent>
+                            <PaginationItem>
+                              <PaginationPrevious 
+                                onClick={() => setUpcomingPage(p => Math.max(1, p - 1))} 
+                                className={upcomingPage === 1 ? "pointer-events-none opacity-50" : ""}
+                              />
+                            </PaginationItem>
+                            
+                            {Array.from({ length: Math.min(5, totalUpcomingPages) }, (_, i) => {
+                              const pageNumber = i + 1;
+                              return (
+                                <PaginationItem key={pageNumber}>
+                                  <PaginationLink 
+                                    onClick={() => setUpcomingPage(pageNumber)}
+                                    isActive={upcomingPage === pageNumber}
+                                  >
+                                    {pageNumber}
+                                  </PaginationLink>
+                                </PaginationItem>
+                              );
+                            })}
+                            
+                            {totalUpcomingPages > 5 && (
+                              <>
+                                <PaginationItem>
+                                  <PaginationEllipsis />
+                                </PaginationItem>
+                                <PaginationItem>
+                                  <PaginationLink
+                                    onClick={() => setUpcomingPage(totalUpcomingPages)}
+                                    isActive={upcomingPage === totalUpcomingPages}
+                                  >
+                                    {totalUpcomingPages}
+                                  </PaginationLink>
+                                </PaginationItem>
+                              </>
+                            )}
+                            
+                            <PaginationItem>
+                              <PaginationNext 
+                                onClick={() => setUpcomingPage(p => Math.min(totalUpcomingPages, p + 1))} 
+                                className={upcomingPage === totalUpcomingPages ? "pointer-events-none opacity-50" : ""}
+                              />
+                            </PaginationItem>
+                          </PaginationContent>
+                        </Pagination>
+                      )}
                       
                       <h3 className="text-lg font-medium mt-8">Past Pickups</h3>
                       
@@ -520,11 +578,11 @@ export default function SchedulePickupPage() {
                                 <PaginationItem>
                                   <PaginationPrevious 
                                     onClick={() => setCurrentPage(p => Math.max(1, p - 1))} 
-                                    disabled={currentPage === 1} 
+                                    className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
                                   />
                                 </PaginationItem>
                                 
-                                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                                {Array.from({ length: Math.min(5, totalPastPages) }, (_, i) => {
                                   const pageNumber = i + 1;
                                   return (
                                     <PaginationItem key={pageNumber}>
@@ -538,17 +596,17 @@ export default function SchedulePickupPage() {
                                   );
                                 })}
                                 
-                                {totalPages > 5 && (
+                                {totalPastPages > 5 && (
                                   <>
                                     <PaginationItem>
                                       <PaginationEllipsis />
                                     </PaginationItem>
                                     <PaginationItem>
                                       <PaginationLink
-                                        onClick={() => setCurrentPage(totalPages)}
-                                        isActive={currentPage === totalPages}
+                                        onClick={() => setCurrentPage(totalPastPages)}
+                                        isActive={currentPage === totalPastPages}
                                       >
-                                        {totalPages}
+                                        {totalPastPages}
                                       </PaginationLink>
                                     </PaginationItem>
                                   </>
@@ -556,8 +614,8 @@ export default function SchedulePickupPage() {
                                 
                                 <PaginationItem>
                                   <PaginationNext 
-                                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} 
-                                    disabled={currentPage === totalPages} 
+                                    onClick={() => setCurrentPage(p => Math.min(totalPastPages, p + 1))} 
+                                    className={currentPage === totalPastPages ? "pointer-events-none opacity-50" : ""} 
                                   />
                                 </PaginationItem>
                               </PaginationContent>
