@@ -24,7 +24,11 @@ import {
   X,
   BadgeCheck,
   MoreHorizontal,
-  Scale
+  Scale,
+  Filter,
+  SortDesc,
+  SortAsc,
+  ArrowUpDown
 } from "lucide-react";
 import { 
   DropdownMenu, 
@@ -71,6 +75,10 @@ import { scrollToTop, scrollToElement } from "@/lib/utils";
 import { useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 
+// Sorting options
+type SortField = 'date' | 'wasteType' | 'address' | 'status';
+type SortOrder = 'asc' | 'desc';
+
 export default function SchedulePickupPage() {
   const { toast } = useToast();
   const [location, navigate] = useLocation();
@@ -78,6 +86,10 @@ export default function SchedulePickupPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [upcomingPage, setUpcomingPage] = useState(1);
   const itemsPerPage = 4; // Reduced to show fewer items per page for better visibility
+  
+  // Sorting state
+  const [sortField, setSortField] = useState<SortField>('date');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   
   // Handle tab selection based on URL parameter
   useEffect(() => {
@@ -199,11 +211,57 @@ export default function SchedulePickupPage() {
     }
   };
   
+  // Toggle sort order or change field
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      // Toggle order if same field
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      // Set new field and default to ascending
+      setSortField(field);
+      setSortOrder('asc');
+    }
+  };
+  
+  // Function to get sort icon
+  const getSortIcon = (field: SortField) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="h-4 w-4 ml-1 text-muted-foreground" />;
+    }
+    return sortOrder === 'asc' 
+      ? <SortAsc className="h-4 w-4 ml-1 text-primary" /> 
+      : <SortDesc className="h-4 w-4 ml-1 text-primary" />;
+  };
+  
+  // Sort collections based on selected field and order
+  const sortedUpcomingCollections = [...upcomingCollections].sort((a, b) => {
+    let comparison = 0;
+    
+    switch (sortField) {
+      case 'date':
+        comparison = new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime();
+        break;
+      case 'wasteType':
+        comparison = (a.wasteType || '').localeCompare(b.wasteType || '');
+        break;
+      case 'address':
+        comparison = (a.address || '').localeCompare(b.address || '');
+        break;
+      case 'status':
+        comparison = (a.status || '').localeCompare(b.status || '');
+        break;
+      default:
+        comparison = new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime();
+    }
+    
+    return sortOrder === 'asc' ? comparison : -comparison;
+  });
+  
   // Get upcoming collections for the selected page
-  const paginatedUpcomingCollections = upcomingCollections
+  const paginatedUpcomingCollections = sortedUpcomingCollections
     .slice((upcomingPage - 1) * itemsPerPage, upcomingPage * itemsPerPage);
   
-  const totalUpcomingPages = Math.ceil(upcomingCollections.length / itemsPerPage);
+  const totalUpcomingPages = Math.ceil(sortedUpcomingCollections.length / itemsPerPage);
   
   // Get past collections for the selected page
   const pastCollections = collections
@@ -370,12 +428,44 @@ export default function SchedulePickupPage() {
                         <Table>
                           <TableHeader>
                             <TableRow>
-                              <TableHead>Type</TableHead>
-                              <TableHead>Date</TableHead>
+                              <TableHead>
+                                <button 
+                                  onClick={() => handleSort('wasteType')} 
+                                  className="flex items-center hover:text-primary"
+                                >
+                                  Type
+                                  {getSortIcon('wasteType')}
+                                </button>
+                              </TableHead>
+                              <TableHead>
+                                <button 
+                                  onClick={() => handleSort('date')} 
+                                  className="flex items-center hover:text-primary"
+                                >
+                                  Date
+                                  {getSortIcon('date')}
+                                </button>
+                              </TableHead>
                               <TableHead>Time</TableHead>
-                              <TableHead>Location</TableHead>
+                              <TableHead>
+                                <button 
+                                  onClick={() => handleSort('address')} 
+                                  className="flex items-center hover:text-primary"
+                                >
+                                  Location
+                                  {getSortIcon('address')}
+                                </button>
+                              </TableHead>
                               <TableHead>Amount</TableHead>
-                              <TableHead>Status</TableHead>
+                              <TableHead>
+                                <button 
+                                  onClick={() => handleSort('status')} 
+                                  className="flex items-center hover:text-primary"
+                                >
+                                  Status
+                                  {getSortIcon('status')}
+                                </button>
+                              </TableHead>
                               <TableHead className="w-[80px]">Actions</TableHead>
                             </TableRow>
                           </TableHeader>
