@@ -174,6 +174,7 @@ export function CollectionDetailsDialog({
   open, 
   onOpenChange 
 }: CollectionDetailsDialogProps) {
+  const { user } = useAuth();
   // Fetch collection details only if not passed directly
   const { data: fetchedCollection, isLoading: isLoadingCollection } = useQuery<Collection>({
     queryKey: ['/api/collections', collectionId],
@@ -189,6 +190,14 @@ export function CollectionDetailsDialog({
   const { data: collector, isLoading: isLoadingCollector } = useQuery<User>({
     queryKey: ['/api/users', collection?.collectorId],
     enabled: open && !!collection?.collectorId,
+    refetchOnWindowFocus: false, // Don't refetch when window gains focus
+    staleTime: 30000, // Consider data fresh for 30 seconds
+  });
+  
+  // Fetch requester details (the user who created the collection)
+  const { data: requester, isLoading: isLoadingRequester } = useQuery<User>({
+    queryKey: ['/api/users', collection?.userId],
+    enabled: open && !!collection?.userId,
     refetchOnWindowFocus: false, // Don't refetch when window gains focus
     staleTime: 30000, // Consider data fresh for 30 seconds
   });
@@ -322,6 +331,62 @@ export function CollectionDetailsDialog({
                     </div>
                   </div>
                 </div>
+                
+                {/* Requester Information - For collectors and recyclers */}
+                {(collection.userId && (user?.role === UserRole.COLLECTOR || user?.role === UserRole.RECYCLER)) && (
+                  <div className="grid gap-2">
+                    <h3 className="text-sm font-medium">Requester Information</h3>
+                    <div className="bg-muted/50 p-3 rounded-md grid gap-2">
+                      {isLoadingRequester ? (
+                        <div className="flex items-center justify-center p-2">
+                          <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full"></div>
+                          <span className="text-sm ml-2">Loading requester details...</span>
+                        </div>
+                      ) : !requester ? (
+                        <span className="text-sm text-muted-foreground">Requester information not available</span>
+                      ) : (
+                        <>
+                          <div className="flex items-center">
+                            <UserIcon className="h-4 w-4 mr-2 text-muted-foreground" />
+                            <span className="text-sm text-muted-foreground mr-1">Name:</span>
+                            <span className="text-sm font-medium">{requester.fullName}</span>
+                          </div>
+                          <div className="flex items-center">
+                            <ShoppingBag className="h-4 w-4 mr-2 text-muted-foreground" />
+                            <span className="text-sm text-muted-foreground mr-1">Username:</span>
+                            <span className="text-sm">@{requester.username}</span>
+                          </div>
+                          <div className="flex items-center">
+                            <Phone className="h-4 w-4 mr-2 text-muted-foreground" />
+                            <span className="text-sm text-muted-foreground mr-1">Phone:</span>
+                            <span className="text-sm">{requester.phone || 'Not provided'}</span>
+                          </div>
+                          <div className="flex items-center">
+                            <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
+                            <span className="text-sm text-muted-foreground mr-1">Email:</span>
+                            <span className="text-sm">{requester.email}</span>
+                          </div>
+                          <div className="flex justify-end gap-2 mt-1">
+                            <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" asChild>
+                              <a href={`mailto:${requester.email}`}>
+                                <Mail className="h-3 w-3 mr-1" />
+                                Email
+                              </a>
+                            </Button>
+                            {requester.phone && (
+                              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" asChild>
+                                <a href={`tel:${requester.phone}`}>
+                                  <Phone className="h-3 w-3 mr-1" />
+                                  Call
+                                </a>
+                              </Button>
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
                 
                 {/* Collector Information */}
                 {collection.collectorId && (
