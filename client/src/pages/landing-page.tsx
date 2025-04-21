@@ -122,14 +122,18 @@ export default function LandingPage() {
             </div>
             <div className="hidden md:block">
               <div className="relative">
-                <div className="absolute -top-6 -left-6 w-24 h-24 bg-primary/20 rounded-lg"></div>
-                <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-primary/30 rounded-lg"></div>
-                <div className="relative bg-white rounded-xl shadow-xl p-4 z-10">
-                  <img 
-                    src="/dashboard-preview.png" 
-                    alt="PipaPal Dashboard Preview" 
-                    className="rounded-lg w-full h-auto object-contain"
-                  />
+                <div className="absolute -top-8 -left-8 w-32 h-32 bg-primary/20 rounded-lg"></div>
+                <div className="absolute -bottom-8 -right-8 w-40 h-40 bg-primary/30 rounded-lg"></div>
+                <div className="relative bg-white rounded-xl shadow-2xl p-2 md:p-3 z-10 md:w-[130%] border border-gray-100">
+                  <div className="overflow-hidden rounded-lg">
+                    <img 
+                      src="/dashboard-preview.png" 
+                      alt="PipaPal Dashboard Preview" 
+                      className="rounded-lg w-full h-auto object-contain shadow-sm hover:scale-105 transition-transform duration-300"
+                      style={{ maxHeight: "550px" }}
+                    />
+                  </div>
+                  <div className="absolute -bottom-3 -right-3 w-24 h-24 bg-primary/10 rounded-full blur-xl"></div>
                 </div>
               </div>
             </div>
