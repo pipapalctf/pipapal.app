@@ -582,6 +582,23 @@ export default function SchedulePickupPage() {
                                       <TableCell>
                                         {getStatusBadge(collection.status)}
                                       </TableCell>
+                                      <TableCell>
+                                        <DropdownMenu>
+                                          <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                                              <MoreHorizontal className="h-4 w-4" />
+                                            </Button>
+                                          </DropdownMenuTrigger>
+                                          <DropdownMenuContent align="end">
+                                            <DropdownMenuItem
+                                              onClick={() => handleViewDetails(collection)}
+                                            >
+                                              <Calendar className="mr-2 h-4 w-4" />
+                                              View Details
+                                            </DropdownMenuItem>
+                                          </DropdownMenuContent>
+                                        </DropdownMenu>
+                                      </TableCell>
                                     </TableRow>
                                   );
                                 })}
@@ -709,6 +726,13 @@ export default function SchedulePickupPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Collection Details Dialog */}
+      <CollectionDetailsDialog 
+        collectionId={selectedCollectionId}
+        open={collectionDetailsOpen}
+        onOpenChange={setCollectionDetailsOpen}
+      />
     </div>
   );
 }
