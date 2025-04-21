@@ -288,6 +288,88 @@ export class MemStorage implements IStorage {
       wasteAmount: 0
     });
   }
+
+  async getTotalImpactByCollector(collectorId: number): Promise<{
+    waterSaved: number;
+    co2Reduced: number;
+    treesEquivalent: number;
+    energyConserved: number;
+    wasteAmount: number;
+  }> {
+    // Get all collections completed by this collector
+    const collections = Array.from(this.collections.values())
+      .filter(collection => 
+        collection.collectorId === collectorId && 
+        collection.status === 'completed' &&
+        collection.wasteAmount !== null
+      );
+    
+    // Calculate impact based on waste amount
+    const impactFactors = {
+      waterSaved: 50, // liters of water saved per kg
+      co2Reduced: 2, // kg of CO2 reduced per kg of waste
+      treesEquivalent: 0.01, // trees saved per kg
+      energyConserved: 5 // kWh conserved per kg
+    };
+    
+    return collections.reduce((totals, collection) => {
+      const wasteAmount = collection.wasteAmount || 0;
+      return {
+        waterSaved: totals.waterSaved + (wasteAmount * impactFactors.waterSaved),
+        co2Reduced: totals.co2Reduced + (wasteAmount * impactFactors.co2Reduced),
+        treesEquivalent: totals.treesEquivalent + (wasteAmount * impactFactors.treesEquivalent),
+        energyConserved: totals.energyConserved + (wasteAmount * impactFactors.energyConserved),
+        wasteAmount: totals.wasteAmount + wasteAmount
+      };
+    }, {
+      waterSaved: 0,
+      co2Reduced: 0,
+      treesEquivalent: 0,
+      energyConserved: 0,
+      wasteAmount: 0
+    });
+  }
+  
+  async getTotalImpactByRecycler(recyclerId: number): Promise<{
+    waterSaved: number;
+    co2Reduced: number;
+    treesEquivalent: number;
+    energyConserved: number;
+    wasteAmount: number;
+  }> {
+    // For recyclers, we calculate impact based on all completed collections
+    // since they process all types of waste (in a real app, this would be filtered to materials they've purchased)
+    const allCompletedCollections = Array.from(this.collections.values())
+      .filter(collection => 
+        collection.status === 'completed' &&
+        collection.wasteAmount !== null
+      );
+    
+    // Calculate impact based on waste amount
+    const impactFactors = {
+      waterSaved: 50, // liters of water saved per kg
+      co2Reduced: 2, // kg of CO2 reduced per kg of waste
+      treesEquivalent: 0.01, // trees saved per kg
+      energyConserved: 5 // kWh conserved per kg
+    };
+    
+    return allCompletedCollections.reduce((totals, collection) => {
+      const wasteAmount = collection.wasteAmount || 0;
+      return {
+        waterSaved: totals.waterSaved + (wasteAmount * impactFactors.waterSaved),
+        co2Reduced: totals.co2Reduced + (wasteAmount * impactFactors.co2Reduced),
+        treesEquivalent: totals.treesEquivalent + (wasteAmount * impactFactors.treesEquivalent),
+        energyConserved: totals.energyConserved + (wasteAmount * impactFactors.energyConserved),
+        wasteAmount: totals.wasteAmount + wasteAmount
+      };
+    }, {
+      waterSaved: 0,
+      co2Reduced: 0,
+      treesEquivalent: 0,
+      energyConserved: 0,
+      wasteAmount: 0
+    });
+  }
   
   async createImpact(insertImpact: InsertImpact): Promise<Impact> {
     const id = this.currentImpactId++;
@@ -624,6 +706,86 @@ export class DatabaseStorage implements IStorage {
       energyConserved: result.energyConserved || 0,
       wasteAmount: result.wasteAmount || 0
     };
+  }
+  
+  async getTotalImpactByCollector(collectorId: number): Promise<{
+    waterSaved: number;
+    co2Reduced: number;
+    treesEquivalent: number;
+    energyConserved: number;
+    wasteAmount: number;
+  }> {
+    // Get all collections completed by this collector
+    const collectorCollections = await db.select()
+      .from(collections)
+      .where(and(
+        eq(collections.collectorId, collectorId),
+        eq(collections.status, CollectionStatus.COMPLETED)
+      ));
+    
+    // Calculate impact based on waste amount
+    const impactFactors = {
+      waterSaved: 50, // liters of water saved per kg
+      co2Reduced: 2, // kg of CO2 reduced per kg of waste
+      treesEquivalent: 0.01, // trees saved per kg
+      energyConserved: 5 // kWh conserved per kg
+    };
+    
+    return collectorCollections.reduce((totals, collection) => {
+      const wasteAmount = collection.wasteAmount || 0;
+      return {
+        waterSaved: totals.waterSaved + (wasteAmount * impactFactors.waterSaved),
+        co2Reduced: totals.co2Reduced + (wasteAmount * impactFactors.co2Reduced),
+        treesEquivalent: totals.treesEquivalent + (wasteAmount * impactFactors.treesEquivalent),
+        energyConserved: totals.energyConserved + (wasteAmount * impactFactors.energyConserved),
+        wasteAmount: totals.wasteAmount + wasteAmount
+      };
+    }, {
+      waterSaved: 0,
+      co2Reduced: 0,
+      treesEquivalent: 0,
+      energyConserved: 0,
+      wasteAmount: 0
+    });
+  }
+  
+  async getTotalImpactByRecycler(recyclerId: number): Promise<{
+    waterSaved: number;
+    co2Reduced: number;
+    treesEquivalent: number;
+    energyConserved: number;
+    wasteAmount: number;
+  }> {
+    // For recyclers, we calculate impact based on all completed collections
+    // In a real app, this would be filtered to materials they've processed
+    const completedCollections = await db.select()
+      .from(collections)
+      .where(eq(collections.status, CollectionStatus.COMPLETED));
+    
+    // Calculate impact based on waste amount
+    const impactFactors = {
+      waterSaved: 50, // liters of water saved per kg
+      co2Reduced: 2, // kg of CO2 reduced per kg of waste
+      treesEquivalent: 0.01, // trees saved per kg
+      energyConserved: 5 // kWh conserved per kg
+    };
+    
+    return completedCollections.reduce((totals, collection) => {
+      const wasteAmount = collection.wasteAmount || 0;
+      return {
+        waterSaved: totals.waterSaved + (wasteAmount * impactFactors.waterSaved),
+        co2Reduced: totals.co2Reduced + (wasteAmount * impactFactors.co2Reduced),
+        treesEquivalent: totals.treesEquivalent + (wasteAmount * impactFactors.treesEquivalent),
+        energyConserved: totals.energyConserved + (wasteAmount * impactFactors.energyConserved),
+        wasteAmount: totals.wasteAmount + wasteAmount
+      };
+    }, {
+      waterSaved: 0,
+      co2Reduced: 0,
+      treesEquivalent: 0,
+      energyConserved: 0,
+      wasteAmount: 0
+    });
   }
   
   async createImpact(insertImpact: InsertImpact): Promise<Impact> {
