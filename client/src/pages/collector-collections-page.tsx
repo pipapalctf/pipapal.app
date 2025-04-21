@@ -22,6 +22,7 @@ import Navbar from '@/components/shared/navbar';
 import Footer from '@/components/shared/footer';
 import { Separator } from '@/components/ui/separator';
 import { MaterialInterestsTab } from '@/components/material-interests-tab';
+import { RouteOptimizationMap } from '@/components/maps/route-optimization-map';
 import { useLocation } from 'wouter';
 
 export default function CollectorCollectionsPage() {
@@ -434,10 +435,11 @@ export default function CollectorCollectionsPage() {
             </Select>
           </div>
           
-          {/* Tabs for Collections and Material Interests */}
+          {/* Tabs for Collections, Route Optimization, and Material Interests */}
           <Tabs defaultValue={activeTab} value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsList className="grid w-full grid-cols-3 mb-6">
               <TabsTrigger value="collections">Collection Assignments</TabsTrigger>
+              <TabsTrigger value="routes">Route Optimization</TabsTrigger>
               <TabsTrigger value="interests">Material Interests</TabsTrigger>
             </TabsList>
             
@@ -598,6 +600,25 @@ export default function CollectorCollectionsPage() {
                 </div>
               )}
             </CardContent>
+              </Card>
+            </TabsContent>
+            
+            {/* Route Optimization Tab Content */}
+            <TabsContent value="routes" className="mt-0">
+              <Card className="overflow-hidden">
+                <CardHeader className="bg-muted/30 pb-4">
+                  <CardTitle>Route Optimization</CardTitle>
+                  <CardDescription>
+                    Plan efficient routes for waste collection with automatic optimization
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-4">
+                  {/* Import the RouteOptimizationMap component at the top of the file */}
+                  <RouteOptimizationMap 
+                    collections={collections || []} 
+                    collectorAddress={user?.address || undefined}
+                  />
+                </CardContent>
               </Card>
             </TabsContent>
             
