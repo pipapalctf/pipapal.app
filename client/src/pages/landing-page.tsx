@@ -4,14 +4,19 @@ import { useAuth } from "@/hooks/use-auth";
 import Logo from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import {
+  ArrowRight,
+  Award,
+  Building2,
   CalendarClock,
+  Check,
   ChevronRight,
+  Factory, 
+  Gift,
+  Home,
   Leaf,
   BarChart3,
   Recycle,
-  Award,
-  Check,
-  Gift
+  Truck
 } from "lucide-react";
 // Import directly using relative path to attached_assets
 import pipapalLogo from "../.././../attached_assets/pipapal-logo.png";
@@ -101,9 +106,11 @@ export default function LandingPage() {
                     <ChevronRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Link>
-                <Button variant="outline" size="lg" className="w-full sm:w-auto">
-                  Learn More
-                </Button>
+                <a href="#user-types">
+                  <Button variant="outline" size="lg" className="w-full sm:w-auto">
+                    Learn More
+                  </Button>
+                </a>
               </div>
               <div className="mt-8 flex flex-wrap items-center gap-4">
                 <div className="flex items-center text-sm text-gray-600">
@@ -156,7 +163,7 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="bg-gray-50 rounded-xl p-6 transition-all hover:shadow-md">
               <div className="mb-6 flex justify-center">
-                <img src="/images/waste-schedule.svg" alt="Schedule Waste Pickup" className="h-48 w-auto" />
+                <img src="/images/waste-schedule.svg" alt="Schedule Waste Pickup" className="h-36 w-auto" />
               </div>
               <h3 className="text-xl font-bold text-secondary mb-2">Schedule Pickups</h3>
               <p className="text-gray-600">
@@ -166,7 +173,7 @@ export default function LandingPage() {
             
             <div className="bg-gray-50 rounded-xl p-6 transition-all hover:shadow-md">
               <div className="mb-6 flex justify-center">
-                <img src="/images/recycling-bins.svg" alt="Track Collections" className="h-48 w-auto" />
+                <img src="/images/recycling-bins.svg" alt="Track Collections" className="h-36 w-auto" />
               </div>
               <h3 className="text-xl font-bold text-secondary mb-2">Track Collections</h3>
               <p className="text-gray-600">
@@ -176,7 +183,7 @@ export default function LandingPage() {
             
             <div className="bg-gray-50 rounded-xl p-6 transition-all hover:shadow-md">
               <div className="mb-6 flex justify-center">
-                <img src="/images/eco-impact.svg" alt="Measure Impact" className="h-48 w-auto" />
+                <img src="/images/eco-impact.svg" alt="Measure Impact" className="h-36 w-auto" />
               </div>
               <h3 className="text-xl font-bold text-secondary mb-2">Measure Impact</h3>
               <p className="text-gray-600">
@@ -207,8 +214,8 @@ export default function LandingPage() {
                 </div>
                 <h3 className="text-xl font-bold text-secondary">Environmental Impact</h3>
               </div>
-              <div className="mb-4">
-                <img src="/images/eco-impact.svg" alt="Environmental Impact" className="w-full h-auto rounded-lg" />
+              <div className="mb-4 flex justify-center">
+                <img src="/images/eco-impact.svg" alt="Environmental Impact" className="h-32 w-auto rounded-lg" />
               </div>
               <p className="text-gray-600">
                 Track your contribution to reducing landfill waste, CO₂ emissions, and conserving natural resources. Our detailed impact dashboard helps you see the difference you're making.
@@ -222,8 +229,8 @@ export default function LandingPage() {
                 </div>
                 <h3 className="text-xl font-bold text-secondary">Rewards Program</h3>
               </div>
-              <div className="mb-4">
-                <img src="/images/rewards-badges.svg" alt="Rewards Program" className="w-full h-auto rounded-lg" />
+              <div className="mb-4 flex justify-center">
+                <img src="/images/rewards-badges.svg" alt="Rewards Program" className="h-32 w-auto rounded-lg" />
               </div>
               <p className="text-gray-600">
                 Earn points for every collection scheduled based on waste type. Points can be redeemed for eco-friendly products or donated to environmental causes.
@@ -237,8 +244,8 @@ export default function LandingPage() {
                 </div>
                 <h3 className="text-xl font-bold text-secondary">Convenient Scheduling</h3>
               </div>
-              <div className="mb-4">
-                <img src="/images/waste-schedule.svg" alt="Convenient Scheduling" className="w-full h-auto rounded-lg" />
+              <div className="mb-4 flex justify-center">
+                <img src="/images/waste-schedule.svg" alt="Convenient Scheduling" className="h-32 w-auto rounded-lg" />
               </div>
               <p className="text-gray-600">
                 Choose collection times that work for you with our flexible scheduling system. Receive reminders and real-time updates on your collection status.
@@ -252,12 +259,176 @@ export default function LandingPage() {
                 </div>
                 <h3 className="text-xl font-bold text-secondary">Educational Resources</h3>
               </div>
-              <div className="mb-4">
-                <img src="/images/eco-tips-illustration.svg" alt="Educational Resources" className="w-full h-auto rounded-lg" />
+              <div className="mb-4 flex justify-center">
+                <img src="/images/eco-tips-illustration.svg" alt="Educational Resources" className="h-32 w-auto rounded-lg" />
               </div>
               <p className="text-gray-600">
                 Access our AI-powered EcoTips learning center to discover better waste management practices and sustainability tips tailored to your household.
               </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* User Types Section */}
+      <section className="w-full py-16 bg-white" id="user-types">
+        <div className="container mx-auto px-4 md:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-montserrat font-bold text-secondary mb-4">
+              PipaPal for Everyone
+            </h2>
+            <p className="text-gray-600 max-w-2xl mx-auto">
+              Our platform is designed to serve all stakeholders in the waste management ecosystem
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Household/Individual Card */}
+            <div className="bg-gradient-to-br from-primary/5 to-primary/10 p-6 rounded-xl shadow-sm">
+              <div className="flex items-center mb-6">
+                <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center flex-shrink-0 mr-4">
+                  <Home className="h-6 w-6 text-primary" />
+                </div>
+                <h3 className="text-2xl font-bold text-secondary">For Households</h3>
+              </div>
+              <p className="text-gray-700 mb-6">
+                Manage your household waste efficiently while tracking your environmental impact. Schedule pickups at your convenience and earn rewards for your sustainable choices.
+              </p>
+              <ul className="space-y-2 mb-6">
+                <li className="flex items-center">
+                  <Check className="h-5 w-5 text-primary mr-2" />
+                  <span>Easy scheduling of waste collections</span>
+                </li>
+                <li className="flex items-center">
+                  <Check className="h-5 w-5 text-primary mr-2" />
+                  <span>Track your environmental impact</span>
+                </li>
+                <li className="flex items-center">
+                  <Check className="h-5 w-5 text-primary mr-2" />
+                  <span>Earn rewards for sustainable practices</span>
+                </li>
+                <li className="flex items-center">
+                  <Check className="h-5 w-5 text-primary mr-2" />
+                  <span>Learn from personalized eco-tips</span>
+                </li>
+              </ul>
+              <Link href="/auth">
+                <Button className="w-full" variant="outline">
+                  Register as a Household
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              </Link>
+            </div>
+
+            {/* Collector Card */}
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-xl shadow-sm">
+              <div className="flex items-center mb-6">
+                <div className="w-12 h-12 bg-blue-200 rounded-full flex items-center justify-center flex-shrink-0 mr-4">
+                  <Truck className="h-6 w-6 text-blue-600" />
+                </div>
+                <h3 className="text-2xl font-bold text-secondary">For Collectors</h3>
+              </div>
+              <p className="text-gray-700 mb-6">
+                Optimize your collection routes and grow your customer base. Manage all your pickups efficiently through our dedicated collector dashboard.
+              </p>
+              <ul className="space-y-2 mb-6">
+                <li className="flex items-center">
+                  <Check className="h-5 w-5 text-blue-600 mr-2" />
+                  <span>Manage all scheduled collections</span>
+                </li>
+                <li className="flex items-center">
+                  <Check className="h-5 w-5 text-blue-600 mr-2" />
+                  <span>Send real-time status updates</span>
+                </li>
+                <li className="flex items-center">
+                  <Check className="h-5 w-5 text-blue-600 mr-2" />
+                  <span>Optimize route planning</span>
+                </li>
+                <li className="flex items-center">
+                  <Check className="h-5 w-5 text-blue-600 mr-2" />
+                  <span>Track your environmental impact metrics</span>
+                </li>
+              </ul>
+              <Link href="/auth">
+                <Button className="w-full bg-blue-600 hover:bg-blue-700">
+                  Register as a Collector
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              </Link>
+            </div>
+
+            {/* Recycler Card */}
+            <div className="bg-gradient-to-br from-amber-50 to-amber-100 p-6 rounded-xl shadow-sm">
+              <div className="flex items-center mb-6">
+                <div className="w-12 h-12 bg-amber-200 rounded-full flex items-center justify-center flex-shrink-0 mr-4">
+                  <Factory className="h-6 w-6 text-amber-600" />
+                </div>
+                <h3 className="text-2xl font-bold text-secondary">For Recyclers</h3>
+              </div>
+              <p className="text-gray-700 mb-6">
+                Connect with waste collectors to source the materials you need. Specify material interests and track your positive environmental impact.
+              </p>
+              <ul className="space-y-2 mb-6">
+                <li className="flex items-center">
+                  <Check className="h-5 w-5 text-amber-600 mr-2" />
+                  <span>Specify materials of interest</span>
+                </li>
+                <li className="flex items-center">
+                  <Check className="h-5 w-5 text-amber-600 mr-2" />
+                  <span>Connect with local waste collectors</span>
+                </li>
+                <li className="flex items-center">
+                  <Check className="h-5 w-5 text-amber-600 mr-2" />
+                  <span>Measure your environmental contribution</span>
+                </li>
+                <li className="flex items-center">
+                  <Check className="h-5 w-5 text-amber-600 mr-2" />
+                  <span>Access detailed analytics</span>
+                </li>
+              </ul>
+              <Link href="/auth">
+                <Button className="w-full bg-amber-600 hover:bg-amber-700">
+                  Register as a Recycler
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              </Link>
+            </div>
+
+            {/* Organization Card */}
+            <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-xl shadow-sm">
+              <div className="flex items-center mb-6">
+                <div className="w-12 h-12 bg-purple-200 rounded-full flex items-center justify-center flex-shrink-0 mr-4">
+                  <Building2 className="h-6 w-6 text-purple-600" />
+                </div>
+                <h3 className="text-2xl font-bold text-secondary">For Organizations</h3>
+              </div>
+              <p className="text-gray-700 mb-6">
+                Manage waste for multiple locations while tracking organization-wide sustainability metrics. Get comprehensive reports for CSR initiatives.
+              </p>
+              <ul className="space-y-2 mb-6">
+                <li className="flex items-center">
+                  <Check className="h-5 w-5 text-purple-600 mr-2" />
+                  <span>Manage waste across multiple locations</span>
+                </li>
+                <li className="flex items-center">
+                  <Check className="h-5 w-5 text-purple-600 mr-2" />
+                  <span>Track organization-wide impact metrics</span>
+                </li>
+                <li className="flex items-center">
+                  <Check className="h-5 w-5 text-purple-600 mr-2" />
+                  <span>Generate sustainability reports</span>
+                </li>
+                <li className="flex items-center">
+                  <Check className="h-5 w-5 text-purple-600 mr-2" />
+                  <span>Support corporate sustainability goals</span>
+                </li>
+              </ul>
+              <Link href="/auth">
+                <Button className="w-full bg-purple-600 hover:bg-purple-700">
+                  Register as an Organization
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
@@ -287,11 +458,11 @@ export default function LandingPage() {
                   <ChevronRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
-              <Link href="#features">
+              <a href="#user-types">
                 <Button variant="outline" size="lg" className="px-8 w-full sm:w-auto">
                   Learn More
                 </Button>
-              </Link>
+              </a>
             </div>
             <div className="flex items-center justify-center mt-6">
               <div className="flex items-center justify-center w-10 h-10 rounded-full bg-green-100 mr-3">
