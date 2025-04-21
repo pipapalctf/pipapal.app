@@ -29,6 +29,13 @@ export default function MobileNavigation() {
         icon: "truck", 
         active: location === "/collections" 
       });
+      // Add materials link for collectors
+      links.splice(2, 0, { 
+        href: "/materials/manage", 
+        label: "Materials", 
+        icon: "recycle", 
+        active: location === "/materials/manage" 
+      });
     } else if (user?.role === UserRole.RECYCLER) {
       links.splice(1, 0, { 
         href: "/materials", 

@@ -14,6 +14,8 @@ import ProfilePage from "@/pages/profile-page";
 import CollectionDetailsPage from "@/pages/collection-details-page";
 import CollectorCollectionsPage from "@/pages/collector-collections-page";
 import RecyclerMaterialsPage from "@/pages/recycler-materials-page";
+import CollectorMaterialsPage from "@/pages/collector-materials-page";
+import MaterialDetailsPage from "@/pages/material-details-page";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 import { ThemeProvider } from "next-themes";
@@ -28,9 +30,16 @@ function Router() {
       <ProtectedRoute path="/schedule-pickup" component={SchedulePickupPage} />
       <ProtectedRoute path="/ecotips" component={EcoTipsPage} />
       <ProtectedRoute path="/impact" component={ImpactPage} />
+      
+      {/* Collection routes */}
       <ProtectedRoute path="/collections/:id" component={CollectionDetailsPage} />
       <ProtectedRoute path="/collections" component={CollectorCollectionsPage} roleCheck={UserRole.COLLECTOR} />
+      
+      {/* Material Marketplace routes */}
+      <ProtectedRoute path="/materials/manage" component={CollectorMaterialsPage} roleCheck={UserRole.COLLECTOR} />
+      <ProtectedRoute path="/materials/:id" component={MaterialDetailsPage} />
       <ProtectedRoute path="/materials" component={RecyclerMaterialsPage} roleCheck={UserRole.RECYCLER} />
+      
       <ProtectedRoute path="/profile" component={ProfilePage} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
