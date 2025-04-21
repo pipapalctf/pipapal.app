@@ -399,15 +399,23 @@ export default function CollectorCollectionsPage() {
             </Select>
           </div>
           
-          {/* Collections Table */}
-          <Card className="overflow-hidden">
-            <CardHeader className="bg-muted/30 pb-4">
-              <CardTitle>Collection Assignments</CardTitle>
-              <CardDescription>
-                {filteredCollections.length} {filteredCollections.length === 1 ? 'collection' : 'collections'} {statusFilter !== 'all' ? `(filtered by: ${statusFilter})` : ''}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
+          {/* Tabs for Collections and Material Interests */}
+          <Tabs defaultValue="collections" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsTrigger value="collections">Collection Assignments</TabsTrigger>
+              <TabsTrigger value="interests">Material Interests</TabsTrigger>
+            </TabsList>
+            
+            {/* Collections Tab Content */}
+            <TabsContent value="collections" className="mt-0">
+              <Card className="overflow-hidden">
+                <CardHeader className="bg-muted/30 pb-4">
+                  <CardTitle>Collection Assignments</CardTitle>
+                  <CardDescription>
+                    {filteredCollections.length} {filteredCollections.length === 1 ? 'collection' : 'collections'} {statusFilter !== 'all' ? `(filtered by: ${statusFilter})` : ''}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-0">
               {isLoading ? (
                 <div className="flex justify-center items-center py-12">
                   <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
@@ -543,7 +551,25 @@ export default function CollectorCollectionsPage() {
                 </div>
               )}
             </CardContent>
-          </Card>
+              </Card>
+            </TabsContent>
+            
+            {/* Material Interests Tab Content */}
+            <TabsContent value="interests" className="mt-0">
+              <Card className="overflow-hidden">
+                <CardHeader className="bg-muted/30 pb-4">
+                  <CardTitle>Material Interests from Recyclers</CardTitle>
+                  <CardDescription>
+                    View recyclers who expressed interest in materials from your completed collections
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {/* We'll create this component next */}
+                  <MaterialInterestsTab collectorId={user.id} />
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
       
