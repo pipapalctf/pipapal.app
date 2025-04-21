@@ -6,11 +6,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Recycle, Leaf, Package, Filter, MapPin, ArrowRight, Calendar, CircleDollarSign, Truck, AlertCircle, CheckCircle2, Scale, Clock, Cpu, Apple, FlaskConical } from 'lucide-react';
+import { Recycle, Leaf, Package, Filter, MapPin, ArrowRight, Calendar, CircleDollarSign, Truck, 
+  AlertCircle, CheckCircle2, Scale, Clock, Cpu, Apple, FlaskConical, Banknote, History } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { 
-  Collection,
-  CollectionStatus,
+  MaterialListing,
+  MaterialBid,
+  MaterialStatus,
   WasteType,
   UserRole
 } from '@shared/schema';
@@ -21,6 +23,13 @@ import { useLocation } from 'wouter';
 import Navbar from "@/components/shared/navbar";
 import Footer from "@/components/shared/footer";
 import MobileNavigation from "@/components/shared/mobile-navigation";
+import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 
 export default function RecyclerMaterialsPage() {
   const { user } = useAuth();
@@ -28,74 +37,101 @@ export default function RecyclerMaterialsPage() {
   const [, navigate] = useLocation();
   const [filterWasteType, setFilterWasteType] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('available');
+  const [selectedMaterial, setSelectedMaterial] = useState<MaterialListing | null>(null);
+  const [bidDialogOpen, setBidDialogOpen] = useState(false);
 
-  // Fetch collections that are pending/ready for recyclers to process
-  const { data: collections = [], isLoading } = useQuery<Collection[]>({
-    queryKey: ['/api/collections'],
+  // Create a form for placing bids
+  const bidFormSchema = z.object({
+    amount: z.coerce.number().min(1, "Bid amount must be at least 1"),
+    message: z.string().optional(),
   });
 
-  // Only include collections that are in COMPLETED status with a wasteAmount
-  // These are collections that have been processed by collectors and are ready for recyclers
-  const completedCollections = collections.filter(
-    (collection: Collection) => collection.status === CollectionStatus.COMPLETED && collection.wasteAmount
-  );
+  const bidForm = useForm<z.infer<typeof bidFormSchema>>({
+    resolver: zodResolver(bidFormSchema),
+    defaultValues: {
+      amount: 0,
+      message: "",
+    },
+  });
+
+  // Fetch available materials
+  const { data: materials = [], isLoading } = useQuery<MaterialListing[]>({
+    queryKey: ['/api/materials/available'],
+  });
+
+  // Fetch user's own bids
+  const { data: myBids = [] } = useQuery<MaterialBid[]>({
+    queryKey: ['/api/materials/bids/my-bids'],
+  });
 
   // Apply waste type filter
   const filteredByWasteType = filterWasteType === 'all' 
-    ? completedCollections 
-    : completedCollections.filter((collection: Collection) => collection.wasteType === filterWasteType);
+    ? materials 
+    : materials.filter((material) => material.materialType === filterWasteType);
 
   // Group materials by waste type for easier viewing
-  const groupedMaterials = filteredByWasteType.reduce((groups: Record<string, Collection[]>, collection: Collection) => {
-    const wasteType = collection.wasteType || 'general';
-    if (!groups[wasteType]) {
-      groups[wasteType] = [];
+  const groupedMaterials = filteredByWasteType.reduce((groups: Record<string, MaterialListing[]>, material) => {
+    const materialType = material.materialType || 'general';
+    if (!groups[materialType]) {
+      groups[materialType] = [];
     }
-    groups[wasteType].push(collection);
+    groups[materialType].push(material);
     return groups;
-  }, {} as Record<string, Collection[]>);
+  }, {} as Record<string, MaterialListing[]>);
 
   // Calculate total materials available
-  const totalMaterials = completedCollections.reduce(
-    (total: number, collection: Collection) => total + (collection.wasteAmount || 0),
+  const totalMaterials = materials.reduce(
+    (total: number, material) => total + material.quantity,
     0
   );
 
   // Calculate materials by type for the summary cards
-  const materialsByType = completedCollections.reduce((acc: Record<string, number>, collection: Collection) => {
-    const wasteType = collection.wasteType || 'general';
-    if (!acc[wasteType]) {
-      acc[wasteType] = 0;
+  const materialsByType = materials.reduce((acc: Record<string, number>, material) => {
+    const materialType = material.materialType || 'general';
+    if (!acc[materialType]) {
+      acc[materialType] = 0;
     }
-    acc[wasteType] += (collection.wasteAmount || 0);
+    acc[materialType] += material.quantity;
     return acc;
   }, {});
 
-  // Express interest in materials mutation
-  const expressInterestMutation = useMutation({
-    mutationFn: async (collectionId: number) => {
-      const response = await apiRequest('POST', '/api/materials/express-interest', { collectionId });
+  // Calculate active bids 
+  const activeBidsCount = myBids.filter(bid => bid.status === 'pending').length;
+
+  // Place bid mutation
+  const placeBidMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof bidFormSchema>) => {
+      if (!selectedMaterial) return null;
+      const response = await apiRequest('POST', `/api/materials/${selectedMaterial.id}/bids`, {
+        amount: data.amount,
+        message: data.message || undefined,
+      });
       return response.json();
     },
     onSuccess: () => {
       toast({
-        title: "Interest Recorded",
-        description: "Your interest in this material has been recorded. The system will notify relevant parties.",
+        title: "Bid Placed Successfully",
+        description: "Your bid has been recorded. You'll be notified when the collector responds.",
         variant: "default",
       });
+      setBidDialogOpen(false);
+      bidForm.reset();
+      queryClient.invalidateQueries({ queryKey: ['/api/materials/bids/my-bids'] });
     },
     onError: (error: Error) => {
       toast({
-        title: "Failed to Express Interest",
-        description: error.message || "There was an error recording your interest. Please try again.",
+        title: "Failed to Place Bid",
+        description: error.message || "There was an error placing your bid. Please try again.",
         variant: "destructive",
       });
     }
   });
 
-  // Handle purchasing/acquiring materials
-  const handleAcquireMaterial = (collectionId: number) => {
-    expressInterestMutation.mutate(collectionId);
+  // Handle placing a bid
+  const handleBid = (material: MaterialListing) => {
+    setSelectedMaterial(material);
+    bidForm.setValue('amount', Math.round(material.quantity * 5)); // Suggest a default price
+    setBidDialogOpen(true);
   };
 
   // Get waste type display name and color
@@ -269,11 +305,11 @@ export default function RecyclerMaterialsPage() {
             </Card>
           ) : (
             <div className="space-y-8">
-              {Object.entries(groupedMaterials).map(([wasteType, collections]) => {
-                const typeInfo = getWasteTypeDisplay(wasteType);
+              {Object.entries(groupedMaterials).map(([materialType, materials]) => {
+                const typeInfo = getWasteTypeDisplay(materialType);
                 
                 return (
-                  <div key={wasteType} className="space-y-4">
+                  <div key={materialType} className="space-y-4">
                     <div className="flex items-center gap-2">
                       <div className="p-1.5 rounded-full" style={{ backgroundColor: `${typeInfo.color}25` }}>
                         <div className="p-1 rounded-full" style={{ color: typeInfo.color }}>
@@ -282,18 +318,18 @@ export default function RecyclerMaterialsPage() {
                       </div>
                       <h2 className="text-xl font-semibold">{typeInfo.name} Materials</h2>
                       <Badge variant="outline" className="ml-2">
-                        {collections.length} {collections.length === 1 ? 'item' : 'items'}
+                        {materials.length} {materials.length === 1 ? 'item' : 'items'}
                       </Badge>
                     </div>
                     
                     <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                      {collections.map((collection: Collection) => (
-                        <Card key={collection.id} className="overflow-hidden border shadow-sm hover:shadow-md transition-shadow">
+                      {materials.map((material: MaterialListing) => (
+                        <Card key={material.id} className="overflow-hidden border shadow-sm hover:shadow-md transition-shadow">
                           <div className="h-2" style={{ backgroundColor: typeInfo.color }}></div>
                           <CardHeader>
                             <div className="flex justify-between items-start">
                               <CardTitle className="text-lg font-medium">
-                                {formatNumber(collection.wasteAmount || 0)} kg
+                                {formatNumber(material.quantity)} kg
                               </CardTitle>
                               <Badge className="ml-2" style={{ 
                                 backgroundColor: `${typeInfo.color}20`, 
@@ -304,7 +340,7 @@ export default function RecyclerMaterialsPage() {
                               </Badge>
                             </div>
                             <CardDescription className="flex items-center justify-between">
-                              <span>Collected on {new Date(collection.completedDate || collection.scheduledDate).toLocaleDateString()}</span>
+                              <span>Listed on {new Date(material.createdAt).toLocaleDateString()}</span>
                               <Badge variant="outline" className="ml-auto text-xs bg-green-50 text-green-700 border-green-200">
                                 <CheckCircle2 className="h-3 w-3 mr-1" />
                                 Available
@@ -314,25 +350,32 @@ export default function RecyclerMaterialsPage() {
                           <CardContent className="space-y-3">
                             <div className="flex items-start gap-2">
                               <MapPin className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
-                              <span className="text-sm">{collection.address}</span>
+                              <span className="text-sm">{material.location}</span>
                             </div>
                             
-                            {collection.notes && (
+                            {material.description && (
                               <div className="flex items-start gap-2 text-sm">
                                 <AlertCircle className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
-                                <span>{collection.notes}</span>
+                                <span>{material.description}</span>
                               </div>
                             )}
                             
                             <div className="flex items-center justify-between mt-2 text-sm">
-                              <div className="flex items-center gap-1 text-muted-foreground">
-                                <CircleDollarSign className="h-4 w-4" />
-                                <span>${formatNumber((collection.wasteAmount || 0) * 0.2, 2)} est. value</span>
-                              </div>
+                              {material.price ? (
+                                <div className="flex items-center gap-1 text-muted-foreground">
+                                  <CircleDollarSign className="h-4 w-4" />
+                                  <span>KES {formatNumber(material.price, 2)} listed</span>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-1 text-muted-foreground">
+                                  <Banknote className="h-4 w-4" />
+                                  <span>Open for bidding</span>
+                                </div>
+                              )}
                               
                               <div className="flex items-center gap-1 text-muted-foreground">
                                 <Leaf className="h-4 w-4" />
-                                <span>{formatNumber((collection.wasteAmount || 0) * 2)} kg CO₂ offset</span>
+                                <span>{formatNumber(material.quantity * 2)} kg CO₂ offset</span>
                               </div>
                             </div>
                           </CardContent>
@@ -340,23 +383,23 @@ export default function RecyclerMaterialsPage() {
                             <Button 
                               variant="ghost" 
                               size="sm"
-                              onClick={() => navigate(`/collections/${collection.id}`)}
+                              onClick={() => navigate(`/materials/${material.id}`)}
                             >
                               View Details
                             </Button>
                             <Button
-                              onClick={() => handleAcquireMaterial(collection.id)}
+                              onClick={() => handleBid(material)}
                               className="flex items-center gap-1"
-                              disabled={expressInterestMutation.isPending}
+                              disabled={placeBidMutation.isPending}
                             >
-                              {expressInterestMutation.isPending ? (
+                              {placeBidMutation.isPending && selectedMaterial?.id === material.id ? (
                                 <>
                                   <span className="animate-pulse">Processing</span>
                                   <Clock className="h-4 w-4 ml-1 animate-spin" />
                                 </>
                               ) : (
                                 <>
-                                  Express Interest
+                                  Place Bid
                                   <ArrowRight className="h-4 w-4 ml-1" />
                                 </>
                               )}
@@ -370,6 +413,82 @@ export default function RecyclerMaterialsPage() {
               })}
             </div>
           )}
+          
+          {/* Bid Dialog */}
+          <Dialog open={bidDialogOpen} onOpenChange={setBidDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Place Bid</DialogTitle>
+                <DialogDescription>
+                  Enter your bid amount and any message for the collector.
+                </DialogDescription>
+              </DialogHeader>
+              
+              <Form {...bidForm}>
+                <form onSubmit={bidForm.handleSubmit(data => placeBidMutation.mutate(data))} className="space-y-4">
+                  <FormField
+                    control={bidForm.control}
+                    name="amount"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Bid Amount (KES)</FormLabel>
+                        <FormControl>
+                          <Input type="number" placeholder="Enter amount" {...field} />
+                        </FormControl>
+                        <FormDescription>
+                          Enter the amount you're willing to pay for this material.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={bidForm.control}
+                    name="message"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Message (Optional)</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            placeholder="Any additional details or terms"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Include any terms or details about your bid.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <DialogFooter>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setBidDialogOpen(false)}
+                      className="mt-4"
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      type="submit"
+                      disabled={placeBidMutation.isPending}
+                      className="mt-4"
+                    >
+                      {placeBidMutation.isPending ? (
+                        <>
+                          <span className="mr-2">Submitting</span>
+                          <Clock className="h-4 w-4 animate-spin" />
+                        </>
+                      ) : 'Submit Bid'}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
         </div>
       </main>
       
