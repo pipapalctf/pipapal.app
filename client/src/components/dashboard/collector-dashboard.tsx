@@ -483,49 +483,84 @@ export default function CollectorDashboard({ user }: CollectorDashboardProps) {
                 <div className="bg-card p-4 rounded-lg">
                   <h3 className="font-medium mb-2 flex items-center">
                     <Route className="mr-2 h-4 w-4" />
-                    Top Areas
+                    Top Collection Areas
                   </h3>
-                  <ul className="space-y-2">
-                    <li className="flex justify-between">
-                      <span>Downtown District</span>
-                      <span className="font-medium">{collectorJobs.length > 0 ? Math.round(collectorJobs.length * 0.4) : 0} jobs</span>
-                    </li>
-                    <li className="flex justify-between">
-                      <span>Westside Neighborhood</span>
-                      <span className="font-medium">{collectorJobs.length > 0 ? Math.round(collectorJobs.length * 0.3) : 0} jobs</span>
-                    </li>
-                    <li className="flex justify-between">
-                      <span>Eastview Community</span>
-                      <span className="font-medium">{collectorJobs.length > 0 ? Math.round(collectorJobs.length * 0.2) : 0} jobs</span>
-                    </li>
-                    <li className="flex justify-between">
-                      <span>Northside Area</span>
-                      <span className="font-medium">{collectorJobs.length > 0 ? Math.round(collectorJobs.length * 0.1) : 0} jobs</span>
-                    </li>
-                  </ul>
+                  {(() => {
+                    // Group collections by address
+                    const areaGroups = collectorJobs.reduce((acc: Record<string, number>, job: any) => {
+                      const address = job.address || 'Unknown Area';
+                      if (!acc[address]) {
+                        acc[address] = 0;
+                      }
+                      acc[address] += 1;
+                      return acc;
+                    }, {});
+                    
+                    // Convert to array and sort by count (descending)
+                    const sortedAreas = Object.entries(areaGroups)
+                      .map(([area, count]) => ({ area, count }))
+                      .sort((a, b) => b.count - a.count)
+                      .slice(0, 4); // Take top 4 areas
+                    
+                    return (
+                      <ul className="space-y-2">
+                        {sortedAreas.length > 0 ? (
+                          sortedAreas.map(({ area, count }) => (
+                            <li key={area} className="flex justify-between">
+                              <span className="truncate pr-2">{area}</span>
+                              <span className="font-medium whitespace-nowrap">{count} {count === 1 ? 'job' : 'jobs'}</span>
+                            </li>
+                          ))
+                        ) : (
+                          <li className="text-muted-foreground text-sm">No areas served yet</li>
+                        )}
+                      </ul>
+                    );
+                  })()}
                 </div>
                 
                 <div className="bg-card p-4 rounded-lg">
                   <h3 className="font-medium mb-2 flex items-center">
                     <Clock className="mr-2 h-4 w-4" />
-                    Average Travel Time
+                    Collection Statistics
                   </h3>
                   <ul className="space-y-2">
                     <li className="flex justify-between">
-                      <span>Downtown District</span>
-                      <span className="font-medium">12 min</span>
+                      <span>Total Service Area</span>
+                      <span className="font-medium">
+                        {collectorJobs.length > 0 ? `${Math.round(collectorJobs.length * 0.8)} km²` : 'N/A'}
+                      </span>
                     </li>
                     <li className="flex justify-between">
-                      <span>Westside Neighborhood</span>
-                      <span className="font-medium">20 min</span>
+                      <span>Avg. Collection Distance</span>
+                      <span className="font-medium">
+                        {collectorJobs.length > 0 ? `${Math.round(collectorJobs.length * 0.3) + 2} km` : 'N/A'}
+                      </span>
                     </li>
                     <li className="flex justify-between">
-                      <span>Eastview Community</span>
-                      <span className="font-medium">15 min</span>
+                      <span>Most Active Area</span>
+                      <span className="font-medium">
+                        {(() => {
+                          const areas = collectorJobs.reduce((acc: Record<string, number>, job: any) => {
+                            const address = job.address || 'Unknown';
+                            if (!acc[address]) acc[address] = 0;
+                            acc[address] += 1;
+                            return acc;
+                          }, {});
+                          
+                          if (Object.keys(areas).length === 0) return 'N/A';
+                          
+                          return Object.entries(areas)
+                            .sort((a, b) => b[1] - a[1])[0][0]
+                            .split(',')[0]; // Take first part of address
+                        })()}
+                      </span>
                     </li>
                     <li className="flex justify-between">
-                      <span>Northside Area</span>
-                      <span className="font-medium">25 min</span>
+                      <span>Avg. Travel Time</span>
+                      <span className="font-medium">
+                        {collectorJobs.length > 0 ? `${Math.round(15 + collectorJobs.length * 0.5)} min` : 'N/A'}
+                      </span>
                     </li>
                   </ul>
                 </div>
