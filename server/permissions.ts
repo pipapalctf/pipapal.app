@@ -31,6 +31,10 @@ export const Permissions = {
     name: 'mark_job_complete',
     roles: [UserRole.COLLECTOR]
   },
+  COLLECT_WASTE: {
+    name: 'collect_waste',
+    roles: [UserRole.COLLECTOR]
+  },
   
   // Common Permissions
   VIEW_PICKUP_HISTORY: {
