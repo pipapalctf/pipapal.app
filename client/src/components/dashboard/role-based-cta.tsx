@@ -14,7 +14,7 @@ export default function RoleBasedCTA() {
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
       <Card className="bg-primary-foreground hover:bg-accent/5 transition-colors">
         <CardContent className="p-6">
-          <Link href="/schedule">
+          <Link href="/schedule-pickup?tab=schedule">
             <div className="flex items-center justify-between cursor-pointer">
               <div className="flex items-center space-x-4">
                 <div className="bg-primary/10 p-3 rounded-full">
@@ -56,7 +56,7 @@ export default function RoleBasedCTA() {
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
       <Card className="bg-primary-foreground hover:bg-accent/5 transition-colors">
         <CardContent className="p-6">
-          <Link href="/schedule">
+          <Link href="/schedule-pickup?tab=schedule">
             <div className="flex items-center justify-between cursor-pointer">
               <div className="flex items-center space-x-4">
                 <div className="bg-primary/10 p-3 rounded-full">
