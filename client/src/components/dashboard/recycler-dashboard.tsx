@@ -6,6 +6,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGri
 import { Recycle, Leaf, Package, TrendingUp, FileText, Scale, Truck, ShoppingBag, MapPin, Star, Calendar, ChevronRight, Clock, Users } from 'lucide-react';
 import { User, CollectionStatus } from '@shared/schema';
 import { formatNumber } from '@/lib/utils';
+import RoleBasedCTA from './role-based-cta';
 
 interface RecyclerDashboardProps {
   user: User;
@@ -116,6 +117,9 @@ export default function RecyclerDashboard({ user }: RecyclerDashboardProps) {
           </div>
         </div>
       </div>
+      
+      {/* Role-specific CTAs */}
+      <RoleBasedCTA />
       
       {/* Key Stats */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
