@@ -3,7 +3,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient } from '@/lib/queryClient';
 
-type NotificationType = 'notification' | 'collection_update';
+type NotificationType = 'notification' | 'collection_update' | 'new_collection';
 // System events that should not be displayed as notifications
 type SystemEventType = '_system';
 // Legacy type kept for backward compatibility with existing server code

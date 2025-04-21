@@ -224,6 +224,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
           collectionId: collection.id
         });
         
+        // Broadcast the new collection to all collectors
+        try {
+          // Get all users
+          const allUsers = await storage.getAllUsers();
+          
+          // Filter for collectors
+          const collectors = allUsers.filter(user => user.role === UserRole.COLLECTOR);
+          
+          // New collection notification for collectors
+          const collectorNotification = {
+            type: 'new_collection',
+            collectionId: collection.id,
+            message: `New ${collection.wasteType} collection available at ${collection.address}!`,
+            collection: {
+              id: collection.id,
+              wasteType: collection.wasteType,
+              wasteAmount: collection.wasteAmount,
+              address: collection.address,
+              status: collection.status,
+              scheduledDate: collection.scheduledDate
+            }
+          };
+          
+          // Send to all collectors
+          collectors.forEach(collector => {
+            const collectorClients = clients.get(collector.id) || [];
+            collectorClients.forEach(client => {
+              if (client.readyState === WebSocket.OPEN) {
+                client.send(JSON.stringify(collectorNotification));
+              }
+            });
+          });
+          
+          // Also add an update to the user who created the collection
+          const userClients = clients.get(req.user.id) || [];
+          const userNotification = {
+            type: 'collection_update',
+            collectionId: collection.id,
+            message: `Your ${collection.wasteType} collection has been scheduled successfully!`,
+            status: collection.status
+          };
+          
+          userClients.forEach(client => {
+            if (client.readyState === WebSocket.OPEN) {
+              client.send(JSON.stringify(userNotification));
+            }
+          });
+        } catch (err) {
+          console.error('Error sending WebSocket notification about new collection:', err);
+          // Continue even if notification fails
+        }
+        
         res.status(201).json({
           ...collection,
           pointsEarned: pointsToAward,
