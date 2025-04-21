@@ -5,7 +5,9 @@ import {
   badges, type Badge, type InsertBadge,
   ecoTips, type EcoTip, type InsertEcoTip,
   activities, type Activity, type InsertActivity,
-  CollectionStatus
+  materialListings, type MaterialListing, type InsertMaterialListing,
+  materialBids, type MaterialBid, type InsertMaterialBid,
+  CollectionStatus, MaterialStatus
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
@@ -72,6 +74,20 @@ export interface IStorage {
   getActivitiesByUser(userId: number, limit?: number): Promise<Activity[]>;
   createActivity(activity: InsertActivity): Promise<Activity>;
   
+  // Material Listings
+  getMaterialListing(id: number): Promise<MaterialListing | undefined>;
+  getMaterialListingsByCollector(collectorId: number): Promise<MaterialListing[]>;
+  getAvailableMaterialListings(): Promise<MaterialListing[]>;
+  createMaterialListing(listing: InsertMaterialListing): Promise<MaterialListing>;
+  updateMaterialListing(id: number, updates: Partial<MaterialListing>): Promise<MaterialListing | undefined>;
+  
+  // Material Bids
+  getMaterialBid(id: number): Promise<MaterialBid | undefined>;
+  getMaterialBidsByMaterial(materialId: number): Promise<MaterialBid[]>;
+  getMaterialBidsByRecycler(recyclerId: number): Promise<MaterialBid[]>;
+  createMaterialBid(bid: InsertMaterialBid): Promise<MaterialBid>;
+  updateMaterialBid(id: number, updates: Partial<MaterialBid>): Promise<MaterialBid | undefined>;
+  
   // Session store
   sessionStore: any;
 }
@@ -83,6 +99,8 @@ export class MemStorage implements IStorage {
   private badges: Map<number, Badge>;
   private ecoTips: Map<number, EcoTip>;
   private activities: Map<number, Activity>;
+  private materialListings: Map<number, MaterialListing>;
+  private materialBids: Map<number, MaterialBid>;
   sessionStore: any; // Using any for express-session store type
   currentUserId: number;
   currentCollectionId: number;
@@ -90,6 +108,8 @@ export class MemStorage implements IStorage {
   currentBadgeId: number;
   currentEcoTipId: number;
   currentActivityId: number;
+  currentMaterialListingId: number;
+  currentMaterialBidId: number;
 
   constructor() {
     this.users = new Map();
