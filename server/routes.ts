@@ -272,33 +272,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
   );
   
-  // Environmental Impact - All authenticated users can view their impact data
+  // Environmental Impact - Role-specific impact data
   app.get("/api/impact", 
     requirePermission(Permissions.VIEW_PICKUP_HISTORY),
     async (req, res) => {
       if (!req.user) return res.sendStatus(401);
       
-      const impact = await storage.getTotalImpactByUser(req.user.id);
+      let impact;
+      
+      // Return role-specific impact statistics
+      switch(req.user.role) {
+        case UserRole.COLLECTOR:
+          impact = await storage.getTotalImpactByCollector(req.user.id);
+          break;
+        case UserRole.RECYCLER:
+          impact = await storage.getTotalImpactByRecycler(req.user.id);
+          break;
+        case UserRole.HOUSEHOLD:
+        case UserRole.ORGANIZATION:
+        default:
+          impact = await storage.getTotalImpactByUser(req.user.id);
+          break;
+      }
+      
       res.json(impact);
     }
   );
   
-  // Monthly Collection and Impact Data
+  // Monthly Collection and Impact Data - Role-specific
   app.get("/api/impact/monthly", 
     requirePermission(Permissions.VIEW_PICKUP_HISTORY),
     async (req, res) => {
       if (!req.user) return res.sendStatus(401);
       
       try {
-        // Get all collections for this user
-        const collections = await storage.getCollectionsByUser(req.user.id);
+        let collectionsData;
+        
+        // Get role-specific collections
+        switch(req.user.role) {
+          case UserRole.COLLECTOR:
+            // For collectors, get collections they've collected
+            collectionsData = await storage.getCompletedCollectionsByCollector(req.user.id);
+            break;
+          case UserRole.RECYCLER:
+            // For recyclers, get all completed collections
+            collectionsData = await storage.getAllCompletedCollections();
+            break;
+          case UserRole.HOUSEHOLD:
+          case UserRole.ORGANIZATION:
+          default:
+            // For households and organizations, get their scheduled collections
+            collectionsData = await storage.getCollectionsByUser(req.user.id);
+            break;
+        }
         
         // Group by month
         const monthlyData = new Map();
         const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
         
-        collections.forEach(collection => {
-          const collectionDate = new Date(collection.scheduledDate);
+        collectionsData.forEach(collection => {
+          // Use collection date (completed date if available, otherwise scheduled date)
+          const collectionDate = new Date(collection.completedDate || collection.scheduledDate);
           const monthIndex = collectionDate.getMonth();
           const monthName = months[monthIndex];
           
@@ -313,24 +347,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
             });
           }
           
-          // Use waste amount or default to 10kg
-          const wasteAmount = collection.wasteAmount || 10;
-          
-          // Impact factors based on the same calculations used when creating impact records
-          const impactFactors = {
-            waterSaved: 50, // liters of water saved per kg
-            co2Reduced: 2, // kg of CO2 reduced per kg of waste
-            treesEquivalent: 0.01, // trees saved per kg
-            energyConserved: 5 // kWh conserved per kg
-          };
-          
-          // Update monthly data
-          const monthData = monthlyData.get(monthName);
-          monthData.wasteCollected += wasteAmount;
-          monthData.co2Reduced += wasteAmount * impactFactors.co2Reduced;
-          monthData.waterSaved += wasteAmount * impactFactors.waterSaved;
-          monthData.treesEquivalent += wasteAmount * impactFactors.treesEquivalent;
-          monthData.energyConserved += wasteAmount * impactFactors.energyConserved;
+          // Only count waste amount for completed collections
+          if (collection.status === CollectionStatus.COMPLETED) {
+            // Use waste amount or default to 10kg
+            const wasteAmount = collection.wasteAmount || 10;
+            
+            // Impact factors based on the same calculations used when creating impact records
+            const impactFactors = {
+              waterSaved: 50, // liters of water saved per kg
+              co2Reduced: 2, // kg of CO2 reduced per kg of waste
+              treesEquivalent: 0.01, // trees saved per kg
+              energyConserved: 5 // kWh conserved per kg
+            };
+            
+            // Update monthly data
+            const monthData = monthlyData.get(monthName);
+            monthData.wasteCollected += wasteAmount;
+            monthData.co2Reduced += wasteAmount * impactFactors.co2Reduced;
+            monthData.waterSaved += wasteAmount * impactFactors.waterSaved;
+            monthData.treesEquivalent += wasteAmount * impactFactors.treesEquivalent;
+            monthData.energyConserved += wasteAmount * impactFactors.energyConserved;
+          }
         });
         
         // Convert to array and sort by month
@@ -349,33 +386,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   );
   
-  // Waste Type Distribution
+  // Waste Type Distribution - Role-specific
   app.get("/api/impact/waste-types", 
     requirePermission(Permissions.VIEW_PICKUP_HISTORY),
     async (req, res) => {
       if (!req.user) return res.sendStatus(401);
       
       try {
-        // Get all collections for this user
-        const collections = await storage.getCollectionsByUser(req.user.id);
+        let collectionsData;
+        
+        // Get role-specific collections
+        switch(req.user.role) {
+          case UserRole.COLLECTOR:
+            // For collectors, get collections they've collected
+            collectionsData = await storage.getCompletedCollectionsByCollector(req.user.id);
+            break;
+          case UserRole.RECYCLER:
+            // For recyclers, get all completed collections
+            collectionsData = await storage.getAllCompletedCollections();
+            break;
+          case UserRole.HOUSEHOLD:
+          case UserRole.ORGANIZATION:
+          default:
+            // For households and organizations, get their scheduled collections
+            collectionsData = await storage.getCollectionsByUser(req.user.id);
+            break;
+        }
         
         // Group by waste type
         const wasteTypeData = new Map();
         
-        collections.forEach(collection => {
-          const wasteType = collection.wasteType || 'general';
-          const wasteAmount = collection.wasteAmount || 10;
-          
-          if (!wasteTypeData.has(wasteType)) {
-            wasteTypeData.set(wasteType, {
-              name: wasteType.charAt(0).toUpperCase() + wasteType.slice(1),
-              value: 0
-            });
+        collectionsData.forEach(collection => {
+          // Only consider collections with waste amount
+          if (collection.status === CollectionStatus.COMPLETED && collection.wasteAmount) {
+            const wasteType = collection.wasteType || 'general';
+            const wasteAmount = collection.wasteAmount;
+            
+            if (!wasteTypeData.has(wasteType)) {
+              wasteTypeData.set(wasteType, {
+                name: wasteType.charAt(0).toUpperCase() + wasteType.slice(1),
+                value: 0
+              });
+            }
+            
+            // Update waste type data
+            const typeData = wasteTypeData.get(wasteType);
+            typeData.value += wasteAmount;
           }
-          
-          // Update waste type data
-          const typeData = wasteTypeData.get(wasteType);
-          typeData.value += wasteAmount;
         });
         
         // Convert to array
@@ -383,7 +440,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // If no collections, provide some default data
         if (result.length === 0) {
-          result.push({ name: 'No collections yet', value: 100 });
+          result.push({ name: 'No completed collections yet', value: 100 });
         }
         
         res.json(result);

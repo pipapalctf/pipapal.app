@@ -29,12 +29,28 @@ export interface IStorage {
   getAllCollections(): Promise<Collection[]>;
   getCollectionsByUser(userId: number): Promise<Collection[]>;
   getUpcomingCollectionsByUser(userId: number): Promise<Collection[]>;
+  getCompletedCollectionsByCollector(collectorId: number): Promise<Collection[]>;
+  getAllCompletedCollections(): Promise<Collection[]>;
   createCollection(collection: InsertCollection): Promise<Collection>;
   updateCollection(id: number, updates: Partial<Collection>): Promise<Collection | undefined>;
   
   // Impact Data
   getImpactsByUser(userId: number): Promise<Impact[]>;
   getTotalImpactByUser(userId: number): Promise<{
+    waterSaved: number;
+    co2Reduced: number;
+    treesEquivalent: number;
+    energyConserved: number;
+    wasteAmount: number;
+  }>;
+  getTotalImpactByCollector(collectorId: number): Promise<{
+    waterSaved: number;
+    co2Reduced: number;
+    treesEquivalent: number;
+    energyConserved: number;
+    wasteAmount: number;
+  }>;
+  getTotalImpactByRecycler(recyclerId: number): Promise<{
     waterSaved: number;
     co2Reduced: number;
     treesEquivalent: number;
@@ -184,6 +200,21 @@ export class MemStorage implements IStorage {
         collection.status !== CollectionStatus.CANCELLED
       )
       .sort((a, b) => new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime());
+  }
+  
+  async getCompletedCollectionsByCollector(collectorId: number): Promise<Collection[]> {
+    return Array.from(this.collections.values())
+      .filter(collection => 
+        collection.collectorId === collectorId && 
+        collection.status === CollectionStatus.COMPLETED
+      )
+      .sort((a, b) => new Date(b.completedDate || b.scheduledDate).getTime() - new Date(a.completedDate || a.scheduledDate).getTime());
+  }
+  
+  async getAllCompletedCollections(): Promise<Collection[]> {
+    return Array.from(this.collections.values())
+      .filter(collection => collection.status === CollectionStatus.COMPLETED)
+      .sort((a, b) => new Date(b.completedDate || b.scheduledDate).getTime() - new Date(a.completedDate || a.scheduledDate).getTime());
   }
   
   async createCollection(insertCollection: InsertCollection): Promise<Collection> {
@@ -591,6 +622,21 @@ export class DatabaseStorage implements IStorage {
         ne(collections.status, CollectionStatus.CANCELLED)
       ))
       .orderBy(collections.scheduledDate);
+  }
+  
+  async getCompletedCollectionsByCollector(collectorId: number): Promise<Collection[]> {
+    return db.select().from(collections)
+      .where(and(
+        eq(collections.collectorId, collectorId),
+        eq(collections.status, CollectionStatus.COMPLETED)
+      ))
+      .orderBy(desc(collections.completedDate));
+  }
+  
+  async getAllCompletedCollections(): Promise<Collection[]> {
+    return db.select().from(collections)
+      .where(eq(collections.status, CollectionStatus.COMPLETED))
+      .orderBy(desc(collections.completedDate));
   }
   
   async createCollection(insertCollection: InsertCollection): Promise<Collection> {
