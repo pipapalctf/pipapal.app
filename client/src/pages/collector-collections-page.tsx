@@ -329,7 +329,7 @@ export default function CollectorCollectionsPage() {
   const hasInterests = (collectionId: number) => {
     return materialInterests.some((interest: any) => 
       interest.collectionId === collectionId && 
-      ['expressed', 'accepted'].includes(interest.status)
+      ['pending', 'expressed', 'accepted'].includes(interest.status)
     );
   };
 
