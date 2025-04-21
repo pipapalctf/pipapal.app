@@ -30,6 +30,7 @@ function Router() {
       <ProtectedRoute path="/impact" component={ImpactPage} />
       <ProtectedRoute path="/collections/:id" component={CollectionDetailsPage} />
       <ProtectedRoute path="/collections" component={CollectorCollectionsPage} roleCheck={UserRole.COLLECTOR} />
+      <ProtectedRoute path="/recycler/materials" component={RecyclerMaterialsPage} roleCheck={UserRole.RECYCLER} />
       <ProtectedRoute path="/materials" component={RecyclerMaterialsPage} roleCheck={UserRole.RECYCLER} />
       <ProtectedRoute path="/profile" component={ProfilePage} />
       <Route path="/auth" component={AuthPage} />
