@@ -12,7 +12,7 @@ import session from "express-session";
 import createMemoryStore from "memorystore";
 import connectPg from "connect-pg-simple";
 import { db, pool } from "./db";
-import { and, eq, desc, gte, ne, sql, sum } from "drizzle-orm";
+import { and, eq, desc, gte, ne, sql, sum, inArray } from "drizzle-orm";
 
 const MemoryStore = createMemoryStore(session);
 const PostgresSessionStore = connectPg(session);
@@ -1012,8 +1012,9 @@ export class DatabaseStorage implements IStorage {
   async getMaterialInterestsByCollections(collectionIds: number[]): Promise<MaterialInterest[]> {
     if (collectionIds.length === 0) return [];
     
+    // Use SQL IN operator
     return db.select().from(materialInterests)
-      .where(sql`${materialInterests.collectionId} = ANY(${collectionIds})`)
+      .where(sql`${materialInterests.collectionId} IN (${collectionIds.join(',')})`)
       .orderBy(desc(materialInterests.timestamp));
   }
   
