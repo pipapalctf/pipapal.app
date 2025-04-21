@@ -918,8 +918,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(interestId)) return res.status(400).send("Invalid interest ID");
       
       const { status } = req.body;
-      if (!status || !["accepted", "rejected"].includes(status)) {
-        return res.status(400).json({ error: 'Invalid status. Must be "accepted" or "rejected"' });
+      if (!status || !["accepted", "rejected", "completed"].includes(status)) {
+        return res.status(400).json({ error: 'Invalid status. Must be "accepted", "rejected", or "completed"' });
       }
       
       try {
@@ -952,10 +952,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Prepare WebSocket notification to the recycler
         const recyclerClients = clients.get(recycler.id) || [];
-        const statusAction = status === 'accepted' ? 'accepted' : 'rejected';
+        let statusAction = '';
+        
+        if (status === 'accepted') {
+          statusAction = 'accepted';
+        } else if (status === 'rejected') {
+          statusAction = 'rejected';
+        } else if (status === 'completed') {
+          statusAction = 'marked as completed';
+        }
+        
         const notification = {
           type: 'notification',
-          title: `Material interest ${statusAction}`,
+          title: status === 'completed' ? 'Transaction Completed' : `Material interest ${statusAction}`,
           message: `Your interest in the ${collection.wasteType} collection at ${collection.address} has been ${statusAction}.`,
           collectionId: collection.id,
           interestId: interest.id,
@@ -970,18 +979,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         
         // Create activity entry for both collector and recycler
+        // Assign points based on status
+        let collectorPoints = 0;
+        let recyclerPoints = 0;
+        
+        if (status === 'accepted') {
+          collectorPoints = 10;
+          recyclerPoints = 5;
+        } else if (status === 'completed') {
+          collectorPoints = 15;
+          recyclerPoints = 20; // More points for recycler when transaction is completed
+        }
+        
         const collectorActivity = {
           userId: req.user.id,
           activityType: `material_interest_${status}`,
           description: `You ${statusAction} a material interest from ${recycler.fullName || recycler.username} for the ${collection.wasteType} collection.`,
-          points: status === 'accepted' ? 10 : 0
+          points: collectorPoints
         };
         
         const recyclerActivity = {
           userId: recycler.id,
           activityType: `material_interest_${status}`,
           description: `Your interest in the ${collection.wasteType} collection was ${statusAction} by the collector.`,
-          points: status === 'accepted' ? 5 : 0
+          points: recyclerPoints
         };
         
         // Log activities
@@ -994,8 +1015,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         
       } catch (error) {
-        console.error(`Error ${req.body.status === 'accepted' ? 'accepting' : 'rejecting'} material interest:`, error);
-        res.status(500).send(`Failed to ${req.body.status === 'accepted' ? 'accept' : 'reject'} material interest`);
+        let actionText = '';
+        if (status === 'accepted') {
+          actionText = 'accepting';
+        } else if (status === 'rejected') {
+          actionText = 'rejecting';
+        } else if (status === 'completed') {
+          actionText = 'completing';
+        }
+        console.error(`Error ${actionText} material interest:`, error);
+        res.status(500).send(`Failed to update material interest status to ${status}`);
       }
     }
   );
