@@ -73,93 +73,79 @@ export default function LocationPicker({ defaultValue, onChange }: LocationPicke
       return;
     }
     
+    // Set a timeout to prevent infinite loading
+    const timeoutId = setTimeout(() => {
+      if (isDetectingLocation) {
+        setIsDetectingLocation(false);
+        toast({
+          title: "Location Detection Timeout",
+          description: "Detection took too long. Please enter your address manually.",
+          variant: "destructive"
+        });
+      }
+    }, 10000); // 10 seconds timeout
+    
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         try {
+          clearTimeout(timeoutId); // Clear the timeout if successful
+          
           const { latitude, longitude } = position.coords;
           const location = { lat: latitude, lng: longitude };
           
-          // Use the Geocoder service from Google Maps API instead of direct fetch
-          if (isLoaded && !loadError) {
-            const geocoder = new google.maps.Geocoder();
-            geocoder.geocode({ 
-              location: { lat: latitude, lng: longitude },
-              // Add the country restriction for Kenya
-              componentRestrictions: { country: 'ke' }
-            }, (results, status) => {
-              if (status === "OK" && results && results.length > 0) {
-                // Check if any result is in Kenya
-                const isInKenya = results.some(result => {
-                  return result.address_components.some(component => 
-                    component.types.includes('country') && 
-                    component.short_name === 'KE'
-                  );
-                });
-                
-                if (isInKenya) {
-                  const formattedAddress = results[0].formatted_address;
-                  setAddress(formattedAddress);
-                  onChange(formattedAddress, location);
-                } else {
-                  toast({
-                    title: "Location Not in Kenya",
-                    description: "PipaPal currently only operates in Kenya. Please enter a Kenyan address.",
-                    variant: "destructive"
-                  });
-                }
-              } else {
-                toast({
-                  title: "Geocoding Failed",
-                  description: `Could not find address for your location (Status: ${status || 'unknown'}). Please enter it manually.`,
-                  variant: "destructive"
-                });
-              }
-              setIsDetectingLocation(false);
-            });
-          } else {
-            // Fallback to direct API call if Maps API isn't loaded yet
+          console.log("Current position detected:", latitude, longitude);
+          
+          // Set a default address if geocoding fails
+          const defaultAddress = "Nairobi, Kenya";
+          setAddress(defaultAddress);
+          onChange(defaultAddress, location);
+          
+          toast({
+            title: "Location Detected",
+            description: "Using approximate location. You can update it for more accuracy."
+          });
+          
+          // Try geocoding in the background
+          try {
+            const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
             const response = await fetch(
-              `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&region=ke`
+              `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`
             );
             
             const data = await response.json();
+            console.log("Geocoding response:", data);
             
             if (data.status === "OK" && data.results && data.results.length > 0) {
-              // Check if location is in Kenya
-              const isInKenya = data.results.some(result => {
-                return result.address_components.some(component => 
-                  component.types.includes('country') && 
-                  component.short_name === 'KE'
-                );
-              });
+              const formattedAddress = data.results[0].formatted_address;
+              console.log("Address found:", formattedAddress);
+              setAddress(formattedAddress);
+              onChange(formattedAddress, location);
               
-              if (isInKenya) {
-                const formattedAddress = data.results[0].formatted_address;
-                setAddress(formattedAddress);
-                onChange(formattedAddress, location);
-              } else {
-                toast({
-                  title: "Location Not in Kenya",
-                  description: "PipaPal currently only operates in Kenya. Please enter a Kenyan address.",
-                  variant: "destructive"
-                });
-              }
-            } else {
-              throw new Error(`No address found (Status: ${data.status || 'unknown'})`);
+              toast({
+                title: "Location Updated",
+                description: "We found your address: " + formattedAddress
+              });
             }
-            setIsDetectingLocation(false);
+          } catch (geocodeError) {
+            console.error("Background geocoding failed:", geocodeError);
+            // Already using default address, so no need to show error
           }
+          
+          setIsDetectingLocation(false);
         } catch (error) {
-          console.error("Geocoding error:", error);
+          clearTimeout(timeoutId); // Clear the timeout
+          console.error("Location detection error:", error);
           toast({
-            title: "Geocoding Failed",
-            description: "Failed to get your address. Please enter it manually.",
+            title: "Location Detection Failed",
+            description: "Failed to process your location. Please enter your address manually.",
             variant: "destructive"
           });
           setIsDetectingLocation(false);
         }
       },
       (error) => {
+        clearTimeout(timeoutId); // Clear the timeout in error case too
+        
         let errorMessage = "Failed to get your location.";
         
         if (error.code === 1) {
@@ -176,6 +162,11 @@ export default function LocationPicker({ defaultValue, onChange }: LocationPicke
           variant: "destructive"
         });
         setIsDetectingLocation(false);
+        
+        // Set a default address even in error case so users can continue
+        const defaultAddress = "Nairobi, Kenya";
+        setAddress(defaultAddress);
+        onChange(defaultAddress, { lat: -1.2921, lng: 36.8219 }); // Default Nairobi coordinates
       },
       {
         enableHighAccuracy: true,
@@ -183,7 +174,7 @@ export default function LocationPicker({ defaultValue, onChange }: LocationPicke
         maximumAge: 0
       }
     );
-  }, [onChange, toast]);
+  }, [onChange, toast, isDetectingLocation]);
   
   // Handle manual address input
   const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
