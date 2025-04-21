@@ -30,20 +30,20 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen flex flex-col bg-white">
       {/* Navbar */}
-      <header className="w-full py-4 px-4 md:px-8 border-b border-gray-100">
+      <header className="w-full py-5 px-4 md:px-8 border-b border-gray-100 shadow-xl bg-white">
         <div className="container mx-auto flex items-center justify-between">
           <div className="flex items-center">
-            <img src={pipapalLogo} alt="PipaPal Logo" className="h-10 w-auto" />
-            <span className="ml-2 text-xl font-montserrat font-bold text-secondary">PipaPal</span>
+            <img src={pipapalLogo} alt="PipaPal Logo" className="h-12 w-auto" />
+            <span className="ml-2 text-2xl font-montserrat font-bold text-secondary">PipaPal</span>
           </div>
           <div className="flex items-center space-x-4">
             <Link href="/auth">
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="default">
                 Log in
               </Button>
             </Link>
             <Link href="/auth">
-              <Button size="sm">
+              <Button size="default">
                 Sign up
               </Button>
             </Link>
@@ -276,8 +276,8 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
             <div>
               <div className="flex items-center mb-4">
-                <Logo variant="white" size="sm" />
-                <span className="ml-2 text-xl font-montserrat font-bold text-white">PipaPal</span>
+                <Logo variant="white" size="md" />
+                <span className="ml-2 text-2xl font-montserrat font-bold text-white">PipaPal</span>
               </div>
               <p className="text-gray-400">
                 Connecting households with waste collectors for a greener future.

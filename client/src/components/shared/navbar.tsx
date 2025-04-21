@@ -75,11 +75,11 @@ export default function Navbar() {
   if (!user) return null;
 
   return (
-    <header className="bg-white shadow-sm sticky top-0 z-50">
-      <nav className="container mx-auto px-4 py-3 flex items-center justify-between">
+    <header className="bg-white shadow-xl sticky top-0 z-50">
+      <nav className="container mx-auto px-4 py-4 flex items-center justify-between">
         <div className="flex items-center">
-          <Logo size="sm" />
-          <span className="ml-2 text-xl font-montserrat font-bold text-secondary">PipaPal</span>
+          <Logo size="md" />
+          <span className="ml-2 text-2xl font-montserrat font-bold text-secondary">PipaPal</span>
         </div>
         
         <div className="hidden md:flex items-center space-x-6">
