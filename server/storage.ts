@@ -496,6 +496,39 @@ export class MemStorage implements IStorage {
     return activity;
   }
   
+  // Material Interests
+  async createMaterialInterest(insertInterest: InsertMaterialInterest): Promise<MaterialInterest> {
+    const id = this.currentMaterialInterestId++;
+    const now = new Date();
+    const interest: MaterialInterest = {
+      ...insertInterest,
+      id,
+      timestamp: now
+    };
+    this.materialInterests.set(id, interest);
+    
+    // Create activity for the recycler
+    await this.createActivity({
+      userId: insertInterest.userId,
+      activityType: 'interest_expressed',
+      description: `Expressed interest in materials from collection #${insertInterest.collectionId}`
+    });
+    
+    return interest;
+  }
+  
+  async getMaterialInterestsByUser(userId: number): Promise<MaterialInterest[]> {
+    return Array.from(this.materialInterests.values())
+      .filter(interest => interest.userId === userId)
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  }
+  
+  async getMaterialInterestsByCollections(collectionIds: number[]): Promise<MaterialInterest[]> {
+    return Array.from(this.materialInterests.values())
+      .filter(interest => collectionIds.includes(interest.collectionId))
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  }
+  
   // Seed initial data
   private async seedEcoTips() {
     const tips = [
@@ -952,6 +985,36 @@ export class DatabaseStorage implements IStorage {
       .returning();
     
     return activity;
+  }
+  
+  // Material Interests
+  async createMaterialInterest(insertInterest: InsertMaterialInterest): Promise<MaterialInterest> {
+    const [interest] = await db.insert(materialInterests)
+      .values(insertInterest)
+      .returning();
+    
+    // Create activity for the recycler
+    await this.createActivity({
+      userId: insertInterest.userId,
+      activityType: 'interest_expressed',
+      description: `Expressed interest in materials from collection #${insertInterest.collectionId}`
+    });
+    
+    return interest;
+  }
+  
+  async getMaterialInterestsByUser(userId: number): Promise<MaterialInterest[]> {
+    return db.select().from(materialInterests)
+      .where(eq(materialInterests.userId, userId))
+      .orderBy(desc(materialInterests.timestamp));
+  }
+  
+  async getMaterialInterestsByCollections(collectionIds: number[]): Promise<MaterialInterest[]> {
+    if (collectionIds.length === 0) return [];
+    
+    return db.select().from(materialInterests)
+      .where(sql`${materialInterests.collectionId} = ANY(${collectionIds})`)
+      .orderBy(desc(materialInterests.timestamp));
   }
   
   // Seed initial data
