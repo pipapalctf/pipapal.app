@@ -649,6 +649,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           timestamp: new Date()
         });
         
+        // Create the material interest record
+        await storage.createMaterialInterest({
+          userId: req.user.id,
+          collectionId: collection.id,
+          status: 'pending',
+          message: message || null,
+          timestamp: new Date()
+        });
+        
         // Get recycler info for the notification
         const recyclerName = req.user.fullName || req.user.username;
         
