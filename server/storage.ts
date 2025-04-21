@@ -730,7 +730,15 @@ export class DatabaseStorage implements IStorage {
   
   async getAllCompletedCollections(): Promise<Collection[]> {
     return db.select().from(collections)
-      .where(eq(collections.status, CollectionStatus.COMPLETED))
+      .where(
+        or(
+          eq(collections.status, CollectionStatus.COMPLETED),
+          and(
+            eq(collections.status, CollectionStatus.IN_PROGRESS),
+            isNotNull(collections.collectorId)
+          )
+        )
+      )
       .orderBy(desc(collections.completedDate));
   }
   
