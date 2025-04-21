@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Cell, ResponsiveContainer, CartesianGrid, LineChart, Line, PieChart, Pie } from 'recharts';
-import { Truck, Package, MapPin, Clock, DollarSign, Star, Route, Scale } from 'lucide-react';
+import { Truck, Package, MapPin, Clock, DollarSign, Star, Route, Scale, Leaf } from 'lucide-react';
 import { User, CollectionStatus } from '@shared/schema';
 import { formatNumber } from '@/lib/utils';
 
@@ -89,15 +89,25 @@ export default function CollectorDashboard({ user }: CollectorDashboardProps) {
 
   return (
     <div className="space-y-6 p-2 md:p-4">
-      {/* User Welcome Section */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">Collector Dashboard</h1>
-        <h2 className="text-xl font-medium text-primary mt-2">
-          Welcome back, {user?.fullName?.split(' ')[0] || user?.username || 'Collector'}!
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          Ready for today's collection routes?
-        </p>
+      {/* User Welcome Section with Hero Banner */}
+      <div className="mb-6 bg-gradient-to-r from-blue-50 to-teal-50 dark:from-blue-950/30 dark:to-teal-900/20 p-6 rounded-lg border border-blue-100 dark:border-blue-800 shadow-sm">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100">Collector Dashboard</h1>
+            <h2 className="text-xl font-medium text-primary mt-2">
+              Welcome back, {user?.fullName?.split(' ')[0] || user?.username || 'Collector'}!
+            </h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Thank you for your environmental impact! Your collections enable recycling across Kenya.
+            </p>
+          </div>
+          <div className="mt-4 md:mt-0">
+            <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 dark:bg-blue-800/60 text-blue-800 dark:text-blue-200">
+              <Truck className="h-4 w-4 mr-1" />
+              Waste Collection Expert
+            </div>
+          </div>
+        </div>
       </div>
       
       {/* Key Stats */}
