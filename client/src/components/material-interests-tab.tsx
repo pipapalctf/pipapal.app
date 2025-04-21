@@ -55,7 +55,37 @@ export function MaterialInterestsTab({ collectorId }: MaterialInterestsTabProps)
     };
   };
   
-  // Clear user fetch since we're getting recycler info directly in the enhanced data
+  // Mutation for updating material interest status
+  const updateInterestMutation = useMutation({
+    mutationFn: async ({ interestId, status }: { interestId: number; status: 'accepted' | 'rejected' }) => {
+      setIsUpdating(interestId);
+      const response = await apiRequest(
+        'PATCH',
+        `/api/material-interests/${interestId}/status`,
+        { status }
+      );
+      return await response.json();
+    },
+    onSuccess: () => {
+      // Refetch interests after a successful update
+      queryClient.invalidateQueries({ queryKey: ['/api/material-interests/collector', collectorId] });
+      toast({
+        title: 'Material interest updated',
+        description: 'The material interest status has been updated successfully.',
+        variant: 'default',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Failed to update material interest',
+        description: error.message || 'An error occurred while updating the material interest.',
+        variant: 'destructive',
+      });
+    },
+    onSettled: () => {
+      setIsUpdating(null);
+    }
+  });
 
   // Fetch material interests for all collections
   const { data: collectionInterests = [], isLoading: isLoadingInterests } = useQuery<EnhancedMaterialInterest[]>({
@@ -118,6 +148,8 @@ export function MaterialInterestsTab({ collectorId }: MaterialInterestsTabProps)
             <TableHead>Material</TableHead>
             <TableHead>Contact</TableHead>
             <TableHead>Message</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -206,6 +238,65 @@ export function MaterialInterestsTab({ collectorId }: MaterialInterestsTabProps)
                 <TableCell>
                   <div className="max-w-[200px] truncate">
                     {interest.message || <span className="text-muted-foreground italic text-sm">No message</span>}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  {interest.status === 'accepted' ? (
+                    <Badge className="bg-green-100 text-green-700 hover:bg-green-100">
+                      <CheckCheck className="mr-1 h-3 w-3" /> Accepted
+                    </Badge>
+                  ) : interest.status === 'rejected' ? (
+                    <Badge className="bg-red-100 text-red-700 hover:bg-red-100">
+                      <XCircle className="mr-1 h-3 w-3" /> Rejected
+                    </Badge>
+                  ) : (
+                    <Badge className="bg-yellow-100 text-yellow-700 hover:bg-yellow-100">
+                      <Clock className="mr-1 h-3 w-3" /> Pending
+                    </Badge>
+                  )}
+                </TableCell>
+                <TableCell>
+                  <div className="flex space-x-2">
+                    {!interest.status || interest.status === 'pending' ? (
+                      <>
+                        <Button
+                          variant="default"
+                          size="sm"
+                          className="bg-green-600 hover:bg-green-700"
+                          onClick={() => updateInterestMutation.mutate({ 
+                            interestId: interest.id, 
+                            status: 'accepted'
+                          })}
+                          disabled={isUpdating === interest.id || updateInterestMutation.isPending}
+                        >
+                          {isUpdating === interest.id ? 
+                            <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : 
+                            <CheckCircle className="mr-1 h-3 w-3" />
+                          }
+                          Accept
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border-red-600 text-red-600 hover:bg-red-50"
+                          onClick={() => updateInterestMutation.mutate({ 
+                            interestId: interest.id, 
+                            status: 'rejected' 
+                          })}
+                          disabled={isUpdating === interest.id || updateInterestMutation.isPending}
+                        >
+                          {isUpdating === interest.id ? 
+                            <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : 
+                            <XCircle className="mr-1 h-3 w-3" />
+                          }
+                          Reject
+                        </Button>
+                      </>
+                    ) : (
+                      <span className="text-sm text-muted-foreground italic">
+                        Already {interest.status}
+                      </span>
+                    )}
                   </div>
                 </TableCell>
               </TableRow>

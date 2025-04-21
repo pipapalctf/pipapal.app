@@ -1031,6 +1031,31 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(materialInterests.timestamp));
   }
   
+  async getMaterialInterest(id: number): Promise<MaterialInterest | undefined> {
+    try {
+      const [interest] = await db.select()
+        .from(materialInterests)
+        .where(eq(materialInterests.id, id));
+      return interest;
+    } catch (error) {
+      console.error('Error getting material interest:', error);
+      return undefined;
+    }
+  }
+  
+  async updateMaterialInterest(id: number, updates: Partial<MaterialInterest>): Promise<MaterialInterest | undefined> {
+    try {
+      const [updatedInterest] = await db.update(materialInterests)
+        .set(updates)
+        .where(eq(materialInterests.id, id))
+        .returning();
+      return updatedInterest;
+    } catch (error) {
+      console.error('Error updating material interest:', error);
+      return undefined;
+    }
+  }
+  
   // Seed initial data
   private async seedEcoTipsIfNoneExist() {
     const tips = await this.getEcoTips();
