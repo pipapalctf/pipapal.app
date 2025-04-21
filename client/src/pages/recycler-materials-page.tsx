@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { 
   Recycle, Leaf, Package, Filter, MapPin, ArrowRight, Calendar, CircleDollarSign, 
   Truck, AlertCircle, CheckCircle2, Scale, Clock, Cpu, Apple, FlaskConical,
-  Search, ChevronLeft, ChevronRight, ArrowUpDown
+  Search, ChevronLeft, ChevronRight, ArrowUpDown, Info
 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { 
@@ -26,6 +26,7 @@ import Footer from "@/components/shared/footer";
 import MobileNavigation from "@/components/shared/mobile-navigation";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
+import { CollectionDetailsDialog } from '@/components/modals/collection-details-dialog';
 
 export default function RecyclerMaterialsPage() {
   const { user } = useAuth();
@@ -33,6 +34,10 @@ export default function RecyclerMaterialsPage() {
   const [, navigate] = useLocation();
   const [filterWasteType, setFilterWasteType] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('available');
+  
+  // State for collection details dialog
+  const [selectedCollectionId, setSelectedCollectionId] = useState<number | null>(null);
+  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
 
   // Fetch collections that are pending/ready for recyclers to process
   const { data: collections = [], isLoading, isError, error } = useQuery<Collection[]>({
@@ -407,19 +412,15 @@ export default function RecyclerMaterialsPage() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">
-                            {/* Disable Details button until collection details page is implemented */}
                             <Button 
                               variant="outline" 
                               size="sm"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                toast({
-                                  title: "Coming Soon",
-                                  description: "Collection details page is under development",
-                                  variant: "default",
-                                });
+                              onClick={() => {
+                                setSelectedCollectionId(collection.id);
+                                setIsDetailsDialogOpen(true);
                               }}
                             >
+                              <Info className="h-3.5 w-3.5 mr-1" />
                               Details
                             </Button>
                             <Button
@@ -479,6 +480,13 @@ export default function RecyclerMaterialsPage() {
       
       <MobileNavigation />
       <Footer />
+      
+      {/* Collection Details Dialog */}
+      <CollectionDetailsDialog 
+        collectionId={selectedCollectionId}
+        open={isDetailsDialogOpen}
+        onOpenChange={setIsDetailsDialogOpen}
+      />
     </div>
   );
 }

@@ -119,7 +119,7 @@ export function CollectionDetailsDialog({
                     <span className="text-sm text-muted-foreground mr-1">Type:</span>
                     <Badge 
                       variant="outline" 
-                      className={`text-${getWasteTypeConfig(collection.wasteType).color} bg-${getWasteTypeConfig(collection.wasteType).color}/10`}
+                      className={`text-${getWasteTypeConfig(collection.wasteType).textColor} bg-${getWasteTypeConfig(collection.wasteType).bgColor}/10`}
                     >
                       {getWasteTypeConfig(collection.wasteType).label}
                     </Badge>

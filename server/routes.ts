@@ -583,6 +583,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
   );
   
   // Express interest in recycling materials
+  // Add a route to get user details by ID
+  app.get("/api/users/:id", 
+    requireAuthentication,
+    async (req, res) => {
+      if (!req.user) return res.sendStatus(401);
+      
+      // Parse the ID from the URL
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).send("Invalid ID format");
+      
+      // Get the user by ID
+      const user = await storage.getUser(id);
+      if (!user) return res.status(404).send("User not found");
+      
+      // For security reasons, only return non-sensitive user information
+      // especially for collectors that recyclers need to contact
+      const safeUserData = {
+        id: user.id,
+        username: user.username,
+        fullName: user.fullName,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        address: user.address,
+        sustainabilityScore: user.sustainabilityScore
+      };
+      
+      res.json(safeUserData);
+    }
+  );
+  
   app.post("/api/materials/express-interest", 
     requirePermission(Permissions.BUY_RECYCLABLES),
     async (req, res) => {
