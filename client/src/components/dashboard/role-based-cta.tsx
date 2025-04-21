@@ -117,7 +117,7 @@ export default function RoleBasedCTA() {
 
       <Card className="bg-primary-foreground hover:bg-accent/5 transition-colors">
         <CardContent className="p-6">
-          <Link href="/collector/interests">
+          <Link href="/collections?tab=interests">
             <div className="flex items-center justify-between cursor-pointer">
               <div className="flex items-center space-x-4">
                 <div className="bg-blue-100 p-3 rounded-full">

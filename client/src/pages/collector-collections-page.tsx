@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { CollectionStatus, UserRole, WasteType } from '@shared/schema';
@@ -22,10 +22,13 @@ import Navbar from '@/components/shared/navbar';
 import Footer from '@/components/shared/footer';
 import { Separator } from '@/components/ui/separator';
 import { MaterialInterestsTab } from '@/components/material-interests-tab';
+import { useLocation } from 'wouter';
 
 export default function CollectorCollectionsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [location] = useLocation();
+  const [activeTab, setActiveTab] = useState<string>('collections');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCollection, setSelectedCollection] = useState<any>(null);
@@ -33,6 +36,18 @@ export default function CollectorCollectionsPage() {
   const [statusUpdateModal, setStatusUpdateModal] = useState(false);
   const [cancelDialog, setCancelDialog] = useState(false);
   const [notesInput, setNotesInput] = useState('');
+  
+  // Check URL parameters for tab selection
+  useEffect(() => {
+    // Parse the URL search params to check for tab parameter
+    const searchParams = new URLSearchParams(window.location.search);
+    const tabParam = searchParams.get('tab');
+    
+    // Set the active tab if the parameter exists and is valid
+    if (tabParam === 'interests') {
+      setActiveTab('interests');
+    }
+  }, [location]);
   
   // Fetch users for requester information
   const { data: users = [] } = useQuery({
@@ -420,7 +435,7 @@ export default function CollectorCollectionsPage() {
           </div>
           
           {/* Tabs for Collections and Material Interests */}
-          <Tabs defaultValue="collections" className="w-full">
+          <Tabs defaultValue={activeTab} value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-6">
               <TabsTrigger value="collections">Collection Assignments</TabsTrigger>
               <TabsTrigger value="interests">Material Interests</TabsTrigger>
