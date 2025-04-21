@@ -46,6 +46,8 @@ export function MaterialInterestsTab({ collectorId }: MaterialInterestsTabProps)
       address: string;
     };
   };
+  
+  // Clear user fetch since we're getting recycler info directly in the enhanced data
 
   // Fetch material interests for all collections
   const { data: collectionInterests = [], isLoading: isLoadingInterests } = useQuery<EnhancedMaterialInterest[]>({
