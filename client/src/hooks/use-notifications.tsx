@@ -26,6 +26,7 @@ type WebSocketMessageEvent = {
   message?: string;
   collectionId?: number;
   status?: string;
+  collection?: any; // For new collection events with collection data
 };
 
 export function useNotifications() {
@@ -105,9 +106,10 @@ export function useNotifications() {
           return;
         }
         
+        // Determine notification type
         const notificationType: NotificationType = 
-          data.type === 'notification' || data.type === 'collection_update' 
-            ? data.type 
+          ['notification', 'collection_update', 'new_collection'].includes(data.type as string)
+            ? data.type as NotificationType
             : 'notification'; // Fallback to generic notification
             
         const newNotification: Notification = {
@@ -123,17 +125,32 @@ export function useNotifications() {
         // Add notification to state
         setNotifications(prev => [newNotification, ...prev]);
         
-        // Show toast notifications for all notification types
+        // Show toast notifications based on event type
+        let toastTitle = 'New Notification';
+        
+        if (data.type === 'collection_update') {
+          toastTitle = 'Collection Update';
+        } else if (data.type === 'new_collection') {
+          toastTitle = 'New Collection Available';
+        }
+        
         toast({
-          title: data.type === 'collection_update' ? 'Collection Update' : 'New Notification',
+          title: toastTitle,
           description: data.message,
           variant: "default",
         });
         
-        // If it's a collection update, refresh the collections data
-        if (data.type === 'collection_update') {
+        // Refresh data based on event type
+        if (data.type === 'collection_update' || data.type === 'new_collection') {
+          // Invalidate all collection queries to ensure fresh data
+          console.log(`Refreshing collections data due to ${data.type} event`);
           queryClient.invalidateQueries({ queryKey: ['/api/collections'] });
           queryClient.invalidateQueries({ queryKey: ['/api/collections/upcoming'] });
+          
+          // For collector-specific views
+          if (user.role === 'collector') {
+            console.log('Refreshing collector-specific collection data');
+          }
         }
       } catch (error) {
         console.error('Error parsing WebSocket message:', error);
