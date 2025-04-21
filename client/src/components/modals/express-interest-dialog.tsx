@@ -99,8 +99,8 @@ export function ExpressInterestDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="sticky top-0 bg-background z-10 pb-4">
           <DialogTitle>Express Interest in Materials</DialogTitle>
           <DialogDescription>
             Provide details about your interest in the collected materials.
