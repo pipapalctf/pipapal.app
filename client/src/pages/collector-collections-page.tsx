@@ -21,6 +21,7 @@ import { format } from 'date-fns';
 import Navbar from '@/components/shared/navbar';
 import Footer from '@/components/shared/footer';
 import { Separator } from '@/components/ui/separator';
+import { MaterialInterestsTab } from '@/components/material-interests-tab';
 
 export default function CollectorCollectionsPage() {
   const { user } = useAuth();
