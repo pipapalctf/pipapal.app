@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Collection, User } from '@shared/schema';
+import { Collection, User, UserRole } from '@shared/schema';
 import { Badge } from '@/components/ui/badge';
 import { wasteTypeConfig } from '@/lib/types';
 import { 
@@ -25,9 +25,141 @@ import {
   Phone,
   Mail,
   Scale,
-  CheckCircle2
+  CheckCircle2,
+  ThumbsUp,
+  Building,
+  ShoppingBag
 } from 'lucide-react';
 import { formatNumber } from '@/lib/utils';
+import { useAuth } from '@/hooks/use-auth';
+
+// Types for material interests
+interface MaterialInterest {
+  id: number;
+  userId: number;
+  collectionId: number;
+  timestamp: Date;
+  status: string;
+  message: string | null;
+  recycler?: {
+    id: number;
+    username: string;
+    fullName: string;
+    email: string;
+    phone: string | null;
+  } | null;
+}
+
+// Interests Section Component
+interface InterestsSectionProps {
+  collectionId: number;
+  showForRoles: string[]; // Which user roles should see this section
+}
+
+function InterestsSection({ collectionId, showForRoles }: InterestsSectionProps) {
+  const { user } = useAuth();
+  
+  // Check if user role should see this section
+  if (!user || !showForRoles.includes(user.role)) {
+    return null;
+  }
+  
+  // Fetch interests for this collection
+  const { data: interests, isLoading } = useQuery<MaterialInterest[]>({
+    queryKey: ['/api/collections', collectionId, 'interests'],
+    enabled: !!collectionId,
+    refetchOnWindowFocus: false,
+    staleTime: 30000,
+  });
+  
+  if (isLoading) {
+    return (
+      <div className="grid gap-2">
+        <h3 className="text-sm font-medium">Recycler Interests</h3>
+        <div className="bg-muted/50 p-3 rounded-md">
+          <div className="flex items-center justify-center p-2">
+            <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full"></div>
+            <span className="text-sm ml-2">Loading interests...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  if (!interests || interests.length === 0) {
+    return (
+      <div className="grid gap-2">
+        <h3 className="text-sm font-medium">Recycler Interests</h3>
+        <div className="bg-muted/50 p-3 rounded-md">
+          <div className="flex items-center text-muted-foreground">
+            <ThumbsUp className="h-4 w-4 mr-2" />
+            <span className="text-sm">No recyclers have expressed interest yet</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  return (
+    <div className="grid gap-2">
+      <h3 className="text-sm font-medium">Recycler Interests ({interests.length})</h3>
+      <div className="bg-muted/50 p-3 rounded-md grid gap-3">
+        {interests.map(interest => (
+          <div key={interest.id} className="border border-border p-2 rounded-md">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center">
+                <Building className="h-4 w-4 mr-2 text-muted-foreground" />
+                <span className="text-sm font-medium">
+                  {interest.recycler?.fullName || interest.recycler?.username || 'Unknown Recycler'}
+                </span>
+              </div>
+              <Badge 
+                variant="outline" 
+                className={
+                  interest.status === 'accepted' 
+                    ? "bg-green-50 text-green-700 border-green-200" 
+                    : interest.status === 'rejected'
+                    ? "bg-red-50 text-red-700 border-red-200"
+                    : "bg-blue-50 text-blue-700 border-blue-200"
+                }
+              >
+                {interest.status}
+              </Badge>
+            </div>
+            
+            {interest.message && (
+              <div className="mb-2">
+                <p className="text-sm">{interest.message}</p>
+              </div>
+            )}
+            
+            <div className="text-xs text-muted-foreground flex items-center justify-between mt-1">
+              <span>Requested {new Date(interest.timestamp).toLocaleDateString()}</span>
+              
+              <div className="flex gap-2">
+                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" asChild>
+                  <a href={`mailto:${interest.recycler?.email}`}>
+                    <Mail className="h-3 w-3 mr-1" />
+                    Contact
+                  </a>
+                </Button>
+                
+                {interest.recycler?.phone && (
+                  <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" asChild>
+                    <a href={`tel:${interest.recycler.phone}`}>
+                      <Phone className="h-3 w-3 mr-1" />
+                      Call
+                    </a>
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 interface CollectionDetailsDialogProps {
   collectionId: number | null;
@@ -237,6 +369,14 @@ export function CollectionDetailsDialog({
                       <p className="text-sm">{collection.notes}</p>
                     </div>
                   </div>
+                )}
+                
+                {/* Recycler Interests - Only show for collectors and the collection owner */}
+                {collection.status === 'completed' && (
+                  <InterestsSection 
+                    collectionId={collection.id} 
+                    showForRoles={[UserRole.COLLECTOR, UserRole.HOUSEHOLD, UserRole.ORGANIZATION]} 
+                  />
                 )}
               </div>
             </ScrollArea>
