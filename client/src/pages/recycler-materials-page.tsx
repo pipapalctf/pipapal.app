@@ -151,6 +151,37 @@ export default function RecyclerMaterialsPage() {
   // Calculate estimated CO2 offset
   const estimatedCO2Offset = totalMaterials * 2; // 2kg CO2 per kg of recycled material
 
+  // Pagination state
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Combine all collections into a single array for the table view
+  const allMaterials = [...filteredByWasteType];
+  
+  // Apply search filter
+  const filteredMaterials = allMaterials.filter(collection => {
+    const searchString = searchQuery.toLowerCase();
+    const wasteType = collection.wasteType || '';
+    const address = collection.address || '';
+    const notes = collection.notes || '';
+    
+    return (
+      wasteType.toLowerCase().includes(searchString) ||
+      address.toLowerCase().includes(searchString) ||
+      notes.toLowerCase().includes(searchString)
+    );
+  });
+  
+  // Paginate the data
+  const paginatedMaterials = filteredMaterials.slice(
+    page * rowsPerPage,
+    page * rowsPerPage + rowsPerPage
+  );
+  
+  // Calculate page count
+  const pageCount = Math.ceil(filteredMaterials.length / rowsPerPage);
+  
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
@@ -227,7 +258,7 @@ export default function RecyclerMaterialsPage() {
             </Card>
           </div>
 
-          {/* Filter Controls */}
+          {/* Filter and Search Controls */}
           <div className="flex flex-col md:flex-row gap-4 mb-6">
             <div className="flex-1">
               <Select
@@ -250,6 +281,17 @@ export default function RecyclerMaterialsPage() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="flex-1 md:flex-2">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input 
+                  placeholder="Search by location, material type, or notes..." 
+                  className="pl-10"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+            </div>
           </div>
 
           {isLoading ? (
@@ -259,7 +301,7 @@ export default function RecyclerMaterialsPage() {
               </div>
               <p className="mt-4 text-lg font-medium">Loading available materials...</p>
             </div>
-          ) : filteredByWasteType.length === 0 ? (
+          ) : filteredMaterials.length === 0 ? (
             <Card className="text-center p-12">
               <CardContent>
                 <div className="mx-auto w-20 h-20 bg-muted rounded-full flex items-center justify-center mb-4">
@@ -273,106 +315,127 @@ export default function RecyclerMaterialsPage() {
               </CardContent>
             </Card>
           ) : (
-            <div className="space-y-8">
-              {Object.entries(groupedMaterials).map(([wasteType, collections]) => {
-                const typeInfo = getWasteTypeDisplay(wasteType);
-                
-                return (
-                  <div key={wasteType} className="space-y-4">
-                    <div className="flex items-center gap-2">
-                      <div className="p-1.5 rounded-full" style={{ backgroundColor: `${typeInfo.color}25` }}>
-                        <div className="p-1 rounded-full" style={{ color: typeInfo.color }}>
-                          {typeInfo.icon}
-                        </div>
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>
+                      <div className="flex items-center gap-1 cursor-pointer" onClick={() => {}}>
+                        Material Type <ArrowUpDown className="h-3 w-3" />
                       </div>
-                      <h2 className="text-xl font-semibold">{typeInfo.name} Materials</h2>
-                      <Badge variant="outline" className="ml-2">
-                        {collections.length} {collections.length === 1 ? 'item' : 'items'}
-                      </Badge>
-                    </div>
-                    
-                    <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                      {collections.map((collection: Collection) => (
-                        <Card key={collection.id} className="overflow-hidden border shadow-sm hover:shadow-md transition-shadow">
-                          <div className="h-2" style={{ backgroundColor: typeInfo.color }}></div>
-                          <CardHeader>
-                            <div className="flex justify-between items-start">
-                              <CardTitle className="text-lg font-medium">
-                                {formatNumber(collection.wasteAmount || 0)} kg
-                              </CardTitle>
-                              <Badge className="ml-2" style={{ 
-                                backgroundColor: `${typeInfo.color}20`, 
-                                color: typeInfo.color,
-                                border: `1px solid ${typeInfo.color}40`
-                              }}>
-                                {typeInfo.name}
-                              </Badge>
+                    </TableHead>
+                    <TableHead>
+                      <div className="flex items-center gap-1 cursor-pointer" onClick={() => {}}>
+                        Amount <ArrowUpDown className="h-3 w-3" />
+                      </div>
+                    </TableHead>
+                    <TableHead>
+                      <div className="flex items-center gap-1 cursor-pointer" onClick={() => {}}>
+                        Location <ArrowUpDown className="h-3 w-3" />
+                      </div>
+                    </TableHead>
+                    <TableHead>Collection Date</TableHead>
+                    <TableHead>Est. Value</TableHead>
+                    <TableHead>CO₂ Offset</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginatedMaterials.map((collection) => {
+                    const typeInfo = getWasteTypeDisplay(collection.wasteType || 'general');
+                    return (
+                      <TableRow key={collection.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <div className="p-1 rounded-full" style={{ backgroundColor: `${typeInfo.color}20`, color: typeInfo.color }}>
+                              {typeInfo.icon}
                             </div>
-                            <CardDescription className="flex items-center justify-between">
-                              <span>Collected on {new Date(collection.completedDate || collection.scheduledDate).toLocaleDateString()}</span>
-                              <Badge variant="outline" className="ml-auto text-xs bg-green-50 text-green-700 border-green-200">
-                                <CheckCircle2 className="h-3 w-3 mr-1" />
-                                Available
-                              </Badge>
-                            </CardDescription>
-                          </CardHeader>
-                          <CardContent className="space-y-3">
-                            <div className="flex items-start gap-2">
-                              <MapPin className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
-                              <span className="text-sm">{collection.address}</span>
-                            </div>
-                            
-                            {collection.notes && (
-                              <div className="flex items-start gap-2 text-sm">
-                                <AlertCircle className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
-                                <span>{collection.notes}</span>
-                              </div>
-                            )}
-                            
-                            <div className="flex items-center justify-between mt-2 text-sm">
-                              <div className="flex items-center gap-1 text-muted-foreground">
-                                <CircleDollarSign className="h-4 w-4" />
-                                <span>${formatNumber((collection.wasteAmount || 0) * 0.2, 2)} est. value</span>
-                              </div>
-                              
-                              <div className="flex items-center gap-1 text-muted-foreground">
-                                <Leaf className="h-4 w-4" />
-                                <span>{formatNumber((collection.wasteAmount || 0) * 2)} kg CO₂ offset</span>
-                              </div>
-                            </div>
-                          </CardContent>
-                          <CardFooter className="flex justify-between pt-2">
+                            <span>{typeInfo.name}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="font-medium">{formatNumber(collection.wasteAmount || 0)} kg</span>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-start gap-1">
+                            <MapPin className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
+                            <span className="text-sm truncate max-w-[200px]">{collection.address}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {new Date(collection.completedDate || collection.scheduledDate).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center text-sm">
+                            <CircleDollarSign className="h-3.5 w-3.5 mr-1 text-amber-600" />
+                            <span>${formatNumber((collection.wasteAmount || 0) * 0.2, 2)}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center text-sm">
+                            <Leaf className="h-3.5 w-3.5 mr-1 text-green-600" />
+                            <span>{formatNumber((collection.wasteAmount || 0) * 2)} kg</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-2">
                             <Button 
-                              variant="ghost" 
+                              variant="outline" 
                               size="sm"
                               onClick={() => navigate(`/collections/${collection.id}`)}
                             >
-                              View Details
+                              Details
                             </Button>
                             <Button
+                              size="sm"
                               onClick={() => handleAcquireMaterial(collection.id)}
-                              className="flex items-center gap-1"
                               disabled={expressInterestMutation.isPending}
                             >
                               {expressInterestMutation.isPending ? (
                                 <>
-                                  <span className="animate-pulse">Processing</span>
-                                  <Clock className="h-4 w-4 ml-1 animate-spin" />
+                                  <Clock className="h-3.5 w-3.5 mr-1 animate-spin" />
+                                  Processing
                                 </>
                               ) : (
-                                <>
-                                  Express Interest
-                                  <ArrowRight className="h-4 w-4 ml-1" />
-                                </>
+                                "Express Interest"
                               )}
                             </Button>
-                          </CardFooter>
-                        </Card>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+              
+              {/* Pagination Controls */}
+              <div className="flex items-center justify-between px-4 py-3 border-t">
+                <div className="flex-1 text-sm text-muted-foreground">
+                  Showing <span className="font-medium">{Math.min(filteredMaterials.length, page * rowsPerPage + 1)}</span> to{" "}
+                  <span className="font-medium">{Math.min(filteredMaterials.length, (page + 1) * rowsPerPage)}</span> of{" "}
+                  <span className="font-medium">{filteredMaterials.length}</span> materials
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage((p) => Math.max(0, p - 1))}
+                    disabled={page === 0}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Previous
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
+                    disabled={page >= pageCount - 1}
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
             </div>
           )}
         </div>
