@@ -658,34 +658,35 @@ export class DatabaseStorage implements IStorage {
     const [collection] = await db.select().from(collections).where(eq(collections.id, id));
     if (!collection) return undefined;
     
-    // Use drizzle-orm's type-safe update mechanism
-    const updateQuery = db.update(collections).where(eq(collections.id, id));
+    // Create a single update object with all fields that need to be updated
+    const updateValues: any = {};
     
-    // Map the update fields directly to the schema fields 
-    // Add fields as needed, properly mapping to the correct column names
     if (updates.status !== undefined) {
-      updateQuery.set({ status: updates.status });
+      updateValues.status = updates.status;
     }
     
     if (updates.notes !== undefined) {
-      updateQuery.set({ notes: updates.notes });
+      updateValues.notes = updates.notes;
     }
     
     if (updates.wasteAmount !== undefined) {
-      updateQuery.set({ wasteAmount: updates.wasteAmount });
+      updateValues.wasteAmount = updates.wasteAmount;
     }
     
     if (updates.collectorId !== undefined) {
-      updateQuery.set({ collectorId: updates.collectorId });
+      updateValues.collectorId = updates.collectorId;
     }
     
     // Handle completedDate separately
     if (updates.status === CollectionStatus.COMPLETED && !collection.completedDate) {
-      updateQuery.set({ completedDate: sql`NOW()` }); // Use the database's NOW() function
+      updateValues.completedDate = sql`NOW()`; // Use the database's NOW() function
     }
     
-    // Execute the update
-    const [updatedCollection] = await updateQuery.returning();
+    // Execute the update with all fields at once
+    const [updatedCollection] = await db.update(collections)
+      .set(updateValues)
+      .where(eq(collections.id, id))
+      .returning();
     
     // If collection is completed, generate impact data
     if (updates.status === CollectionStatus.COMPLETED && updates.wasteAmount) {
