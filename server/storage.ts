@@ -529,6 +529,19 @@ export class MemStorage implements IStorage {
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   }
   
+  async getMaterialInterest(id: number): Promise<MaterialInterest | undefined> {
+    return this.materialInterests.get(id);
+  }
+  
+  async updateMaterialInterest(id: number, updates: Partial<MaterialInterest>): Promise<MaterialInterest | undefined> {
+    const interest = this.materialInterests.get(id);
+    if (!interest) return undefined;
+    
+    const updatedInterest = { ...interest, ...updates };
+    this.materialInterests.set(id, updatedInterest);
+    return updatedInterest;
+  }
+  
   // Seed initial data
   private async seedEcoTips() {
     const tips = [
