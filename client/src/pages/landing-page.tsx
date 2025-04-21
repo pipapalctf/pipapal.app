@@ -16,7 +16,7 @@ import {
 // Import directly using relative path to attached_assets
 import pipapalLogo from "../.././../attached_assets/pipapal-logo.png";
 // Import image assets
-import dashboardImg from "../assets/dashboard.png";
+import dashboardImg from "../assets/dashboard-updated.png";
 import landingFormImg from "../assets/landing-form.png";
 import landingHeroImg from "../assets/landing-hero.png";
 
