@@ -1012,9 +1012,9 @@ export class DatabaseStorage implements IStorage {
   async getMaterialInterestsByCollections(collectionIds: number[]): Promise<MaterialInterest[]> {
     if (collectionIds.length === 0) return [];
     
-    // Use SQL IN operator
+    // Use SQL IN operator with parameterized query to avoid SQL injection
     return db.select().from(materialInterests)
-      .where(sql`${materialInterests.collectionId} IN (${collectionIds.join(',')})`)
+      .where(inArray(materialInterests.collectionId, collectionIds))
       .orderBy(desc(materialInterests.timestamp));
   }
   
