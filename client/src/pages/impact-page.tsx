@@ -19,10 +19,13 @@ import {
 import Navbar from "@/components/shared/navbar";
 import Footer from "@/components/shared/footer";
 import MobileNavigation from "@/components/shared/mobile-navigation";
+import { useAuth } from "@/hooks/use-auth";
+import { UserRole } from "@shared/schema";
 
 const COLORS = ['#34495E', '#2ECC71', '#3498DB', '#F1C40F', '#E74C3C', '#9B59B6', '#1ABC9C', '#D35400', '#7F8C8D'];
 
 export default function ImpactPage() {
+  const { user } = useAuth();
   const { data: impact, isLoading: impactLoading } = useQuery<TotalImpact>({
     queryKey: ["/api/impact"],
   });
@@ -43,11 +46,75 @@ export default function ImpactPage() {
     return new Intl.NumberFormat().format(Math.round(value));
   };
   
-  // Monthly goal is 100kg of waste diverted
-  const monthlyGoalPercentage = impact ? Math.min(100, Math.round((impact.wasteAmount / 100) * 100)) : 0;
+  // Set different goals based on user role
+  const getMonthlyWasteGoal = () => {
+    if (!user) return 100;
+    switch (user.role) {
+      case UserRole.COLLECTOR:
+        return 500; // Collectors should collect 500kg per month
+      case UserRole.RECYCLER:
+        return 1000; // Recyclers should process 1000kg per month
+      case UserRole.ORGANIZATION:
+        return 200; // Organizations should divert 200kg per month
+      case UserRole.HOUSEHOLD:
+      default:
+        return 100; // Households should divert 100kg per month
+    }
+  };
   
-  // Annual goal is 1000kg of waste diverted
-  const annualGoalPercentage = impact ? Math.min(100, Math.round((impact.wasteAmount / 1000) * 100)) : 0;
+  const getAnnualWasteGoal = () => {
+    if (!user) return 1000;
+    switch (user.role) {
+      case UserRole.COLLECTOR:
+        return 6000; // Collectors should collect 6000kg per year
+      case UserRole.RECYCLER:
+        return 12000; // Recyclers should process 12000kg per year
+      case UserRole.ORGANIZATION:
+        return 2400; // Organizations should divert 2400kg per year
+      case UserRole.HOUSEHOLD:
+      default:
+        return 1000; // Households should divert 1000kg per year
+    }
+  };
+  
+  const getRoleSpecificTitle = () => {
+    if (!user) return "Your Environmental Impact";
+    switch (user.role) {
+      case UserRole.COLLECTOR:
+        return "Your Collection Impact";
+      case UserRole.RECYCLER:
+        return "Your Recycling Impact";
+      case UserRole.ORGANIZATION:
+        return "Your Organization's Environmental Impact";
+      case UserRole.HOUSEHOLD:
+      default:
+        return "Your Household Environmental Impact";
+    }
+  };
+  
+  const getRoleSpecificDescription = () => {
+    if (!user) return "Track how your recycling efforts are making a difference";
+    switch (user.role) {
+      case UserRole.COLLECTOR:
+        return "Track how your waste collection efforts are benefiting the environment";
+      case UserRole.RECYCLER:
+        return "Track how your material processing is creating environmental value";
+      case UserRole.ORGANIZATION:
+        return "Track how your organization's recycling initiatives impact sustainability";
+      case UserRole.HOUSEHOLD:
+      default:
+        return "Track how your household's recycling efforts are making a difference";
+    }
+  };
+  
+  const monthlyWasteGoal = getMonthlyWasteGoal();
+  const annualWasteGoal = getAnnualWasteGoal();
+  
+  // Monthly goal percentage based on role
+  const monthlyGoalPercentage = impact ? Math.min(100, Math.round((impact.wasteAmount / monthlyWasteGoal) * 100)) : 0;
+  
+  // Annual goal percentage based on role
+  const annualGoalPercentage = impact ? Math.min(100, Math.round((impact.wasteAmount / annualWasteGoal) * 100)) : 0;
   
   return (
     <div className="min-h-screen flex flex-col bg-background">
