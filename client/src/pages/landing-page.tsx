@@ -87,12 +87,9 @@ export default function LandingPage() {
         <div className="container mx-auto px-4 md:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
             <div>
-              <h1 className="text-4xl md:text-5xl font-montserrat font-bold text-secondary mb-2">
+              <h1 className="text-4xl md:text-5xl font-montserrat font-bold text-secondary mb-4">
                 Waste Management <span className="text-primary">Simplified</span>
               </h1>
-              <h2 className="text-lg md:text-xl text-primary font-medium mb-4">
-                PipaPal - Your Waste Buddy
-              </h2>
               <p className="text-lg md:text-xl text-gray-700 mb-8">
                 PipaPal connects households with waste collectors to make recycling easier and 
                 track your environmental impact in real-time.
@@ -127,11 +124,11 @@ export default function LandingPage() {
               <div className="relative">
                 <div className="absolute -top-6 -left-6 w-24 h-24 bg-primary/20 rounded-lg"></div>
                 <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-primary/30 rounded-lg"></div>
-                <div className="relative bg-white rounded-xl shadow-lg p-6 z-10">
+                <div className="relative bg-white rounded-xl shadow-xl p-4 z-10">
                   <img 
-                    src="/images/waste-collection-form.png" 
-                    alt="PipaPal Waste Collection Form" 
-                    className="rounded-lg w-full h-auto object-cover"
+                    src="/images/dashboard-preview.png" 
+                    alt="PipaPal Dashboard Preview" 
+                    className="rounded-lg w-full h-auto object-contain"
                   />
                 </div>
               </div>
