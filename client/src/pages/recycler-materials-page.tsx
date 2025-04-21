@@ -96,9 +96,13 @@ export default function RecyclerMaterialsPage() {
     return acc;
   }, {});
 
+  // Track which collection is being processed
+  const [processingCollectionId, setProcessingCollectionId] = useState<number | null>(null);
+
   // Express interest in materials mutation
   const expressInterestMutation = useMutation({
     mutationFn: async (collectionId: number) => {
+      setProcessingCollectionId(collectionId);
       const response = await apiRequest('POST', '/api/materials/express-interest', { collectionId });
       return response.json();
     },
@@ -108,6 +112,7 @@ export default function RecyclerMaterialsPage() {
         description: "Your interest in this material has been recorded. The system will notify relevant parties.",
         variant: "default",
       });
+      setProcessingCollectionId(null);
     },
     onError: (error: Error) => {
       toast({
@@ -115,6 +120,7 @@ export default function RecyclerMaterialsPage() {
         description: error.message || "There was an error recording your interest. Please try again.",
         variant: "destructive",
       });
+      setProcessingCollectionId(null);
     }
   });
 
@@ -428,9 +434,9 @@ export default function RecyclerMaterialsPage() {
                             <Button
                               size="sm"
                               onClick={() => handleAcquireMaterial(collection.id)}
-                              disabled={expressInterestMutation.isPending}
+                              disabled={processingCollectionId === collection.id}
                             >
-                              {expressInterestMutation.isPending ? (
+                              {processingCollectionId === collection.id ? (
                                 <>
                                   <Clock className="h-3.5 w-3.5 mr-1 animate-spin" />
                                   Processing
