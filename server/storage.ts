@@ -5,6 +5,7 @@ import {
   badges, type Badge, type InsertBadge,
   ecoTips, type EcoTip, type InsertEcoTip,
   activities, type Activity, type InsertActivity,
+  materialInterests, type MaterialInterest, type InsertMaterialInterest,
   CollectionStatus
 } from "@shared/schema";
 import session from "express-session";
@@ -72,6 +73,14 @@ export interface IStorage {
   getActivitiesByUser(userId: number, limit?: number): Promise<Activity[]>;
   createActivity(activity: InsertActivity): Promise<Activity>;
   
+  // Material Interests
+  getMaterialInterest(id: number): Promise<MaterialInterest | undefined>;
+  getMaterialInterestsByRecycler(recyclerId: number): Promise<MaterialInterest[]>;
+  getMaterialInterestsByCollection(collectionId: number): Promise<MaterialInterest[]>;
+  getMaterialInterestsByCollector(collectorId: number): Promise<MaterialInterest[]>;
+  createMaterialInterest(interest: InsertMaterialInterest): Promise<MaterialInterest>;
+  updateMaterialInterest(id: number, updates: Partial<MaterialInterest>): Promise<MaterialInterest | undefined>;
+  
   // Session store
   sessionStore: any;
 }
@@ -83,6 +92,7 @@ export class MemStorage implements IStorage {
   private badges: Map<number, Badge>;
   private ecoTips: Map<number, EcoTip>;
   private activities: Map<number, Activity>;
+  private materialInterests: Map<number, MaterialInterest>;
   sessionStore: any; // Using any for express-session store type
   currentUserId: number;
   currentCollectionId: number;
@@ -90,6 +100,7 @@ export class MemStorage implements IStorage {
   currentBadgeId: number;
   currentEcoTipId: number;
   currentActivityId: number;
+  currentMaterialInterestId: number;
 
   constructor() {
     this.users = new Map();
@@ -98,6 +109,7 @@ export class MemStorage implements IStorage {
     this.badges = new Map();
     this.ecoTips = new Map();
     this.activities = new Map();
+    this.materialInterests = new Map();
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000,
     });
@@ -107,6 +119,7 @@ export class MemStorage implements IStorage {
     this.currentBadgeId = 1;
     this.currentEcoTipId = 1;
     this.currentActivityId = 1;
+    this.currentMaterialInterestId = 1;
     
     // Seed eco-tips
     this.seedEcoTips();

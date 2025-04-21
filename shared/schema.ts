@@ -255,6 +255,17 @@ export const activitiesRelations = relations(activities, ({ one }) => ({
   }),
 }));
 
+export const materialInterestsRelations = relations(materialInterests, ({ one }) => ({
+  collection: one(collections, {
+    fields: [materialInterests.collectionId],
+    references: [collections.id],
+  }),
+  recycler: one(users, {
+    fields: [materialInterests.recyclerId],
+    references: [users.id],
+  }),
+}));
+
 // Export types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -273,3 +284,6 @@ export type EcoTip = typeof ecoTips.$inferSelect;
 
 export type InsertActivity = z.infer<typeof insertActivitySchema>;
 export type Activity = typeof activities.$inferSelect;
+
+export type InsertMaterialInterest = z.infer<typeof insertMaterialInterestSchema>;
+export type MaterialInterest = typeof materialInterests.$inferSelect;
