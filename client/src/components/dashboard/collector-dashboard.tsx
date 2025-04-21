@@ -6,6 +6,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, Cell, ResponsiveContainer, Cartes
 import { Truck, Package, MapPin, Clock, DollarSign, Star, Route, Scale, Leaf } from 'lucide-react';
 import { User, CollectionStatus } from '@shared/schema';
 import { formatNumber } from '@/lib/utils';
+import InterestsTable from '../tables/interests-table';
 
 interface CollectorDashboardProps {
   user: User;
@@ -222,8 +223,9 @@ export default function CollectorDashboard({ user }: CollectorDashboardProps) {
       </div>
       
       <Tabs defaultValue="jobs">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="jobs">Job Summary</TabsTrigger>
+          <TabsTrigger value="interests">Material Interests</TabsTrigger>
           <TabsTrigger value="performance">Performance</TabsTrigger>
           <TabsTrigger value="areas">Areas Served</TabsTrigger>
         </TabsList>
@@ -324,6 +326,21 @@ export default function CollectorDashboard({ user }: CollectorDashboardProps) {
                   </div>
                 ))}
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        {/* Material Interests Tab */}
+        <TabsContent value="interests" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Package className="mr-2 h-5 w-5" />
+                Recycler Interest Requests
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <InterestsTable />
             </CardContent>
           </Card>
         </TabsContent>
