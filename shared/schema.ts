@@ -50,6 +50,19 @@ export const BadgeType = {
   COMMUNITY_LEADER: 'community_leader'
 } as const;
 
+// Material listing status
+export const MaterialStatus = {
+  AVAILABLE: 'available',
+  PENDING_SALE: 'pending_sale',
+  SOLD: 'sold',
+  DELIVERED: 'delivered',
+  COMPLETED: 'completed',
+  EXPIRED: 'expired',
+  WITHDRAWN: 'withdrawn'
+} as const;
+
+export type MaterialStatusType = typeof MaterialStatus[keyof typeof MaterialStatus];
+
 export type BadgeTypeValue = typeof BadgeType[keyof typeof BadgeType];
 
 // User table
@@ -125,6 +138,33 @@ export const activities = pgTable("activities", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Material listings table
+export const materialListings = pgTable("material_listings", {
+  id: serial("id").primaryKey(),
+  collectorId: integer("collector_id").notNull(),
+  collectionId: integer("collection_id").notNull(),
+  materialType: text("material_type").notNull(),
+  quantity: real("quantity").notNull(),
+  description: text("description"),
+  location: text("location").notNull(),
+  status: text("status").notNull().default(MaterialStatus.AVAILABLE),
+  price: real("price"), // Optional price per kg
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Material bids table
+export const materialBids = pgTable("material_bids", {
+  id: serial("id").primaryKey(),
+  materialId: integer("material_id").notNull(),
+  recyclerId: integer("recycler_id").notNull(),
+  amount: real("amount").notNull(), // Bid amount in KES
+  message: text("message"),
+  status: text("status").notNull().default("pending"), // pending, accepted, declined
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users)
   .pick({
@@ -192,6 +232,27 @@ export const insertActivitySchema = createInsertSchema(activities)
     timestamp: true,
   });
 
+export const insertMaterialListingSchema = createInsertSchema(materialListings)
+  .pick({
+    collectorId: true,
+    collectionId: true,
+    materialType: true,
+    quantity: true,
+    description: true,
+    location: true,
+    status: true,
+    price: true,
+  });
+
+export const insertMaterialBidSchema = createInsertSchema(materialBids)
+  .pick({
+    materialId: true,
+    recyclerId: true,
+    amount: true,
+    message: true,
+    status: true,
+  });
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   collections: many(collections),
@@ -236,6 +297,29 @@ export const activitiesRelations = relations(activities, ({ one }) => ({
   }),
 }));
 
+export const materialListingsRelations = relations(materialListings, ({ one, many }) => ({
+  collector: one(users, {
+    fields: [materialListings.collectorId],
+    references: [users.id],
+  }),
+  collection: one(collections, {
+    fields: [materialListings.collectionId],
+    references: [collections.id],
+  }),
+  bids: many(materialBids),
+}));
+
+export const materialBidsRelations = relations(materialBids, ({ one }) => ({
+  material: one(materialListings, {
+    fields: [materialBids.materialId],
+    references: [materialListings.id],
+  }),
+  recycler: one(users, {
+    fields: [materialBids.recyclerId],
+    references: [users.id],
+  }),
+}));
+
 // Export types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -254,3 +338,9 @@ export type EcoTip = typeof ecoTips.$inferSelect;
 
 export type InsertActivity = z.infer<typeof insertActivitySchema>;
 export type Activity = typeof activities.$inferSelect;
+
+export type InsertMaterialListing = z.infer<typeof insertMaterialListingSchema>;
+export type MaterialListing = typeof materialListings.$inferSelect;
+
+export type InsertMaterialBid = z.infer<typeof insertMaterialBidSchema>;
+export type MaterialBid = typeof materialBids.$inferSelect;
