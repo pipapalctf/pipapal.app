@@ -85,7 +85,7 @@ export default function LandingPage() {
       {/* Hero Section */}
       <section className="w-full py-16 md:py-24 bg-gradient-to-br from-primary/10 to-primary/5">
         <div className="container mx-auto px-4 md:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
             <div>
               <h1 className="text-4xl md:text-5xl font-montserrat font-bold text-secondary mb-4">
                 Waste Management <span className="text-primary">Simplified</span>
@@ -124,13 +124,13 @@ export default function LandingPage() {
               <div className="relative">
                 <div className="absolute -top-8 -left-8 w-32 h-32 bg-primary/20 rounded-lg"></div>
                 <div className="absolute -bottom-8 -right-8 w-40 h-40 bg-primary/30 rounded-lg"></div>
-                <div className="relative bg-white rounded-xl shadow-2xl p-2 md:p-3 z-10 md:w-[120%] border border-gray-100">
+                <div className="relative bg-white rounded-xl shadow-2xl p-2 md:p-3 z-10 md:w-[100%] border border-gray-100">
                   <div className="overflow-hidden rounded-lg">
                     <img 
                       src="/dashboard-preview.png" 
                       alt="PipaPal Dashboard Preview" 
                       className="rounded-lg w-full h-auto object-contain shadow-sm hover:scale-[1.02] transition-transform duration-300"
-                      style={{ maxHeight: "400px" }}
+                      style={{ maxHeight: "340px" }}
                     />
                   </div>
                   <div className="absolute -bottom-3 -right-3 w-20 h-20 bg-primary/10 rounded-full blur-xl"></div>
