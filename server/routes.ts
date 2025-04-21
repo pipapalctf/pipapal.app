@@ -24,6 +24,8 @@ import {
 // Schema for material interest expression
 const materialInterestSchema = z.object({
   collectionId: z.number(),
+  amountRequested: z.number().min(0.1).optional(),
+  pricePerKg: z.number().min(0).optional(),
   message: z.string().optional(),
 });
 
@@ -625,7 +627,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.user) return res.sendStatus(401);
       
       try {
-        const { collectionId, message } = materialInterestSchema.parse(req.body);
+        const { collectionId, message, amountRequested, pricePerKg } = materialInterestSchema.parse(req.body);
         
         // Get the collection
         const collection = await storage.getCollection(collectionId);
@@ -641,11 +643,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
         
+        // Make sure requested amount doesn't exceed available amount
+        if (amountRequested && collection.wasteAmount && amountRequested > collection.wasteAmount) {
+          return res.status(400).json({
+            error: 'Invalid amount',
+            message: `The requested amount (${amountRequested}kg) exceeds the available amount (${collection.wasteAmount}kg)`
+          });
+        }
+        
+        // Create a more detailed message if price or amount was provided
+        let detailedMessage = message || '';
+        if (amountRequested || pricePerKg) {
+          detailedMessage += (detailedMessage ? '\n\n' : '');
+          
+          if (amountRequested) {
+            detailedMessage += `Amount requested: ${amountRequested}kg of ${collection.wasteAmount}kg available\n`;
+          }
+          
+          if (pricePerKg) {
+            detailedMessage += `Offered price: KSh ${pricePerKg.toFixed(2)} per kg\n`;
+            
+            // Calculate total if both amount and price are provided
+            if (amountRequested) {
+              const totalValue = (pricePerKg * amountRequested).toFixed(2);
+              detailedMessage += `Total offer: KSh ${totalValue} for ${amountRequested}kg\n`;
+            }
+          }
+        }
+        
         // Create an activity for the recycler
         await storage.createActivity({
           userId: req.user.id,
           activityType: 'express_interest',
-          description: `Expressed interest in ${collection.wasteType} materials (${collection.wasteAmount}kg)`,
+          description: `Expressed interest in ${collection.wasteType} materials (${amountRequested || collection.wasteAmount}kg)`,
           timestamp: new Date()
         });
         
@@ -654,7 +684,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           userId: req.user.id,
           collectionId: collection.id,
           status: 'pending',
-          message: message || null
+          message: detailedMessage || null
         });
         
         // Get recycler info for the notification
