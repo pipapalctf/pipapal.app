@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { User, CollectionStatus } from '@shared/schema';
+import RoleBasedCTA from './role-based-cta';
 import { formatNumber } from '@/lib/utils';
 import {
   Dialog,
@@ -219,6 +220,9 @@ export default function OrganizationDashboard({ user }: OrganizationDashboardPro
           </div>
         </div>
       </div>
+      
+      {/* Role-specific CTAs */}
+      <RoleBasedCTA />
       
       {/* Key Stats Cards */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">

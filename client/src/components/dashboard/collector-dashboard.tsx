@@ -6,6 +6,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, Cell, ResponsiveContainer, Cartes
 import { Truck, Package, MapPin, Clock, DollarSign, Star, Route, Scale, Leaf } from 'lucide-react';
 import { User, CollectionStatus } from '@shared/schema';
 import { formatNumber } from '@/lib/utils';
+import RoleBasedCTA from './role-based-cta';
 
 interface CollectorDashboardProps {
   user: User;
@@ -109,6 +110,9 @@ export default function CollectorDashboard({ user }: CollectorDashboardProps) {
           </div>
         </div>
       </div>
+      
+      {/* Role-specific CTAs */}
+      <RoleBasedCTA />
       
       {/* Key Stats */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
