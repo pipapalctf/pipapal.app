@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { 
   Recycle, Leaf, Package, Filter, MapPin, ArrowRight, Calendar, CircleDollarSign, 
   Truck, AlertCircle, CheckCircle2, Scale, Clock, Cpu, Apple, FlaskConical,
-  Search, ChevronLeft, ChevronRight, ArrowUpDown, Info
+  Search, ChevronLeft, ChevronRight, ArrowUpDown, Info, XCircle
 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { 
