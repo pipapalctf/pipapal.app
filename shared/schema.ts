@@ -125,6 +125,17 @@ export const activities = pgTable("activities", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Material interests table - tracks recycler interest in materials
+export const materialInterests = pgTable("material_interests", {
+  id: serial("id").primaryKey(),
+  collectionId: integer("collection_id").notNull().references(() => collections.id),
+  recyclerId: integer("recycler_id").notNull().references(() => users.id),
+  message: text("message"),
+  status: text("status").default("pending").notNull(), // pending, approved, rejected
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at")
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users)
   .pick({
@@ -190,6 +201,14 @@ export const insertActivitySchema = createInsertSchema(activities)
     description: true,
     points: true,
     timestamp: true,
+  });
+
+export const insertMaterialInterestSchema = createInsertSchema(materialInterests)
+  .pick({
+    collectionId: true,
+    recyclerId: true,
+    message: true,
+    status: true,
   });
 
 // Relations
