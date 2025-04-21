@@ -804,6 +804,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         // Get all completed collections for this collector
         const completedCollections = await storage.getCompletedCollectionsByCollector(collectorId);
+        console.log(`Found ${completedCollections.length} completed collections for collector ${collectorId}`);
+        completedCollections.forEach(collection => {
+          console.log(`Collection ${collection.id} - wasteType: ${collection.wasteType}, wasteAmount: ${collection.wasteAmount}kg`);
+        });
         
         if (completedCollections.length === 0) {
           return res.status(200).json([]);
@@ -811,11 +815,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Get collection IDs
         const collectionIds = completedCollections.map(collection => collection.id);
+        console.log(`Collection IDs: ${collectionIds.join(', ')}`);
         
         // Get material interests for these collections
         const interests = await storage.getMaterialInterestsByCollections(collectionIds);
+        console.log(`Found ${interests.length} material interests for collections`);
+        interests.forEach(interest => {
+          console.log(`Interest ${interest.id} - userId: ${interest.userId}, collectionId: ${interest.collectionId}, status: ${interest.status}`);
+        });
         
-        res.status(200).json(interests);
+        // Enhance with recycler details (without sensitive info)
+        const enhancedInterests = await Promise.all(
+          interests.map(async interest => {
+            const recycler = await storage.getUser(interest.userId);
+            const collection = await storage.getCollection(interest.collectionId);
+            return {
+              ...interest,
+              recycler: recycler ? {
+                id: recycler.id,
+                username: recycler.username,
+                fullName: recycler.fullName,
+                email: recycler.email,
+                phone: recycler.phone
+              } : null,
+              collection: collection ? {
+                id: collection.id,
+                wasteType: collection.wasteType,
+                wasteAmount: collection.wasteAmount,
+                address: collection.address
+              } : null
+            };
+          })
+        );
+        
+        res.status(200).json(enhancedInterests);
       } catch (error) {
         console.error("Error fetching material interests for collector:", error);
         res.status(500).send("Failed to fetch material interests");

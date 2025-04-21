@@ -30,27 +30,33 @@ export function MaterialInterestsTab({ collectorId }: MaterialInterestsTabProps)
     enabled: !!collectorId
   });
 
+  // Define a type for the enhanced material interest response
+  type EnhancedMaterialInterest = MaterialInterest & {
+    recycler?: {
+      id: number;
+      username: string;
+      fullName: string;
+      email: string;
+      phone: string | null;
+    };
+    collection?: {
+      id: number;
+      wasteType: string;
+      wasteAmount: number | null;
+      address: string;
+    };
+  };
+
   // Fetch material interests for all collections
-  const { data: collectionInterests = [], isLoading: isLoadingInterests } = useQuery<MaterialInterest[]>({
+  const { data: collectionInterests = [], isLoading: isLoadingInterests } = useQuery<EnhancedMaterialInterest[]>({
     queryKey: ['/api/material-interests/collector', collectorId],
     queryFn: async () => {
       const res = await fetch(`/api/material-interests/collector/${collectorId}`);
       if (!res.ok) throw new Error('Failed to fetch material interests');
       return res.json();
     },
-    enabled: !!collectorId && completedCollections.length > 0
+    enabled: !!collectorId
   });
-
-  // Fetch all users to get recycler information
-  const { data: users = [] } = useQuery<UserType[]>({
-    queryKey: ['/api/users'],
-    enabled: !!collectionInterests && collectionInterests.length > 0
-  });
-
-  // Helper function to get recycler info
-  const getRecyclerInfo = (userId: number): UserType | undefined => {
-    return users.find((user: UserType) => user.id === userId);
-  };
 
   // Calculate pagination
   const totalPages = Math.ceil(collectionInterests.length / itemsPerPage);
@@ -105,11 +111,12 @@ export function MaterialInterestsTab({ collectorId }: MaterialInterestsTabProps)
           </TableRow>
         </TableHeader>
         <TableBody>
-          {paginatedInterests.map((interest: MaterialInterest) => {
-            const collection = completedCollections.find((c: Collection) => c.id === interest.collectionId);
-            const recycler = getRecyclerInfo(interest.userId);
+          {paginatedInterests.map((interest) => {
+            // Enhanced interest will have recycler and collection data directly
+            const { recycler, collection } = interest;
             
-            if (!collection || !recycler) return null;
+            // Skip if either is missing
+            if (!recycler || !collection) return null;
             
             return (
               <TableRow key={interest.id} className="group hover:bg-muted/50">
@@ -138,8 +145,9 @@ export function MaterialInterestsTab({ collectorId }: MaterialInterestsTabProps)
                 <TableCell>
                   <div className="flex flex-col">
                     <span className="font-medium">#{collection.id}</span>
+                    {/* If we need the completed date, we can fetch it from the completedCollections array */}
                     <span className="text-xs text-muted-foreground">
-                      {collection.completedDate ? format(new Date(collection.completedDate), 'MMM d, yyyy') : '-'}
+                      {collection.address ? collection.address.substring(0, 20) + '...' : ''}
                     </span>
                   </div>
                 </TableCell>
