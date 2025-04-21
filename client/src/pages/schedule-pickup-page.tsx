@@ -264,14 +264,37 @@ export default function SchedulePickupPage() {
   const totalUpcomingPages = Math.ceil(sortedUpcomingCollections.length / itemsPerPage);
   
   // Get past collections for the selected page
-  const pastCollections = collections
-    .filter(c => c.status === CollectionStatus.COMPLETED || c.status === CollectionStatus.CANCELLED)
-    .sort((a, b) => new Date(b.scheduledDate).getTime() - new Date(a.scheduledDate).getTime());
+  const filteredPastCollections = collections
+    .filter(c => c.status === CollectionStatus.COMPLETED || c.status === CollectionStatus.CANCELLED);
+    
+  // Sort past collections (using the same sorting logic)
+  const sortedPastCollections = [...filteredPastCollections].sort((a, b) => {
+    let comparison = 0;
+    
+    switch (sortField) {
+      case 'date':
+        comparison = new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime();
+        break;
+      case 'wasteType':
+        comparison = (a.wasteType || '').localeCompare(b.wasteType || '');
+        break;
+      case 'address':
+        comparison = (a.address || '').localeCompare(b.address || '');
+        break;
+      case 'status':
+        comparison = (a.status || '').localeCompare(b.status || '');
+        break;
+      default:
+        comparison = new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime();
+    }
+    
+    return sortOrder === 'asc' ? comparison : -comparison;
+  });
   
-  const paginatedPastCollections = pastCollections
+  const paginatedPastCollections = sortedPastCollections
     .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
   
-  const totalPastPages = Math.ceil(pastCollections.length / itemsPerPage);
+  const totalPastPages = Math.ceil(sortedPastCollections.length / itemsPerPage);
   
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -607,18 +630,50 @@ export default function SchedulePickupPage() {
                       
                       <h3 className="text-lg font-medium mt-8">Past Pickups</h3>
                       
-                      {pastCollections.length > 0 ? (
+                      {sortedPastCollections.length > 0 ? (
                         <div className="space-y-4">
                           <div className="rounded-md border">
                             <Table>
                               <TableHeader>
                                 <TableRow>
-                                  <TableHead>Type</TableHead>
-                                  <TableHead>Date</TableHead>
+                                  <TableHead>
+                                    <button 
+                                      onClick={() => handleSort('wasteType')} 
+                                      className="flex items-center hover:text-primary"
+                                    >
+                                      Type
+                                      {getSortIcon('wasteType')}
+                                    </button>
+                                  </TableHead>
+                                  <TableHead>
+                                    <button 
+                                      onClick={() => handleSort('date')} 
+                                      className="flex items-center hover:text-primary"
+                                    >
+                                      Date
+                                      {getSortIcon('date')}
+                                    </button>
+                                  </TableHead>
                                   <TableHead>Time</TableHead>
-                                  <TableHead>Location</TableHead>
+                                  <TableHead>
+                                    <button 
+                                      onClick={() => handleSort('address')} 
+                                      className="flex items-center hover:text-primary"
+                                    >
+                                      Location
+                                      {getSortIcon('address')}
+                                    </button>
+                                  </TableHead>
                                   <TableHead>Amount</TableHead>
-                                  <TableHead>Status</TableHead>
+                                  <TableHead>
+                                    <button 
+                                      onClick={() => handleSort('status')} 
+                                      className="flex items-center hover:text-primary"
+                                    >
+                                      Status
+                                      {getSortIcon('status')}
+                                    </button>
+                                  </TableHead>
                                   <TableHead className="w-[80px]">Actions</TableHead>
                                 </TableRow>
                               </TableHeader>
@@ -697,7 +752,7 @@ export default function SchedulePickupPage() {
                           </div>
                           
                           {/* Pagination for past pickups */}
-                          {pastCollections.length > itemsPerPage && (
+                          {sortedPastCollections.length > itemsPerPage && (
                             <Pagination className="mt-4">
                               <PaginationContent>
                                 <PaginationItem>
