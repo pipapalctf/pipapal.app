@@ -5,9 +5,7 @@ import {
   badges, type Badge, type InsertBadge,
   ecoTips, type EcoTip, type InsertEcoTip,
   activities, type Activity, type InsertActivity,
-  materialListings, type MaterialListing, type InsertMaterialListing,
-  materialBids, type MaterialBid, type InsertMaterialBid,
-  CollectionStatus, MaterialStatus
+  CollectionStatus
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
@@ -74,20 +72,6 @@ export interface IStorage {
   getActivitiesByUser(userId: number, limit?: number): Promise<Activity[]>;
   createActivity(activity: InsertActivity): Promise<Activity>;
   
-  // Material Listings
-  getMaterialListing(id: number): Promise<MaterialListing | undefined>;
-  getMaterialListingsByCollector(collectorId: number): Promise<MaterialListing[]>;
-  getAvailableMaterialListings(): Promise<MaterialListing[]>;
-  createMaterialListing(listing: InsertMaterialListing): Promise<MaterialListing>;
-  updateMaterialListing(id: number, updates: Partial<MaterialListing>): Promise<MaterialListing | undefined>;
-  
-  // Material Bids
-  getMaterialBid(id: number): Promise<MaterialBid | undefined>;
-  getMaterialBidsByMaterial(materialId: number): Promise<MaterialBid[]>;
-  getMaterialBidsByRecycler(recyclerId: number): Promise<MaterialBid[]>;
-  createMaterialBid(bid: InsertMaterialBid): Promise<MaterialBid>;
-  updateMaterialBid(id: number, updates: Partial<MaterialBid>): Promise<MaterialBid | undefined>;
-  
   // Session store
   sessionStore: any;
 }
@@ -99,8 +83,6 @@ export class MemStorage implements IStorage {
   private badges: Map<number, Badge>;
   private ecoTips: Map<number, EcoTip>;
   private activities: Map<number, Activity>;
-  private materialListings: Map<number, MaterialListing>;
-  private materialBids: Map<number, MaterialBid>;
   sessionStore: any; // Using any for express-session store type
   currentUserId: number;
   currentCollectionId: number;
@@ -108,8 +90,6 @@ export class MemStorage implements IStorage {
   currentBadgeId: number;
   currentEcoTipId: number;
   currentActivityId: number;
-  currentMaterialListingId: number;
-  currentMaterialBidId: number;
 
   constructor() {
     this.users = new Map();
@@ -118,8 +98,6 @@ export class MemStorage implements IStorage {
     this.badges = new Map();
     this.ecoTips = new Map();
     this.activities = new Map();
-    this.materialListings = new Map();
-    this.materialBids = new Map();
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000,
     });
@@ -129,8 +107,6 @@ export class MemStorage implements IStorage {
     this.currentBadgeId = 1;
     this.currentEcoTipId = 1;
     this.currentActivityId = 1;
-    this.currentMaterialListingId = 1;
-    this.currentMaterialBidId = 1;
     
     // Seed eco-tips
     this.seedEcoTips();
@@ -505,157 +481,6 @@ export class MemStorage implements IStorage {
     };
     this.activities.set(id, activity);
     return activity;
-  }
-  
-  // Material Listings
-  async getMaterialListing(id: number): Promise<MaterialListing | undefined> {
-    return this.materialListings.get(id);
-  }
-  
-  async getMaterialListingsByCollector(collectorId: number): Promise<MaterialListing[]> {
-    return Array.from(this.materialListings.values())
-      .filter(listing => listing.collectorId === collectorId)
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }
-  
-  async getAvailableMaterialListings(): Promise<MaterialListing[]> {
-    return Array.from(this.materialListings.values())
-      .filter(listing => listing.status === MaterialStatus.AVAILABLE)
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }
-  
-  async createMaterialListing(insertListing: InsertMaterialListing): Promise<MaterialListing> {
-    const id = this.currentMaterialListingId++;
-    const now = new Date();
-    const listing: MaterialListing = {
-      ...insertListing,
-      id,
-      status: insertListing.status || MaterialStatus.AVAILABLE,
-      createdAt: now,
-      updatedAt: now
-    };
-    this.materialListings.set(id, listing);
-    
-    // Create activity for the collector
-    await this.createActivity({
-      userId: listing.collectorId,
-      activityType: 'material_listed',
-      description: `Listed ${listing.quantity}kg of ${listing.materialType} for sale`
-    });
-    
-    return listing;
-  }
-  
-  async updateMaterialListing(id: number, updates: Partial<MaterialListing>): Promise<MaterialListing | undefined> {
-    const listing = this.materialListings.get(id);
-    if (!listing) return undefined;
-    
-    const now = new Date();
-    const updatedListing = { 
-      ...listing, 
-      ...updates,
-      updatedAt: now
-    };
-    this.materialListings.set(id, updatedListing);
-    
-    // If status changed to sold, create activity
-    if (updates.status === MaterialStatus.SOLD && listing.status !== MaterialStatus.SOLD) {
-      await this.createActivity({
-        userId: listing.collectorId,
-        activityType: 'material_sold',
-        description: `Sold ${listing.quantity}kg of ${listing.materialType}`
-      });
-    }
-    
-    return updatedListing;
-  }
-  
-  // Material Bids
-  async getMaterialBid(id: number): Promise<MaterialBid | undefined> {
-    return this.materialBids.get(id);
-  }
-  
-  async getMaterialBidsByMaterial(materialId: number): Promise<MaterialBid[]> {
-    return Array.from(this.materialBids.values())
-      .filter(bid => bid.materialId === materialId)
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }
-  
-  async getMaterialBidsByRecycler(recyclerId: number): Promise<MaterialBid[]> {
-    return Array.from(this.materialBids.values())
-      .filter(bid => bid.recyclerId === recyclerId)
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }
-  
-  async createMaterialBid(insertBid: InsertMaterialBid): Promise<MaterialBid> {
-    const id = this.currentMaterialBidId++;
-    const now = new Date();
-    const bid: MaterialBid = {
-      ...insertBid,
-      id,
-      status: insertBid.status || 'pending',
-      createdAt: now,
-      updatedAt: now
-    };
-    this.materialBids.set(id, bid);
-    
-    // Create activity for the recycler
-    await this.createActivity({
-      userId: bid.recyclerId,
-      activityType: 'bid_placed',
-      description: `Placed a bid of KES ${bid.amount} on a material listing`
-    });
-    
-    // Also fetch the material listing and collector to notify them
-    const listing = await this.getMaterialListing(bid.materialId);
-    if (listing) {
-      // Create activity for the collector
-      await this.createActivity({
-        userId: listing.collectorId,
-        activityType: 'bid_received',
-        description: `Received a bid of KES ${bid.amount} on your ${listing.materialType} listing`
-      });
-    }
-    
-    return bid;
-  }
-  
-  async updateMaterialBid(id: number, updates: Partial<MaterialBid>): Promise<MaterialBid | undefined> {
-    const bid = this.materialBids.get(id);
-    if (!bid) return undefined;
-    
-    const now = new Date();
-    const updatedBid = { 
-      ...bid, 
-      ...updates,
-      updatedAt: now
-    };
-    this.materialBids.set(id, updatedBid);
-    
-    // If bid was accepted, update material listing status
-    if (updates.status === 'accepted' && bid.status !== 'accepted') {
-      const listing = await this.getMaterialListing(bid.materialId);
-      if (listing) {
-        await this.updateMaterialListing(listing.id, {
-          status: MaterialStatus.SOLD
-        });
-        
-        // Create activities for both parties
-        await this.createActivity({
-          userId: bid.recyclerId,
-          activityType: 'bid_accepted',
-          description: `Your bid was accepted for ${listing.materialType} material`
-        });
-        
-        await this.createActivity({
-          userId: listing.collectorId,
-          activityType: 'bid_accepted',
-          description: `You accepted a bid for your ${listing.materialType} material`
-        });
-      }
-    }
-    
-    return updatedBid;
   }
   
   // Seed initial data
@@ -1072,139 +897,6 @@ export class DatabaseStorage implements IStorage {
       .returning();
     
     return activity;
-  }
-  
-  // Material Listings
-  async getMaterialListing(id: number): Promise<MaterialListing | undefined> {
-    const [listing] = await db.select().from(materialListings).where(eq(materialListings.id, id));
-    return listing;
-  }
-  
-  async getMaterialListingsByCollector(collectorId: number): Promise<MaterialListing[]> {
-    return db.select().from(materialListings)
-      .where(eq(materialListings.collectorId, collectorId))
-      .orderBy(desc(materialListings.createdAt));
-  }
-  
-  async getAvailableMaterialListings(): Promise<MaterialListing[]> {
-    return db.select().from(materialListings)
-      .where(eq(materialListings.status, MaterialStatus.AVAILABLE))
-      .orderBy(desc(materialListings.createdAt));
-  }
-  
-  async createMaterialListing(insertListing: InsertMaterialListing): Promise<MaterialListing> {
-    const [listing] = await db.insert(materialListings)
-      .values(insertListing)
-      .returning();
-    
-    // Create activity for the collector
-    await this.createActivity({
-      userId: listing.collectorId,
-      activityType: 'material_listed',
-      description: `Listed ${listing.quantity}kg of ${listing.materialType} for sale`
-    });
-    
-    return listing;
-  }
-  
-  async updateMaterialListing(id: number, updates: Partial<MaterialListing>): Promise<MaterialListing | undefined> {
-    const [listing] = await db.select().from(materialListings).where(eq(materialListings.id, id));
-    if (!listing) return undefined;
-    
-    const [updatedListing] = await db.update(materialListings)
-      .set(updates)
-      .where(eq(materialListings.id, id))
-      .returning();
-    
-    // If status changed to sold, create activity
-    if (updates.status === MaterialStatus.SOLD && listing.status !== MaterialStatus.SOLD) {
-      await this.createActivity({
-        userId: listing.collectorId,
-        activityType: 'material_sold',
-        description: `Sold ${listing.quantity}kg of ${listing.materialType}`
-      });
-    }
-    
-    return updatedListing;
-  }
-  
-  // Material Bids
-  async getMaterialBid(id: number): Promise<MaterialBid | undefined> {
-    const [bid] = await db.select().from(materialBids).where(eq(materialBids.id, id));
-    return bid;
-  }
-  
-  async getMaterialBidsByMaterial(materialId: number): Promise<MaterialBid[]> {
-    return db.select().from(materialBids)
-      .where(eq(materialBids.materialId, materialId))
-      .orderBy(desc(materialBids.createdAt));
-  }
-  
-  async getMaterialBidsByRecycler(recyclerId: number): Promise<MaterialBid[]> {
-    return db.select().from(materialBids)
-      .where(eq(materialBids.recyclerId, recyclerId))
-      .orderBy(desc(materialBids.createdAt));
-  }
-  
-  async createMaterialBid(insertBid: InsertMaterialBid): Promise<MaterialBid> {
-    const [bid] = await db.insert(materialBids)
-      .values(insertBid)
-      .returning();
-    
-    // Create activity for the recycler
-    await this.createActivity({
-      userId: bid.recyclerId,
-      activityType: 'bid_placed',
-      description: `Placed a bid of KES ${bid.amount} on a material listing`
-    });
-    
-    // Also fetch the material listing and collector to notify them
-    const listing = await this.getMaterialListing(bid.materialId);
-    if (listing) {
-      // Create activity for the collector
-      await this.createActivity({
-        userId: listing.collectorId,
-        activityType: 'bid_received',
-        description: `Received a bid of KES ${bid.amount} on your ${listing.materialType} listing`
-      });
-    }
-    
-    return bid;
-  }
-  
-  async updateMaterialBid(id: number, updates: Partial<MaterialBid>): Promise<MaterialBid | undefined> {
-    const [bid] = await db.select().from(materialBids).where(eq(materialBids.id, id));
-    if (!bid) return undefined;
-    
-    const [updatedBid] = await db.update(materialBids)
-      .set(updates)
-      .where(eq(materialBids.id, id))
-      .returning();
-    
-    // If bid was accepted, update material listing status
-    if (updates.status === 'accepted' && bid.status !== 'accepted') {
-      const listing = await this.getMaterialListing(bid.materialId);
-      if (listing) {
-        await this.updateMaterialListing(listing.id, {
-          status: MaterialStatus.SOLD
-        });
-        
-        // Create activities for both parties
-        await this.createActivity({
-          userId: bid.recyclerId,
-          activityType: 'bid_accepted',
-          description: `Your bid was accepted for ${listing.materialType} material`
-        });
-        
-        await this.createActivity({
-          userId: listing.collectorId,
-          activityType: 'bid_accepted',
-          description: `You accepted a bid for your ${listing.materialType} material`
-        });
-      }
-    }
-    
-    return updatedBid;
   }
   
   // Seed initial data

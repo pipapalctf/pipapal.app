@@ -45,12 +45,6 @@ export default function Navbar() {
         active: location === "/collections",
         icon: <Truck className="w-4 h-4 mr-1" />
       });
-      links.push({
-        href: "/materials/manage",
-        label: "Material Marketplace",
-        active: location === "/materials/manage",
-        icon: <Recycle className="w-4 h-4 mr-1" />
-      });
     } 
     // Add recycler-specific links
     else if (user?.role === UserRole.RECYCLER) {

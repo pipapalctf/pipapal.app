@@ -48,16 +48,6 @@ export const Permissions = {
     roles: [UserRole.RECYCLER]
   },
   
-  // Material Marketplace Permissions
-  LIST_MATERIALS: {
-    name: 'list_materials',
-    roles: [UserRole.COLLECTOR]
-  },
-  VIEW_MARKETPLACE: {
-    name: 'view_marketplace',
-    roles: [UserRole.RECYCLER, UserRole.COLLECTOR]
-  },
-  
   // Analytics Permissions
   ACCESS_ANALYTICS: {
     name: 'access_analytics',
