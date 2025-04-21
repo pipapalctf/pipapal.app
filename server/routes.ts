@@ -654,8 +654,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           userId: req.user.id,
           collectionId: collection.id,
           status: 'pending',
-          message: message || null,
-          timestamp: new Date()
+          message: message || null
         });
         
         // Get recycler info for the notification
