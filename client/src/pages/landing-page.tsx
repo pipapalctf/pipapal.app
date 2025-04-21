@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import Logo from "@/components/logo";
@@ -19,6 +19,24 @@ import pipapalLogo from "../.././../attached_assets/pipapal-logo.png";
 export default function LandingPage() {
   const [, setLocation] = useLocation();
   const { user, isLoading } = useAuth();
+  const [scrolled, setScrolled] = useState(false);
+
+  // Handle scroll effect for navbar
+  useEffect(() => {
+    const handleScroll = () => {
+      const offset = window.scrollY;
+      if (offset > 80) {
+        setScrolled(true);
+      } else {
+        setScrolled(false);
+      }
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
 
   // Redirect to dashboard if user is already logged in
   useEffect(() => {
@@ -30,26 +48,34 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen flex flex-col bg-white">
       {/* Navbar */}
-      <header className="w-full py-5 px-4 md:px-8 border-b border-gray-100 shadow-xl bg-white">
+      <header className={`fixed top-0 left-0 right-0 w-full px-4 md:px-8 border-b border-gray-100 shadow-xl bg-white z-50 transition-all duration-300 ${scrolled ? 'py-3' : 'py-5'}`}>
         <div className="container mx-auto flex items-center justify-between">
           <div className="flex items-center">
-            <img src={pipapalLogo} alt="PipaPal Logo" className="h-12 w-auto" />
-            <span className="ml-2 text-2xl font-montserrat font-bold text-secondary">PipaPal</span>
+            <img 
+              src={pipapalLogo} 
+              alt="PipaPal Logo" 
+              className={`transition-all duration-300 ${scrolled ? 'h-10' : 'h-12'} w-auto`} 
+            />
+            <span className={`ml-2 font-montserrat font-bold text-secondary transition-all duration-300 ${scrolled ? 'text-xl' : 'text-2xl'}`}>
+              PipaPal
+            </span>
           </div>
           <div className="flex items-center space-x-4">
             <Link href="/auth">
-              <Button variant="outline" size="default">
+              <Button variant="outline" size={scrolled ? "sm" : "default"}>
                 Log in
               </Button>
             </Link>
             <Link href="/auth">
-              <Button size="default">
+              <Button size={scrolled ? "sm" : "default"}>
                 Sign up
               </Button>
             </Link>
           </div>
         </div>
       </header>
+      {/* Spacer to prevent content from hiding under fixed header */}
+      <div className="h-28"></div>
 
       {/* Hero Section */}
       <section className="w-full py-16 md:py-24 bg-gradient-to-br from-primary/10 to-primary/5">
