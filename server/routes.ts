@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { 
   insertCollectionSchema, 
   insertEcoTipSchema, 
+  insertMaterialInterestSchema,
   CollectionStatus,
   Collection,
   UserRole
@@ -138,7 +139,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                          (collection.collectorId === req.user.id || !collection.collectorId);
       // Allow recyclers to view completed collections with material amount
       const isRecycler = req.user.role === UserRole.RECYCLER && 
-                        (collection.status === CollectionStatus.COMPLETED && collection.wasteAmount > 0 ||
+                        (collection.status === CollectionStatus.COMPLETED && (collection.wasteAmount || 0) > 0 ||
                          collection.status === CollectionStatus.IN_PROGRESS && collection.collectorId);
       
       if (!isOwner && !isCollector && !isRecycler) {
@@ -633,7 +634,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         // Make sure collection is completed and has waste
-        if (collection.status !== CollectionStatus.COMPLETED || !collection.wasteAmount) {
+        if (collection.status !== CollectionStatus.COMPLETED || !(collection.wasteAmount && collection.wasteAmount > 0)) {
           return res.status(400).json({ 
             error: 'Invalid collection', 
             message: 'This collection is not ready for recycling' 
@@ -692,6 +693,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(400).json({ errors: error.format() });
         }
         res.status(500).send("Failed to express interest in materials");
+      }
+    }
+  );
+  
+  // Get material interests for a user (recycler)
+  app.get("/api/materials/interests", 
+    requirePermission(Permissions.BUY_RECYCLABLES),
+    async (req, res) => {
+      if (!req.user) return res.sendStatus(401);
+      
+      try {
+        const interests = await storage.getMaterialInterestsByUser(req.user.id);
+        
+        // Enhance the interests with collection details
+        const enhancedInterests = await Promise.all(
+          interests.map(async interest => {
+            const collection = await storage.getCollection(interest.collectionId);
+            return {
+              ...interest,
+              collection: collection || null
+            };
+          })
+        );
+        
+        res.json(enhancedInterests);
+      } catch (error) {
+        console.error("Error retrieving material interests:", error);
+        res.status(500).send("Failed to retrieve material interests");
+      }
+    }
+  );
+  
+  // Get material interests for collections (for collectors to see which recyclers are interested)
+  app.get("/api/collections/:id/interests", 
+    requireAuthentication,
+    async (req, res) => {
+      if (!req.user) return res.sendStatus(401);
+      
+      const collectionId = parseInt(req.params.id);
+      if (isNaN(collectionId)) return res.status(400).send("Invalid collection ID");
+      
+      try {
+        // Check if the user has access to this collection
+        const collection = await storage.getCollection(collectionId);
+        if (!collection) {
+          return res.status(404).json({ error: 'Collection not found' });
+        }
+        
+        // Check permissions - must be either the collection owner or the assigned collector
+        const hasAccess = collection.userId === req.user.id || 
+                        (req.user.role === UserRole.COLLECTOR && collection.collectorId === req.user.id);
+        
+        if (!hasAccess) {
+          return res.status(403).json({ 
+            error: 'Access denied', 
+            message: 'You do not have permission to view interests for this collection' 
+          });
+        }
+        
+        // Get interests for this collection
+        const interests = await storage.getMaterialInterestsByCollections([collectionId]);
+        
+        // Enhance with recycler details (without sensitive info)
+        const enhancedInterests = await Promise.all(
+          interests.map(async interest => {
+            const recycler = await storage.getUser(interest.userId);
+            return {
+              ...interest,
+              recycler: recycler ? {
+                id: recycler.id,
+                username: recycler.username,
+                fullName: recycler.fullName,
+                email: recycler.email,
+                phone: recycler.phone
+              } : null
+            };
+          })
+        );
+        
+        res.json(enhancedInterests);
+      } catch (error) {
+        console.error("Error retrieving collection interests:", error);
+        res.status(500).send("Failed to retrieve collection interests");
       }
     }
   );
