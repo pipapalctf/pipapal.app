@@ -8,6 +8,7 @@ import { User, Collection, Impact, Badge } from '@shared/schema';
 import { formatNumber, scrollToElement } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Link, useLocation } from 'wouter';
+import RoleBasedCTA from './role-based-cta';
 
 interface HouseholdDashboardProps {
   user: User;
@@ -121,6 +122,9 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
           </div>
         </div>
       </div>
+      
+      {/* Role-specific CTAs */}
+      <RoleBasedCTA />
       
       {/* Key Stats Cards */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
