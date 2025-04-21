@@ -200,6 +200,12 @@ export function CollectionDetailsDialog({
     enabled: open && !!collection?.userId,
     refetchOnWindowFocus: false, // Don't refetch when window gains focus
     staleTime: 30000, // Consider data fresh for 30 seconds
+    onSuccess: (data) => {
+      console.log('Successfully loaded requester data:', data);
+    },
+    onError: (error) => {
+      console.error('Error loading requester data:', error);
+    }
   });
 
   // Get waste type configuration for styling
@@ -343,7 +349,9 @@ export function CollectionDetailsDialog({
                           <span className="text-sm ml-2">Loading requester details...</span>
                         </div>
                       ) : !requester ? (
-                        <span className="text-sm text-muted-foreground">Requester information not available</span>
+                        <span className="text-sm text-muted-foreground">
+                          Requester information not available (ID: {collection.userId})
+                        </span>
                       ) : (
                         <>
                           <div className="flex items-center">
