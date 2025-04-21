@@ -268,7 +268,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const userNotification = {
             type: 'collection_update',
             collectionId: collection.id,
-            message: `Your ${collection.wasteType} collection has been scheduled successfully!`,
+            message: `Your ${collection.wasteType} collection has been scheduled successfully! You will receive updates when a collector claims and completes your collection.`,
             status: collection.status
           };
           
@@ -342,8 +342,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const updatedCollection = await storage.updateCollection(id, updates);
       
-      // Send notification if the status was updated
-      if (updates.status && updatedCollection) {
+      // Send notification if the status was updated or collection is claimed
+      if ((updates.status || updates.collectorId) && updatedCollection) {
         try {
           // Send notification to the user
           const userClients = clients.get(collection.userId) || [];
@@ -357,13 +357,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
               [CollectionStatus.CANCELLED]: 'cancelled'
             };
             
-            const statusText = statusConfig[updates.status as keyof typeof statusConfig] || 'updated';
+            let notificationMessage = '';
+            
+            // If collection was claimed (collectorId was added)
+            if (updates.collectorId && !collection.collectorId) {
+              // Get collector info
+              const collector = await storage.getUser(updates.collectorId);
+              const collectorName = collector ? (collector.fullName || collector.username) : 'A collector';
+              notificationMessage = `Your ${collection.wasteType} collection has been claimed by ${collectorName}`;
+            } 
+            // Status was updated
+            else if (updates.status) {
+              const statusText = statusConfig[updates.status as keyof typeof statusConfig] || 'updated';
+              
+              if (updates.status === CollectionStatus.COMPLETED) {
+                notificationMessage = `Your ${collection.wasteType} collection has been completed successfully`;
+              } else {
+                notificationMessage = `Your ${collection.wasteType} collection is now ${statusText}`;
+              }
+            }
             
             const notification = {
               type: 'collection_update',
               collectionId: collection.id,
-              status: updates.status,
-              message: `Your collection has been ${statusText}`
+              status: updates.status || collection.status,
+              message: notificationMessage
             };
             
             userClients.forEach(client => {
