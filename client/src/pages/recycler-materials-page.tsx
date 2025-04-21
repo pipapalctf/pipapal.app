@@ -37,6 +37,7 @@ export default function RecyclerMaterialsPage() {
   
   // State for collection details dialog
   const [selectedCollectionId, setSelectedCollectionId] = useState<number | null>(null);
+  const [selectedCollection, setSelectedCollection] = useState<Collection | null>(null);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
 
   // Fetch collections that are pending/ready for recyclers to process
@@ -417,6 +418,7 @@ export default function RecyclerMaterialsPage() {
                               size="sm"
                               onClick={() => {
                                 setSelectedCollectionId(collection.id);
+                                setSelectedCollection(collection);
                                 setIsDetailsDialogOpen(true);
                               }}
                             >
@@ -484,6 +486,7 @@ export default function RecyclerMaterialsPage() {
       {/* Collection Details Dialog */}
       <CollectionDetailsDialog 
         collectionId={selectedCollectionId}
+        collection={selectedCollection}
         open={isDetailsDialogOpen}
         onOpenChange={setIsDetailsDialogOpen}
       />

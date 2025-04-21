@@ -30,22 +30,27 @@ import { formatNumber } from '@/lib/utils';
 
 interface CollectionDetailsDialogProps {
   collectionId: number | null;
+  collection?: Collection | null; // Allow passing collection data directly
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
 export function CollectionDetailsDialog({ 
   collectionId, 
+  collection: passedCollection, // Collection data passed directly
   open, 
   onOpenChange 
 }: CollectionDetailsDialogProps) {
-  // Fetch collection details when dialog is open and we have a valid ID
-  const { data: collection, isLoading: isLoadingCollection } = useQuery<Collection>({
+  // Fetch collection details only if not passed directly
+  const { data: fetchedCollection, isLoading: isLoadingCollection } = useQuery<Collection>({
     queryKey: ['/api/collections', collectionId],
-    enabled: open && !!collectionId,
+    enabled: open && !!collectionId && !passedCollection,
     refetchOnWindowFocus: false, // Don't refetch when window gains focus
     staleTime: 30000, // Consider data fresh for 30 seconds
   });
+  
+  // Use passed collection if available, otherwise use fetched collection
+  const collection = passedCollection || fetchedCollection;
 
   // Fetch collector details if we have a collector ID
   const { data: collector, isLoading: isLoadingCollector } = useQuery<User>({
