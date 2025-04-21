@@ -114,11 +114,22 @@ export default function AuthPage() {
           <div className="flex flex-col lg:flex-row bg-white rounded-lg shadow-lg overflow-hidden">
             {/* Form Section */}
             <div className="lg:w-1/2 p-6 md:p-10">
-              <div className="mb-8 flex justify-center lg:justify-start">
+              <div className="mb-8 flex justify-between items-center">
                 <div className="flex items-center">
                   <Logo size="md" />
                   <span className="ml-2 text-2xl font-montserrat font-bold text-secondary">PipaPal</span>
                 </div>
+                <Button 
+                  variant="ghost" 
+                  onClick={() => navigate("/")}
+                  className="hidden sm:flex items-center text-secondary hover:text-primary transition-colors"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
+                    <path d="m11 17-5-5 5-5"/>
+                    <path d="m18 17-5-5 5-5"/>
+                  </svg>
+                  Back to Home
+                </Button>
               </div>
               
               <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-full">
