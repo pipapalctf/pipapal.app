@@ -20,13 +20,23 @@ type Notification = {
   status?: string;
 };
 
+// Define a type for collection data sent in new_collection events
+type CollectionData = {
+  id: number;
+  wasteType: string;
+  wasteAmount: number | null;
+  address: string;
+  status: string;
+  scheduledDate: Date | string;
+};
+
 type WebSocketMessageEvent = {
   type: WSEventType;
   event?: string;
   message?: string;
   collectionId?: number;
   status?: string;
-  collection?: any; // For new collection events with collection data
+  collection?: CollectionData; // For new collection events with collection data
 };
 
 export function useNotifications() {
@@ -74,6 +84,7 @@ export function useNotifications() {
     
     socket.current.onmessage = (event) => {
       try {
+        console.log('WebSocket message received:', event.data);
         const data: WebSocketMessageEvent = JSON.parse(event.data);
         
         // Handle system messages separately and silently
@@ -144,12 +155,21 @@ export function useNotifications() {
         if (data.type === 'collection_update' || data.type === 'new_collection') {
           // Invalidate all collection queries to ensure fresh data
           console.log(`Refreshing collections data due to ${data.type} event`);
+          console.log('Event details:', JSON.stringify(data));
+          
+          // Force a refresh by invalidating the queries
           queryClient.invalidateQueries({ queryKey: ['/api/collections'] });
           queryClient.invalidateQueries({ queryKey: ['/api/collections/upcoming'] });
           
           // For collector-specific views
           if (user.role === 'collector') {
             console.log('Refreshing collector-specific collection data');
+            if (data.type === 'new_collection') {
+              console.log('New collection notification received by a collector');
+              if (data.collection) {
+                console.log('Collection data:', JSON.stringify(data.collection));
+              }
+            }
           }
         }
       } catch (error) {

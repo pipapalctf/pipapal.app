@@ -248,11 +248,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           };
           
           // Send to all collectors
+          console.log(`Broadcasting new collection notification to ${collectors.length} collectors`);
           collectors.forEach(collector => {
             const collectorClients = clients.get(collector.id) || [];
+            console.log(`Found ${collectorClients.length} WebSocket clients for collector ${collector.id}`);
+            
             collectorClients.forEach(client => {
               if (client.readyState === WebSocket.OPEN) {
+                console.log(`Sending new collection notification to collector ${collector.id}`);
                 client.send(JSON.stringify(collectorNotification));
+              } else {
+                console.log(`Client for collector ${collector.id} not in OPEN state (readyState: ${client.readyState})`);
               }
             });
           });
