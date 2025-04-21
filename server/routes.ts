@@ -648,26 +648,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
           timestamp: new Date()
         });
         
-        // Notify the collection owner
+        // Get recycler info for the notification
+        const recyclerName = req.user.fullName || req.user.username;
+        
+        // Notify the collection owner with recycler info
         const ownerClients = clients.get(collection.userId) || [];
-        const notification = {
+        const ownerNotification = {
           type: 'notification',
-          message: `A recycler has expressed interest in your ${collection.wasteType} materials`,
+          message: `${recyclerName} (Recycler) has expressed interest in your ${collection.wasteType} materials (${collection.wasteAmount || 0}kg)`,
           collectionId: collection.id
         };
         
         ownerClients.forEach(client => {
           if (client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify(notification));
+            client.send(JSON.stringify(ownerNotification));
           }
         });
         
-        // Notify the collector if assigned
+        // Notify the collector if assigned with more detailed information
         if (collection.collectorId) {
           const collectorClients = clients.get(collection.collectorId) || [];
+          const collectorNotification = {
+            type: 'notification',
+            message: `${recyclerName} (Recycler) wants to purchase ${collection.wasteType} materials (${collection.wasteAmount || 0}kg) that you collected from ${collection.address}`,
+            collectionId: collection.id
+          };
+          
           collectorClients.forEach(client => {
             if (client.readyState === WebSocket.OPEN) {
-              client.send(JSON.stringify(notification));
+              client.send(JSON.stringify(collectorNotification));
             }
           });
         }

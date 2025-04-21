@@ -123,13 +123,12 @@ export function useNotifications() {
         // Add notification to state
         setNotifications(prev => [newNotification, ...prev]);
         
-        // Only show toast notification for actual updates, not system/connection messages
-        if (data.type === 'collection_update') {
-          toast({
-            title: 'Collection Update',
-            description: data.message
-          });
-        }
+        // Show toast notifications for all notification types
+        toast({
+          title: data.type === 'collection_update' ? 'Collection Update' : 'New Notification',
+          description: data.message,
+          variant: "default",
+        });
         
         // If it's a collection update, refresh the collections data
         if (data.type === 'collection_update') {
