@@ -98,6 +98,8 @@ export default function RecyclerMaterialsPage() {
 
   // Track which collection is being processed
   const [processingCollectionId, setProcessingCollectionId] = useState<number | null>(null);
+  // Track which collections have already been expressed interest in
+  const [expressedInterestIds, setExpressedInterestIds] = useState<number[]>([]);
 
   // Express interest in materials mutation
   const expressInterestMutation = useMutation({
@@ -106,12 +108,14 @@ export default function RecyclerMaterialsPage() {
       const response = await apiRequest('POST', '/api/materials/express-interest', { collectionId });
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (_, collectionId) => {
       toast({
         title: "Interest Recorded",
         description: "Your interest in this material has been recorded. The system will notify relevant parties.",
         variant: "default",
       });
+      // Add this collection ID to the expressedInterestIds array
+      setExpressedInterestIds(prev => [...prev, collectionId]);
       setProcessingCollectionId(null);
     },
     onError: (error: Error) => {
@@ -431,20 +435,32 @@ export default function RecyclerMaterialsPage() {
                               <Info className="h-3.5 w-3.5 mr-1" />
                               Details
                             </Button>
-                            <Button
-                              size="sm"
-                              onClick={() => handleAcquireMaterial(collection.id)}
-                              disabled={processingCollectionId === collection.id}
-                            >
-                              {processingCollectionId === collection.id ? (
-                                <>
-                                  <Clock className="h-3.5 w-3.5 mr-1 animate-spin" />
-                                  Processing
-                                </>
-                              ) : (
-                                "Express Interest"
-                              )}
-                            </Button>
+                            {expressedInterestIds.includes(collection.id) ? (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="bg-green-50 text-green-700 border-green-200 hover:bg-green-100 hover:text-green-800"
+                                disabled
+                              >
+                                <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                                Interest Expressed
+                              </Button>
+                            ) : (
+                              <Button
+                                size="sm"
+                                onClick={() => handleAcquireMaterial(collection.id)}
+                                disabled={processingCollectionId === collection.id}
+                              >
+                                {processingCollectionId === collection.id ? (
+                                  <>
+                                    <Clock className="h-3.5 w-3.5 mr-1 animate-spin" />
+                                    Processing
+                                  </>
+                                ) : (
+                                  "Express Interest"
+                                )}
+                              </Button>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
