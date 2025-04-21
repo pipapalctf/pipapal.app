@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -35,9 +35,19 @@ export default function RecyclerMaterialsPage() {
   const [filterStatus, setFilterStatus] = useState<string>('available');
 
   // Fetch collections that are pending/ready for recyclers to process
-  const { data: collections = [], isLoading } = useQuery<Collection[]>({
+  const { data: collections = [], isLoading, isError, error } = useQuery<Collection[]>({
     queryKey: ['/api/collections'],
+    staleTime: 60000, // Add staleTime to keep data for longer (1 minute)
+    refetchOnWindowFocus: false, // Prevent refetching when window gains focus
   });
+  
+  // Debug collections data
+  useEffect(() => {
+    console.log('Collections data:', collections);
+    if (collections.length > 0) {
+      console.log('First collection:', collections[0]);
+    }
+  }, [collections]);
 
   // Include collections that are in either COMPLETED or IN_PROGRESS status
   // These are collections that are either being processed or ready for recyclers
@@ -338,6 +348,7 @@ export default function RecyclerMaterialsPage() {
                         Location <ArrowUpDown className="h-3 w-3" />
                       </div>
                     </TableHead>
+                    <TableHead>Status</TableHead>
                     <TableHead>Collection Date</TableHead>
                     <TableHead>Est. Value</TableHead>
                     <TableHead>CO₂ Offset</TableHead>
@@ -367,20 +378,20 @@ export default function RecyclerMaterialsPage() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <div className="flex flex-col gap-1">
-                            <span>{new Date(collection.completedDate || collection.scheduledDate).toLocaleDateString()}</span>
-                            <Badge variant="outline" className={
-                              collection.status === CollectionStatus.COMPLETED 
-                                ? "bg-green-50 text-green-700 border-green-200 text-xs" 
-                                : "bg-blue-50 text-blue-700 border-blue-200 text-xs"
-                            }>
-                              {collection.status === CollectionStatus.COMPLETED ? (
-                                <><CheckCircle2 className="h-3 w-3 mr-1" />Completed</>
-                              ) : (
-                                <><Clock className="h-3 w-3 mr-1" />In Progress</>
-                              )}
-                            </Badge>
-                          </div>
+                          <Badge variant="outline" className={
+                            collection.status === CollectionStatus.COMPLETED 
+                              ? "bg-green-50 text-green-700 border-green-200 text-xs" 
+                              : "bg-blue-50 text-blue-700 border-blue-200 text-xs"
+                          }>
+                            {collection.status === CollectionStatus.COMPLETED ? (
+                              <><CheckCircle2 className="h-3 w-3 mr-1" />Completed</>
+                            ) : (
+                              <><Clock className="h-3 w-3 mr-1" />In Progress</>
+                            )}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {new Date(collection.completedDate || collection.scheduledDate).toLocaleDateString()}
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center text-sm">
@@ -396,10 +407,18 @@ export default function RecyclerMaterialsPage() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">
+                            {/* Disable Details button until collection details page is implemented */}
                             <Button 
                               variant="outline" 
                               size="sm"
-                              onClick={() => navigate(`/collections/${collection.id}`)}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                toast({
+                                  title: "Coming Soon",
+                                  description: "Collection details page is under development",
+                                  variant: "default",
+                                });
+                              }}
                             >
                               Details
                             </Button>
