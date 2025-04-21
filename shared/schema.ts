@@ -125,6 +125,16 @@ export const activities = pgTable("activities", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Material interest table for tracking recycler interest in materials
+export const materialInterests = pgTable("material_interests", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id), // The recycler expressing interest
+  collectionId: integer("collection_id").notNull().references(() => collections.id),
+  timestamp: timestamp("timestamp").notNull().defaultNow(),
+  status: text("status").notNull().default("pending"), // pending, accepted, rejected
+  message: text("message"),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users)
   .pick({
@@ -192,6 +202,14 @@ export const insertActivitySchema = createInsertSchema(activities)
     timestamp: true,
   });
 
+export const insertMaterialInterestSchema = createInsertSchema(materialInterests)
+  .pick({
+    userId: true,
+    collectionId: true,
+    status: true,
+    message: true,
+  });
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   collections: many(collections),
@@ -233,6 +251,17 @@ export const activitiesRelations = relations(activities, ({ one }) => ({
   user: one(users, {
     fields: [activities.userId],
     references: [users.id],
+  }),
+}));
+
+export const materialInterestsRelations = relations(materialInterests, ({ one }) => ({
+  user: one(users, {
+    fields: [materialInterests.userId],
+    references: [users.id],
+  }),
+  collection: one(collections, {
+    fields: [materialInterests.collectionId],
+    references: [collections.id],
   }),
 }));
 
