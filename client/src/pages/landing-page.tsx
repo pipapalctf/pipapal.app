@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 // Import directly using relative path to attached_assets
 import pipapalLogo from "../.././../attached_assets/pipapal-logo.png";
+import dashboardPreviewImg from "../.././../attached_assets/image_1745273490435.png";
 
 export default function LandingPage() {
   const [, setLocation] = useLocation();
@@ -126,7 +127,7 @@ export default function LandingPage() {
                 <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-primary/30 rounded-lg"></div>
                 <div className="relative bg-white rounded-xl shadow-xl p-4 z-10">
                   <img 
-                    src="/images/dashboard-preview.png" 
+                    src={dashboardPreviewImg} 
                     alt="PipaPal Dashboard Preview" 
                     className="rounded-lg w-full h-auto object-contain"
                   />
