@@ -123,10 +123,10 @@ export default function ImpactPage() {
       <main className="flex-grow container mx-auto px-4 py-8 md:py-10">
         <div className="mb-8">
           <h1 className="text-2xl md:text-3xl font-montserrat font-bold text-secondary">
-            Your Environmental Impact
+            {getRoleSpecificTitle()}
           </h1>
           <p className="text-gray-600 mt-1">
-            Track how your recycling efforts are making a difference
+            {getRoleSpecificDescription()}
           </p>
         </div>
         
@@ -156,7 +156,7 @@ export default function ImpactPage() {
                   
                   <div className="mt-4">
                     <div className="flex justify-between mb-1 text-xs">
-                      <span>Monthly Goal: 100kg</span>
+                      <span>Monthly Goal: {formatNumber(monthlyWasteGoal)}kg</span>
                       <span className="font-medium">{monthlyGoalPercentage}%</span>
                     </div>
                     <Progress value={monthlyGoalPercentage} className="h-2" />
@@ -242,7 +242,11 @@ export default function ImpactPage() {
               <Card className="lg:col-span-2">
                 <CardHeader>
                   <CardTitle>Monthly Waste Collection</CardTitle>
-                  <CardDescription>Historical data of your waste diversion efforts</CardDescription>
+                  <CardDescription>
+                    {user?.role === UserRole.COLLECTOR ? "Historical data of your waste collection efforts" :
+                     user?.role === UserRole.RECYCLER ? "Historical data of processed materials" :
+                     "Historical data of your waste diversion efforts"}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="h-80">
@@ -266,7 +270,11 @@ export default function ImpactPage() {
               <Card>
                 <CardHeader>
                   <CardTitle>Trees Equivalent</CardTitle>
-                  <CardDescription>Your positive impact on forestation</CardDescription>
+                  <CardDescription>
+                    {user?.role === UserRole.COLLECTOR ? "Forest impact of your collection activities" :
+                     user?.role === UserRole.RECYCLER ? "Forest preservation through material recycling" :
+                     "Your positive impact on forestation"}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-col items-center justify-center py-4">
@@ -302,10 +310,15 @@ export default function ImpactPage() {
                     
                     <div className="mt-6 text-center">
                       <p className="text-sm text-gray-600">
-                        Your recycling efforts have saved the equivalent of {formatNumber(impact.treesEquivalent)} trees so far.
+                        {user?.role === UserRole.COLLECTOR 
+                          ? `Your collection efforts have saved the equivalent of ${formatNumber(impact.treesEquivalent)} trees.`
+                          : user?.role === UserRole.RECYCLER 
+                            ? `Your material processing has preserved the equivalent of ${formatNumber(impact.treesEquivalent)} trees.`
+                            : `Your recycling efforts have saved the equivalent of ${formatNumber(impact.treesEquivalent)} trees so far.`
+                        }
                       </p>
                       <p className="text-xs text-gray-500 mt-2">
-                        Target: 20 trees equivalent this year
+                        Target: {user?.role === UserRole.RECYCLER ? 40 : user?.role === UserRole.COLLECTOR ? 30 : 20} trees equivalent this year
                       </p>
                     </div>
                   </div>
@@ -318,7 +331,11 @@ export default function ImpactPage() {
               <Card>
                 <CardHeader>
                   <CardTitle>Waste Type Breakdown</CardTitle>
-                  <CardDescription>Distribution of your recycled materials</CardDescription>
+                  <CardDescription>
+                    {user?.role === UserRole.COLLECTOR ? "Types of waste you've collected" :
+                     user?.role === UserRole.RECYCLER ? "Materials you've processed" :
+                     "Distribution of your recycled materials"}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="h-64">
@@ -348,15 +365,25 @@ export default function ImpactPage() {
               <Card className="lg:col-span-2">
                 <CardHeader>
                   <CardTitle>Annual Goal Progress</CardTitle>
-                  <CardDescription>Track your progress towards yearly sustainability goals</CardDescription>
+                  <CardDescription>
+                    {user?.role === UserRole.COLLECTOR ? "Track your collection targets for the year" :
+                     user?.role === UserRole.RECYCLER ? "Track your material processing goals" :
+                     "Track your progress towards yearly sustainability goals"}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-6">
                     <div>
                       <div className="flex justify-between mb-2">
                         <div>
-                          <h4 className="font-medium">Waste Diversion</h4>
-                          <p className="text-sm text-gray-500">Goal: 1,000 kg per year</p>
+                          <h4 className="font-medium">
+                            {user?.role === UserRole.COLLECTOR 
+                              ? "Waste Collection" 
+                              : user?.role === UserRole.RECYCLER 
+                                ? "Material Processing" 
+                                : "Waste Diversion"}
+                          </h4>
+                          <p className="text-sm text-gray-500">Goal: {formatNumber(annualWasteGoal)} kg per year</p>
                         </div>
                         <div className="text-right">
                           <p className="font-medium">{formatNumber(impact.wasteAmount)} kg</p>
@@ -407,7 +434,12 @@ export default function ImpactPage() {
                     <div className="p-4 bg-accent/10 rounded-lg text-center">
                       <p className="text-secondary font-medium flex items-center justify-center">
                         <span className="text-accent mr-2">🏆</span>
-                        You're in the top 15% of environmentally conscious users in your area!
+                        {user?.role === UserRole.COLLECTOR 
+                          ? "You're in the top 15% of waste collectors in your area!"
+                          : user?.role === UserRole.RECYCLER 
+                            ? "You're in the top 15% of material recyclers in your area!"
+                            : "You're in the top 15% of environmentally conscious users in your area!"
+                        }
                       </p>
                     </div>
                   </div>
