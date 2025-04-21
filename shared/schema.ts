@@ -283,3 +283,6 @@ export type EcoTip = typeof ecoTips.$inferSelect;
 
 export type InsertActivity = z.infer<typeof insertActivitySchema>;
 export type Activity = typeof activities.$inferSelect;
+
+export type InsertMaterialInterest = z.infer<typeof insertMaterialInterestSchema>;
+export type MaterialInterest = typeof materialInterests.$inferSelect;
