@@ -31,6 +31,24 @@ interface MaterialInterestsTabProps {
   collectorId: number;
 }
 
+// Helper function to get status colors
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case CollectionStatus.PENDING:
+      return 'text-yellow-600';
+    case CollectionStatus.SCHEDULED:
+      return 'text-blue-600';
+    case CollectionStatus.IN_PROGRESS:
+      return 'text-orange-600';
+    case CollectionStatus.COMPLETED:
+      return 'text-green-600';
+    case CollectionStatus.CANCELLED:
+      return 'text-red-600';
+    default:
+      return 'text-gray-600';
+  }
+};
+
 export function MaterialInterestsTab({ collectorId }: MaterialInterestsTabProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
