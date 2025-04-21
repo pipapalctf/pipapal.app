@@ -23,6 +23,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
+  DialogClose,
 } from "@/components/ui/dialog";
 
 interface MaterialInterestsTabProps {
@@ -286,7 +288,7 @@ export function MaterialInterestsTab({ collectorId }: MaterialInterestsTabProps)
                     </div>
                     {extractPriceFromMessage(interest.message).totalOffer && (
                       <div className="text-sm mt-1">
-                        Total offer: KSh {formatNumber(extractPriceFromMessage(interest.message).totalOffer)}
+                        Total offer: KSh {formatNumber(extractPriceFromMessage(interest.message).totalOffer || 0)}
                       </div>
                     )}
                   </div>
@@ -294,6 +296,12 @@ export function MaterialInterestsTab({ collectorId }: MaterialInterestsTabProps)
               </div>
             </div>
           </div>
+          
+          <DialogFooter className="mt-6 sticky bottom-0 bg-white pt-2">
+            <DialogClose asChild>
+              <Button type="button" variant="secondary">Close</Button>
+            </DialogClose>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     );
@@ -380,7 +388,7 @@ export function MaterialInterestsTab({ collectorId }: MaterialInterestsTabProps)
                         </div>
                         {totalOffer && (
                           <div className="text-xs text-green-600">
-                            Total: KSh {formatNumber(totalOffer)}
+                            Total: KSh {formatNumber(totalOffer || 0)}
                           </div>
                         )}
                       </div>
