@@ -38,12 +38,12 @@ export function MaterialInterestsTab({ collectorId }: MaterialInterestsTabProps)
   const { toast } = useToast();
   const [isUpdating, setIsUpdating] = useState<number | null>(null);
 
-  // Fetch all completed collections that belong to this collector
-  const { data: completedCollections = [], isLoading: isLoadingCollections } = useQuery<Collection[]>({
-    queryKey: ['/api/collections/collector', collectorId, 'completed'],
+  // Fetch all active collections (completed and in-progress) that belong to this collector
+  const { data: activeCollections = [], isLoading: isLoadingCollections } = useQuery<Collection[]>({
+    queryKey: ['/api/collections/collector', collectorId, 'active'],
     queryFn: async () => {
-      const res = await fetch(`/api/collections/collector/${collectorId}/completed`);
-      if (!res.ok) throw new Error('Failed to fetch completed collections');
+      const res = await fetch(`/api/collections/collector/${collectorId}/active`);
+      if (!res.ok) throw new Error('Failed to fetch active collections');
       return res.json();
     },
     enabled: !!collectorId
@@ -126,12 +126,12 @@ export function MaterialInterestsTab({ collectorId }: MaterialInterestsTabProps)
     );
   }
 
-  if (completedCollections.length === 0) {
+  if (activeCollections.length === 0) {
     return (
       <Alert className="my-4">
-        <AlertTitle>No completed collections</AlertTitle>
+        <AlertTitle>No active collections</AlertTitle>
         <AlertDescription>
-          You don't have any completed collections yet. Once you complete collections, recyclers can express interest in the materials.
+          You don't have any active collections yet. Once you have collections in progress or completed, recyclers can express interest in the materials.
         </AlertDescription>
       </Alert>
     );

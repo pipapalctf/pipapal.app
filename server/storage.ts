@@ -225,6 +225,15 @@ export class MemStorage implements IStorage {
       .sort((a, b) => new Date(b.completedDate || b.scheduledDate).getTime() - new Date(a.completedDate || a.scheduledDate).getTime());
   }
   
+  async getActiveCollectionsByCollector(collectorId: number): Promise<Collection[]> {
+    return Array.from(this.collections.values())
+      .filter(collection => 
+        collection.collectorId === collectorId && 
+        (collection.status === CollectionStatus.COMPLETED || collection.status === CollectionStatus.IN_PROGRESS)
+      )
+      .sort((a, b) => new Date(b.completedDate || b.scheduledDate).getTime() - new Date(a.completedDate || a.scheduledDate).getTime());
+  }
+  
   async getAllCompletedCollections(): Promise<Collection[]> {
     return Array.from(this.collections.values())
       .filter(collection => 

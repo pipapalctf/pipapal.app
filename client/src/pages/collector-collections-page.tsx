@@ -54,6 +54,17 @@ export default function CollectorCollectionsPage() {
   const { data: collections = [], isLoading } = useQuery({
     queryKey: ['/api/collections'],
   });
+  
+  // Fetch material interests for collections assigned to this collector
+  const { data: materialInterests = [] } = useQuery({
+    queryKey: ['/api/material-interests/collector', user.id],
+    queryFn: async () => {
+      const res = await fetch(`/api/material-interests/collector/${user.id}`);
+      if (!res.ok) throw new Error('Failed to fetch material interests');
+      return res.json();
+    },
+    enabled: !!user.id
+  });
 
   // Filter collections by collector and status
   const filteredCollections = collections
@@ -297,6 +308,14 @@ export default function CollectorCollectionsPage() {
   const getRequesterInfo = (userId: number) => {
     if (!users || !Array.isArray(users) || users.length === 0) return null;
     return users.find((u: any) => u.id === userId);
+  };
+  
+  // Check if a collection has material interests from recyclers
+  const hasInterests = (collectionId: number) => {
+    return materialInterests.some((interest: any) => 
+      interest.collectionId === collectionId && 
+      ['expressed', 'accepted'].includes(interest.status)
+    );
   };
 
   return (
