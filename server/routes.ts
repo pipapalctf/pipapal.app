@@ -57,6 +57,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json(collectorCollections);
       }
       
+      // For recyclers, we need all completed and in-progress collections
+      if (req.user.role === UserRole.RECYCLER) {
+        const allCollections = await storage.getAllCollections();
+        // Filter collections to include:
+        // 1. Collections that are COMPLETED
+        // 2. Collections that are IN_PROGRESS with a collector assigned
+        const recyclerCollections = allCollections.filter(collection => 
+          collection.status === CollectionStatus.COMPLETED || 
+          (collection.status === CollectionStatus.IN_PROGRESS && collection.collectorId)
+        );
+        
+        console.log(`Found ${recyclerCollections.length} collections for recycler`);
+        return res.json(recyclerCollections);
+      }
+      
       // For other users, just return their own collections
       const collections = await storage.getCollectionsByUser(req.user.id);
       res.json(collections);
