@@ -110,6 +110,9 @@ export class MemStorage implements IStorage {
     
     // Seed eco-tips
     this.seedEcoTips();
+    
+    // Seed some test collections for the recycler materials page
+    this.seedTestCollections();
   }
   
   // Users
@@ -535,6 +538,38 @@ export class DatabaseStorage implements IStorage {
     
     // Seed eco-tips if none exist
     this.seedEcoTipsIfNoneExist();
+  }
+  
+  // This is just a helper method to debug collection filtering
+  private async logCollectionCount() {
+    try {
+      // Get all collections
+      const allCollections = await this.getAllCollections();
+      
+      // Count collections by status
+      const statusCounts = allCollections.reduce((acc, collection) => {
+        const status = collection.status || 'unknown';
+        acc[status] = (acc[status] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      
+      // Log counts
+      console.log('Collection counts by status:', statusCounts);
+      console.log(`Total collections: ${allCollections.length}`);
+      
+      // Count collections that are COMPLETED or IN_PROGRESS with a collector
+      const filteredForRecycler = allCollections.filter(collection => 
+        collection.status === CollectionStatus.COMPLETED || 
+        (collection.status === CollectionStatus.IN_PROGRESS && collection.collectorId)
+      );
+      
+      console.log(`Collections available for recyclers: ${filteredForRecycler.length}`);
+      
+      return allCollections;
+    } catch (error) {
+      console.error('Error logging collection count:', error);
+      return [];
+    }
   }
   
   // Users

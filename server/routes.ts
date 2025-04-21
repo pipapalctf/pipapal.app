@@ -59,16 +59,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // For recyclers, we need all completed and in-progress collections
       if (req.user.role === UserRole.RECYCLER) {
+        // Access the diagnostic method if available (only in DatabaseStorage)
+        if (typeof (storage as any).logCollectionCount === 'function') {
+          await (storage as any).logCollectionCount();
+        }
+        
         const allCollections = await storage.getAllCollections();
+        console.log('All collections count:', allCollections.length);
+        
         // Filter collections to include:
         // 1. Collections that are COMPLETED
         // 2. Collections that are IN_PROGRESS with a collector assigned
-        const recyclerCollections = allCollections.filter(collection => 
-          collection.status === CollectionStatus.COMPLETED || 
-          (collection.status === CollectionStatus.IN_PROGRESS && collection.collectorId)
-        );
+        const recyclerCollections = allCollections.filter(collection => {
+          // Debug each collection's status
+          console.log(`Collection ${collection.id}: status=${collection.status}, collectorId=${collection.collectorId}`);
+          
+          // Check for COMPLETED collections (use the actual string values from the constants)
+          if (collection.status === 'completed') {
+            console.log(`Collection ${collection.id} matched COMPLETED status`);
+            return true;
+          }
+          
+          // Check for IN_PROGRESS collections with a collector assigned
+          if (collection.status === 'in_progress' && collection.collectorId) {
+            console.log(`Collection ${collection.id} matched IN_PROGRESS with collector ${collection.collectorId}`);
+            return true;
+          }
+          
+          return false;
+        });
         
         console.log(`Found ${recyclerCollections.length} collections for recycler`);
+        
+        // TEMPORARY FOR TESTING: Include ALL collections if none match the filter
+        if (recyclerCollections.length === 0) {
+          console.log('No matching collections found - for testing, returning all completed collections');
+          // Try to get all completed collections directly from storage
+          const completedCollections = await storage.getAllCompletedCollections();
+          console.log(`Found ${completedCollections.length} completed collections from direct query`);
+          
+          if (completedCollections.length > 0) {
+            return res.json(completedCollections);
+          }
+        }
+        
         return res.json(recyclerCollections);
       }
       
