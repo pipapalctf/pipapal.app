@@ -1,15 +1,20 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Mail, Phone, ArrowRight, ExternalLink, User, Calendar, Package, Trash2, Scale } from 'lucide-react';
+import { 
+  Loader2, Mail, Phone, ArrowRight, ExternalLink, User, Calendar, 
+  Package, Trash2, Scale, CheckCircle, CheckCheck, XCircle, Clock
+} from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { formatNumber } from '@/lib/utils';
 import { format } from 'date-fns';
 import { wasteTypeConfig } from '@/lib/types';
 import { Collection, MaterialInterest, User as UserType, WasteTypeValue } from '@shared/schema';
+import { apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
 
 interface MaterialInterestsTabProps {
   collectorId: number;
@@ -18,6 +23,9 @@ interface MaterialInterestsTabProps {
 export function MaterialInterestsTab({ collectorId }: MaterialInterestsTabProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const [isUpdating, setIsUpdating] = useState<number | null>(null);
 
   // Fetch all completed collections that belong to this collector
   const { data: completedCollections = [], isLoading: isLoadingCollections } = useQuery<Collection[]>({

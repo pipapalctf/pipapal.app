@@ -878,6 +878,98 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     }
   );
+  
+  // Update material interest status (accept or reject)
+  app.patch("/api/material-interests/:interestId/status", 
+    requireAuthentication,
+    async (req, res) => {
+      if (!req.user) return res.sendStatus(401);
+      
+      const interestId = parseInt(req.params.interestId);
+      if (isNaN(interestId)) return res.status(400).send("Invalid interest ID");
+      
+      const { status } = req.body;
+      if (!status || !["accepted", "rejected"].includes(status)) {
+        return res.status(400).json({ error: 'Invalid status. Must be "accepted" or "rejected"' });
+      }
+      
+      try {
+        // Get the interest
+        const interest = await storage.getMaterialInterest(interestId);
+        if (!interest) {
+          return res.status(404).json({ error: 'Material interest not found' });
+        }
+        
+        // Get the collection
+        const collection = await storage.getCollection(interest.collectionId);
+        if (!collection) {
+          return res.status(404).json({ error: 'Collection not found' });
+        }
+        
+        // Verify that the user is the collector for this collection
+        if (req.user.id !== collection.collectorId) {
+          return res.status(403).json({ error: 'You do not have permission to update this interest' });
+        }
+        
+        // Update the interest status
+        const updatedInterest = await storage.updateMaterialInterest(interestId, { status });
+        
+        // Get the recycler info for notification
+        const recycler = await storage.getUser(interest.userId);
+        
+        if (!recycler) {
+          return res.status(404).json({ error: 'Recycler not found' });
+        }
+        
+        // Prepare WebSocket notification to the recycler
+        const recyclerClients = clients.get(recycler.id) || [];
+        const statusAction = status === 'accepted' ? 'accepted' : 'rejected';
+        const notification = {
+          type: 'notification',
+          title: `Material interest ${statusAction}`,
+          message: `Your interest in the ${collection.wasteType} collection at ${collection.address} has been ${statusAction}.`,
+          collectionId: collection.id,
+          interestId: interest.id,
+          status
+        };
+        
+        // Send notification to all connected recycler clients
+        recyclerClients.forEach(client => {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify(notification));
+          }
+        });
+        
+        // Create activity entry for both collector and recycler
+        const collectorActivity = {
+          userId: req.user.id,
+          activityType: `material_interest_${status}`,
+          description: `You ${statusAction} a material interest from ${recycler.fullName || recycler.username} for the ${collection.wasteType} collection.`,
+          points: status === 'accepted' ? 10 : 0
+        };
+        
+        const recyclerActivity = {
+          userId: recycler.id,
+          activityType: `material_interest_${status}`,
+          description: `Your interest in the ${collection.wasteType} collection was ${statusAction} by the collector.`,
+          points: status === 'accepted' ? 5 : 0
+        };
+        
+        // Log activities
+        await storage.createActivity(collectorActivity);
+        await storage.createActivity(recyclerActivity);
+        
+        res.status(200).json({
+          success: true,
+          interest: updatedInterest
+        });
+        
+      } catch (error) {
+        console.error(`Error ${req.body.status === 'accepted' ? 'accepting' : 'rejecting'} material interest:`, error);
+        res.status(500).send(`Failed to ${req.body.status === 'accepted' ? 'accept' : 'reject'} material interest`);
+      }
+    }
+  );
 
   const httpServer = createServer(app);
   
