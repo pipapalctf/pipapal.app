@@ -15,6 +15,10 @@ import {
 } from "lucide-react";
 // Import directly using relative path to attached_assets
 import pipapalLogo from "../.././../attached_assets/pipapal-logo.png";
+// Import image assets
+import dashboardImg from "../assets/dashboard.png";
+import landingFormImg from "../assets/landing-form.png";
+import landingHeroImg from "../assets/landing-hero.png";
 
 export default function LandingPage() {
   const [, setLocation] = useLocation();
@@ -83,7 +87,14 @@ export default function LandingPage() {
       <div className="h-28"></div>
 
       {/* Hero Section */}
-      <section className="w-full py-16 md:py-24 bg-gradient-to-br from-primary/10 to-primary/5">
+      <section 
+        className="w-full py-16 md:py-24" 
+        style={{
+          backgroundImage: `url(${landingHeroImg})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat'
+        }}>
         <div className="container mx-auto px-4 md:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
             <div>
@@ -129,7 +140,7 @@ export default function LandingPage() {
                 <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-primary/30 rounded-lg"></div>
                 <div className="relative bg-white rounded-xl shadow-lg p-4 z-10">
                   <img 
-                    src="../.././../attached_assets/Screenshot 2025-04-22 003619.png"
+                    src={landingFormImg}
                     alt="PipaPal Platform Interface" 
                     className="rounded-lg w-full h-auto object-contain"
                   />
@@ -207,7 +218,7 @@ export default function LandingPage() {
                 <h3 className="text-xl font-bold text-secondary">Environmental Impact</h3>
               </div>
               <div className="mb-4">
-                <img src="../.././../attached_assets/image_1745272468626.png" alt="PipaPal Dashboard" className="w-full h-auto rounded-lg" />
+                <img src={dashboardImg} alt="PipaPal Dashboard" className="w-full h-auto rounded-lg" />
               </div>
               <p className="text-gray-600">
                 Track your contribution to reducing landfill waste, CO₂ emissions, and conserving natural resources. Our detailed impact dashboard helps you see the difference you're making.
