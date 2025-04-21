@@ -615,7 +615,7 @@ export default function CollectorCollectionsPage() {
                 <CardContent className="p-4">
                   {/* Import the RouteOptimizationMap component at the top of the file */}
                   <RouteOptimizationMap 
-                    collections={collections || []} 
+                    collections={Array.isArray(collections) ? collections : []} 
                     collectorAddress={user?.address || undefined}
                   />
                 </CardContent>

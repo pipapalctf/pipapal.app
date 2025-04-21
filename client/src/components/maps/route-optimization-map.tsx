@@ -12,7 +12,8 @@ import {
   MapPin, 
   Navigation, 
   Clock, 
-  Fuel
+  Fuel,
+  Truck
 } from 'lucide-react';
 import { Collection } from '@shared/schema';
 import { formatNumber } from '@/lib/utils';
@@ -219,13 +220,122 @@ export function RouteOptimizationMap({ collections, collectorAddress }: RouteOpt
 
   // Handle loading error
   if (loadError) {
+    console.error("Google Maps API loading error:", loadError);
+    
+    // Fallback display - Simple visual representation of collections
     return (
-      <div className="flex flex-col items-center justify-center h-[500px] bg-muted rounded-lg">
-        <AlertTriangle className="h-12 w-12 text-destructive mb-2" />
-        <h3 className="text-lg font-medium">Map Loading Error</h3>
-        <p className="text-sm text-muted-foreground text-center max-w-md mt-2">
-          Failed to load Google Maps. Please check your internet connection or API key.
-        </p>
+      <div className="space-y-4">
+        <div className="flex flex-col items-center justify-center py-4 bg-muted rounded-lg">
+          <AlertTriangle className="h-8 w-8 text-amber-600 mb-2" />
+          <h3 className="text-lg font-medium">Map Loading Error</h3>
+          <p className="text-sm text-muted-foreground text-center max-w-md mt-1">
+            Failed to load Google Maps. Using simplified visualization instead.
+          </p>
+          <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-md text-xs text-amber-800">
+            <p>To enable the full Google Maps experience:</p>
+            <ol className="list-decimal pl-4 mt-1 space-y-1">
+              <li>Ensure the API key has Directions API enabled</li>
+              <li>Check if billing is enabled for your Google Maps account</li>
+            </ol>
+          </div>
+        </div>
+        
+        {/* Fallback visualization */}
+        <div className="border rounded-lg p-4 bg-gray-50">
+          <h3 className="font-medium mb-4">Collection Points (Simplified View)</h3>
+          
+          <div className="relative w-full h-[300px] border border-dashed rounded-lg bg-white">
+            {/* Collector base in center */}
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+              <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-white">
+                <Truck className="h-4 w-4" />
+              </div>
+              <div className="text-xs text-center mt-1 font-medium">Base</div>
+            </div>
+            
+            {/* Collection points */}
+            {activeCollections.map((collection, index) => {
+              // Position points in a circle around the base
+              const angle = (index / activeCollections.length) * Math.PI * 2;
+              const radius = 120; // Pixels from center
+              const top = `calc(50% + ${Math.sin(angle) * radius}px)`;
+              const left = `calc(50% + ${Math.cos(angle) * radius}px)`;
+              
+              // Determine color based on collection status
+              const colors = {
+                'scheduled': 'bg-blue-500',
+                'in_progress': 'bg-yellow-500',
+                'completed': 'bg-green-500',
+                'default': 'bg-gray-500'
+              };
+              
+              const status = collection.status || 'default';
+              const bgColor = colors[status as keyof typeof colors];
+              
+              return (
+                <div 
+                  key={collection.id}
+                  className="absolute transform -translate-x-1/2 -translate-y-1/2"
+                  style={{ top, left }}
+                >
+                  <div className={`w-6 h-6 ${bgColor} rounded-full flex items-center justify-center text-white`}>
+                    {index + 1}
+                  </div>
+                  <div className="text-xs text-center mt-1">
+                    {(collection.address || '').split(',')[0]}
+                  </div>
+                </div>
+              );
+            })}
+            
+            {/* Show connections */}
+            <svg className="absolute inset-0 w-full h-full pointer-events-none">
+              {activeCollections.map((_, index) => {
+                const angle = (index / activeCollections.length) * Math.PI * 2;
+                const radius = 120;
+                const x = 150 + Math.cos(angle) * radius;
+                const y = 150 + Math.sin(angle) * radius;
+                
+                return (
+                  <line 
+                    key={index}
+                    x1="50%"
+                    y1="50%"
+                    x2={x}
+                    y2={y}
+                    stroke="#9333ea"
+                    strokeWidth="2"
+                    strokeDasharray="5,5"
+                    strokeOpacity="0.6"
+                  />
+                );
+              })}
+            </svg>
+          </div>
+          
+          <div className="mt-4">
+            <h4 className="text-sm font-medium mb-2">Collection Sequence</h4>
+            <div className="space-y-2">
+              {activeCollections.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No active collections to route</p>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {activeCollections.map((collection, index) => (
+                    <div key={collection.id} className="flex items-center border rounded p-2 bg-white">
+                      <div className="mr-3 w-6 h-6 rounded-full bg-primary flex items-center justify-center text-white text-sm font-medium">
+                        {index + 1}
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-medium capitalize text-sm">{collection.wasteType}</div>
+                        <div className="text-xs text-muted-foreground truncate">{collection.address}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
