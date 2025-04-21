@@ -187,6 +187,16 @@ export default function SchedulePickupPage() {
     }
   };
   
+  // Get past collections for the selected page
+  const pastCollections = collections
+    .filter(c => c.status === CollectionStatus.COMPLETED || c.status === CollectionStatus.CANCELLED)
+    .sort((a, b) => new Date(b.scheduledDate).getTime() - new Date(a.scheduledDate).getTime());
+  
+  const paginatedPastCollections = pastCollections
+    .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  
+  const totalPages = Math.ceil(pastCollections.length / itemsPerPage);
+  
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
@@ -335,141 +345,243 @@ export default function SchedulePickupPage() {
                       <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     </div>
                   ) : upcomingCollections.length > 0 ? (
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-medium mb-2">Upcoming Pickups</h3>
-                      {upcomingCollections.map((collection) => {
-                        const scheduledDate = new Date(collection.scheduledDate);
-                        return (
-                          <div key={collection.id} className="flex items-center justify-between p-4 border rounded-lg bg-card">
-                            <div className="flex items-start space-x-4">
-                              <div className={`p-3 rounded-full ${
-                                collection.status === CollectionStatus.PENDING 
-                                  ? "bg-yellow-100" 
-                                  : collection.status === CollectionStatus.CONFIRMED 
-                                  ? "bg-blue-100" 
-                                  : "bg-primary/10"
-                              }`}>
-                                <Truck className="h-6 w-6 text-primary" />
-                              </div>
-                              <div>
-                                <div className="flex items-center space-x-2">
-                                  <h4 className="font-medium capitalize">{collection.wasteType} Waste Pickup</h4>
-                                  {getStatusBadge(collection.status)}
-                                </div>
-                                <div className="text-sm text-muted-foreground mt-1">
-                                  <div className="flex items-center">
-                                    <Calendar className="h-4 w-4 mr-1" />
-                                    <span>{format(scheduledDate, 'PPP')}</span>
-                                  </div>
-                                  <div className="flex items-center mt-1">
-                                    <Clock className="h-4 w-4 mr-1" />
-                                    <span>{format(scheduledDate, 'p')}</span>
-                                  </div>
-                                  <div className="flex items-center mt-1">
-                                    <MapPin className="h-4 w-4 mr-1" />
-                                    <span>{collection.address}</span>
-                                  </div>
-                                  <div className="flex items-center mt-1">
-                                    <Recycle className="h-4 w-4 mr-1" />
-                                    <span>{collection.wasteAmount || 10}kg</span>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                            <div>
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem
-                                    className="text-blue-600"
-                                    onClick={() => handleEditRequest(collection)}
-                                  >
-                                    <Edit className="mr-2 h-4 w-4" />
-                                    Reschedule
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    className="text-red-500"
-                                    onClick={() => handleCancelRequest(collection)}
-                                  >
-                                    <X className="mr-2 h-4 w-4" />
-                                    Cancel
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </div>
-                          </div>
-                        );
-                      })}
+                    <div className="space-y-6">
+                      <h3 className="text-lg font-medium">Upcoming Pickups</h3>
                       
-                      <h3 className="text-lg font-medium mt-6 mb-2">Past Pickups</h3>
-                      {collections.filter(c => 
-                        c.status === CollectionStatus.COMPLETED || 
-                        c.status === CollectionStatus.CANCELLED
-                      ).length > 0 ? (
-                        collections.filter(c => 
-                          c.status === CollectionStatus.COMPLETED || 
-                          c.status === CollectionStatus.CANCELLED
-                        )
-                        .slice()
-                        .sort((a, b) => new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime())
-                        .map((collection) => {
-                          const scheduledDate = new Date(collection.scheduledDate);
-                          return (
-                            <div key={collection.id} className="flex items-center justify-between p-4 border rounded-lg bg-card/50">
-                              <div className="flex items-start space-x-4">
-                                <div className={`p-3 rounded-full ${
-                                  collection.status === CollectionStatus.COMPLETED 
-                                    ? "bg-green-100" 
-                                    : "bg-red-100"
-                                }`}>
-                                  {collection.status === CollectionStatus.COMPLETED ? (
-                                    <BadgeCheck className="h-6 w-6 text-green-600" />
-                                  ) : (
-                                    <X className="h-6 w-6 text-red-600" />
-                                  )}
-                                </div>
-                                <div>
-                                  <div className="flex items-center space-x-2">
-                                    <h4 className="font-medium capitalize">{collection.wasteType} Waste Pickup</h4>
-                                    {getStatusBadge(collection.status)}
-                                  </div>
-                                  <div className="text-sm text-muted-foreground mt-1">
-                                    <div className="flex items-center">
-                                      <Calendar className="h-4 w-4 mr-1" />
-                                      <span>{format(scheduledDate, 'PPP')}</span>
+                      <div className="rounded-md border">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Type</TableHead>
+                              <TableHead>Date</TableHead>
+                              <TableHead>Time</TableHead>
+                              <TableHead>Location</TableHead>
+                              <TableHead>Amount</TableHead>
+                              <TableHead>Status</TableHead>
+                              <TableHead className="w-[80px]">Actions</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {upcomingCollections.map((collection) => {
+                              const scheduledDate = new Date(collection.scheduledDate);
+                              return (
+                                <TableRow key={collection.id}>
+                                  <TableCell className="font-medium capitalize">
+                                    <div className="flex items-center gap-2">
+                                      <div className={`p-2 rounded-full ${
+                                        collection.status === CollectionStatus.PENDING 
+                                          ? "bg-yellow-100" 
+                                          : collection.status === CollectionStatus.CONFIRMED 
+                                          ? "bg-blue-100" 
+                                          : "bg-primary/10"
+                                      }`}>
+                                        <Truck className="h-4 w-4 text-primary" />
+                                      </div>
+                                      <span>{collection.wasteType}</span>
                                     </div>
-                                    <div className="flex items-center mt-1">
-                                      <Recycle className="h-4 w-4 mr-1" />
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="flex items-center">
+                                      <Calendar className="h-4 w-4 mr-1 text-muted-foreground" />
+                                      <span>{format(scheduledDate, 'MMM dd, yyyy')}</span>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="flex items-center">
+                                      <Clock className="h-4 w-4 mr-1 text-muted-foreground" />
+                                      <span>{format(scheduledDate, 'h:mm a')}</span>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="flex items-center">
+                                      <MapPin className="h-4 w-4 mr-1 text-muted-foreground" />
+                                      <span className="truncate max-w-[120px]" title={collection.address}>
+                                        {collection.address}
+                                      </span>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="flex items-center">
+                                      <Scale className="h-4 w-4 mr-1 text-muted-foreground" />
                                       <span>{collection.wasteAmount || 10}kg</span>
                                     </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })
+                                  </TableCell>
+                                  <TableCell>
+                                    {getStatusBadge(collection.status)}
+                                  </TableCell>
+                                  <TableCell>
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                                          <MoreHorizontal className="h-4 w-4" />
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end">
+                                        <DropdownMenuItem
+                                          onClick={() => handleEditRequest(collection)}
+                                        >
+                                          <Edit className="mr-2 h-4 w-4" />
+                                          Reschedule
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          className="text-red-500"
+                                          onClick={() => handleCancelRequest(collection)}
+                                        >
+                                          <X className="mr-2 h-4 w-4" />
+                                          Cancel
+                                        </DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                      </div>
+                      
+                      <h3 className="text-lg font-medium mt-8">Past Pickups</h3>
+                      
+                      {pastCollections.length > 0 ? (
+                        <div className="space-y-4">
+                          <div className="rounded-md border">
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Type</TableHead>
+                                  <TableHead>Date</TableHead>
+                                  <TableHead>Time</TableHead>
+                                  <TableHead>Location</TableHead>
+                                  <TableHead>Amount</TableHead>
+                                  <TableHead>Status</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {paginatedPastCollections.map((collection) => {
+                                  const scheduledDate = new Date(collection.scheduledDate);
+                                  return (
+                                    <TableRow key={collection.id}>
+                                      <TableCell className="font-medium capitalize">
+                                        <div className="flex items-center gap-2">
+                                          <div className={`p-2 rounded-full ${
+                                            collection.status === CollectionStatus.COMPLETED 
+                                              ? "bg-green-100" 
+                                              : "bg-red-100"
+                                          }`}>
+                                            {collection.status === CollectionStatus.COMPLETED ? (
+                                              <BadgeCheck className="h-4 w-4 text-green-600" />
+                                            ) : (
+                                              <X className="h-4 w-4 text-red-600" />
+                                            )}
+                                          </div>
+                                          <span>{collection.wasteType}</span>
+                                        </div>
+                                      </TableCell>
+                                      <TableCell>
+                                        <div className="flex items-center">
+                                          <Calendar className="h-4 w-4 mr-1 text-muted-foreground" />
+                                          <span>{format(scheduledDate, 'MMM dd, yyyy')}</span>
+                                        </div>
+                                      </TableCell>
+                                      <TableCell>
+                                        <div className="flex items-center">
+                                          <Clock className="h-4 w-4 mr-1 text-muted-foreground" />
+                                          <span>{format(scheduledDate, 'h:mm a')}</span>
+                                        </div>
+                                      </TableCell>
+                                      <TableCell>
+                                        <div className="flex items-center">
+                                          <MapPin className="h-4 w-4 mr-1 text-muted-foreground" />
+                                          <span className="truncate max-w-[120px]" title={collection.address}>
+                                            {collection.address}
+                                          </span>
+                                        </div>
+                                      </TableCell>
+                                      <TableCell>
+                                        <div className="flex items-center">
+                                          <Scale className="h-4 w-4 mr-1 text-muted-foreground" />
+                                          <span>{collection.wasteAmount || 10}kg</span>
+                                        </div>
+                                      </TableCell>
+                                      <TableCell>
+                                        {getStatusBadge(collection.status)}
+                                      </TableCell>
+                                    </TableRow>
+                                  );
+                                })}
+                              </TableBody>
+                            </Table>
+                          </div>
+                          
+                          {/* Pagination for past pickups */}
+                          {pastCollections.length > itemsPerPage && (
+                            <Pagination className="mt-4">
+                              <PaginationContent>
+                                <PaginationItem>
+                                  <PaginationPrevious 
+                                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))} 
+                                    disabled={currentPage === 1} 
+                                  />
+                                </PaginationItem>
+                                
+                                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                                  const pageNumber = i + 1;
+                                  return (
+                                    <PaginationItem key={pageNumber}>
+                                      <PaginationLink 
+                                        onClick={() => setCurrentPage(pageNumber)}
+                                        isActive={currentPage === pageNumber}
+                                      >
+                                        {pageNumber}
+                                      </PaginationLink>
+                                    </PaginationItem>
+                                  );
+                                })}
+                                
+                                {totalPages > 5 && (
+                                  <>
+                                    <PaginationItem>
+                                      <PaginationEllipsis />
+                                    </PaginationItem>
+                                    <PaginationItem>
+                                      <PaginationLink
+                                        onClick={() => setCurrentPage(totalPages)}
+                                        isActive={currentPage === totalPages}
+                                      >
+                                        {totalPages}
+                                      </PaginationLink>
+                                    </PaginationItem>
+                                  </>
+                                )}
+                                
+                                <PaginationItem>
+                                  <PaginationNext 
+                                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} 
+                                    disabled={currentPage === totalPages} 
+                                  />
+                                </PaginationItem>
+                              </PaginationContent>
+                            </Pagination>
+                          )}
+                        </div>
                       ) : (
-                        <div className="text-center p-6 text-muted-foreground bg-muted/20 rounded-lg">
-                          <p>No past collections found</p>
+                        <div className="text-center py-6 text-gray-500 rounded-md border p-4">
+                          <p>No past pickups found.</p>
                         </div>
                       )}
                     </div>
                   ) : (
-                    <div className="text-center py-10 px-6">
-                      <div className="inline-flex items-center justify-center rounded-full bg-primary/10 p-6 mb-4">
-                        <CalendarPlus className="h-10 w-10 text-primary" />
+                    <div className="text-center py-12">
+                      <div className="mx-auto bg-muted inline-flex h-20 w-20 items-center justify-center rounded-full mb-4">
+                        <CalendarPlus className="h-10 w-10 text-muted-foreground" />
                       </div>
-                      <h3 className="text-lg font-medium mb-2">No collections scheduled yet</h3>
-                      <p className="text-muted-foreground mb-6">
-                        You haven't scheduled any waste collections. Start reducing your environmental footprint today!
+                      <h3 className="font-semibold text-lg mb-1">No pickups scheduled</h3>
+                      <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                        You don't have any waste collection scheduled. Use the Schedule New Pickup tab to arrange a collection.
                       </p>
                       <Button onClick={() => setActiveTab("schedule")}>
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        Schedule Your First Pickup
+                        <PlusCircle className="h-4 w-4 mr-2" />
+                        Schedule a Pickup
                       </Button>
                     </div>
                   )}
