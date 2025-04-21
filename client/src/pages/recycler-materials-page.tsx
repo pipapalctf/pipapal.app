@@ -39,16 +39,20 @@ export default function RecyclerMaterialsPage() {
     queryKey: ['/api/collections'],
   });
 
-  // Only include collections that are in COMPLETED status with a wasteAmount
-  // These are collections that have been processed by collectors and are ready for recyclers
-  const completedCollections = collections.filter(
-    (collection: Collection) => collection.status === CollectionStatus.COMPLETED && collection.wasteAmount
+  // Include collections that are in either COMPLETED or IN_PROGRESS status
+  // These are collections that are either being processed or ready for recyclers
+  const availableCollections = collections.filter(
+    (collection: Collection) => 
+      // Include completed collections with a waste amount
+      (collection.status === CollectionStatus.COMPLETED && collection.wasteAmount) ||
+      // Or collections that are in progress and have a collector assigned
+      (collection.status === CollectionStatus.IN_PROGRESS && collection.collectorId)
   );
 
   // Apply waste type filter
   const filteredByWasteType = filterWasteType === 'all' 
-    ? completedCollections 
-    : completedCollections.filter((collection: Collection) => collection.wasteType === filterWasteType);
+    ? availableCollections 
+    : availableCollections.filter((collection: Collection) => collection.wasteType === filterWasteType);
 
   // Group materials by waste type for easier viewing
   const groupedMaterials = filteredByWasteType.reduce((groups: Record<string, Collection[]>, collection: Collection) => {
@@ -61,13 +65,13 @@ export default function RecyclerMaterialsPage() {
   }, {} as Record<string, Collection[]>);
 
   // Calculate total materials available
-  const totalMaterials = completedCollections.reduce(
+  const totalMaterials = availableCollections.reduce(
     (total: number, collection: Collection) => total + (collection.wasteAmount || 0),
     0
   );
 
   // Calculate materials by type for the summary cards
-  const materialsByType = completedCollections.reduce((acc: Record<string, number>, collection: Collection) => {
+  const materialsByType = availableCollections.reduce((acc: Record<string, number>, collection: Collection) => {
     const wasteType = collection.wasteType || 'general';
     if (!acc[wasteType]) {
       acc[wasteType] = 0;
@@ -309,7 +313,7 @@ export default function RecyclerMaterialsPage() {
                 </div>
                 <h3 className="text-xl font-medium mb-2">No Materials Available</h3>
                 <p className="text-muted-foreground max-w-md mx-auto">
-                  There are currently no completed collections with materials available for recycling.
+                  There are currently no completed or in-progress collections with materials available for recycling.
                   Check back later or adjust your filters.
                 </p>
               </CardContent>
@@ -363,7 +367,20 @@ export default function RecyclerMaterialsPage() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          {new Date(collection.completedDate || collection.scheduledDate).toLocaleDateString()}
+                          <div className="flex flex-col gap-1">
+                            <span>{new Date(collection.completedDate || collection.scheduledDate).toLocaleDateString()}</span>
+                            <Badge variant="outline" className={
+                              collection.status === CollectionStatus.COMPLETED 
+                                ? "bg-green-50 text-green-700 border-green-200 text-xs" 
+                                : "bg-blue-50 text-blue-700 border-blue-200 text-xs"
+                            }>
+                              {collection.status === CollectionStatus.COMPLETED ? (
+                                <><CheckCircle2 className="h-3 w-3 mr-1" />Completed</>
+                              ) : (
+                                <><Clock className="h-3 w-3 mr-1" />In Progress</>
+                              )}
+                            </Badge>
+                          </div>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center text-sm">
