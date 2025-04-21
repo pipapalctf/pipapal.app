@@ -7,6 +7,7 @@ import { Truck, Package, MapPin, Clock, DollarSign, Star, Route, Scale, Leaf } f
 import { User, CollectionStatus } from '@shared/schema';
 import { formatNumber } from '@/lib/utils';
 import RoleBasedCTA from './role-based-cta';
+import { ServiceAreaMap } from '@/components/maps/service-area-map';
 
 interface CollectorDashboardProps {
   user: User;
@@ -470,14 +471,12 @@ export default function CollectorDashboard({ user }: CollectorDashboardProps) {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="bg-muted rounded-lg h-[400px] flex items-center justify-center mb-4">
-                <div className="text-center p-6">
-                  <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
-                  <h3 className="text-lg font-medium">Map Visualization</h3>
-                  <p className="text-sm text-muted-foreground">
-                    A map showing your service areas and collection points would appear here.
-                  </p>
-                </div>
+              {/* Service Area Map Component */}
+              <div className="mb-4">
+                <ServiceAreaMap 
+                  collections={collectorJobs} 
+                  collectorAddress={user?.address || undefined}
+                />
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
