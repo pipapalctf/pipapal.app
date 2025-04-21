@@ -57,10 +57,14 @@ export default function CollectorCollectionsPage() {
   // Filter collections by collector and status
   const filteredCollections = collections
     .filter((collection: any) => {
-      // Only show collections assigned to this collector or unassigned
-      const isCollectorOrUnassigned = 
+      // Show collections that are:
+      // 1. Assigned to this collector OR
+      // 2. Unassigned and scheduled (available for claiming) OR
+      // 3. In the process of being claimed by this collector
+      const isRelevantToCollector = 
         collection.collectorId === user.id || 
-        (!collection.collectorId && collection.status === CollectionStatus.SCHEDULED);
+        (!collection.collectorId && collection.status === CollectionStatus.SCHEDULED) ||
+        (currentlyClaimingId === collection.id);
       
       // Apply status filter
       const matchesStatus = 
@@ -74,7 +78,7 @@ export default function CollectorCollectionsPage() {
         collection.address?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         collection.wasteType?.toLowerCase().includes(searchQuery.toLowerCase());
       
-      return isCollectorOrUnassigned && matchesStatus && matchesSearch;
+      return isRelevantToCollector && matchesStatus && matchesSearch;
     })
     .sort((a: any, b: any) => {
       // Sort by scheduled date, newest first
@@ -135,6 +139,8 @@ export default function CollectorCollectionsPage() {
       });
       // Reset claiming state
       setCurrentlyClaimingId(null);
+      // Switch to confirmed status to show the newly claimed collection
+      setStatusFilter(CollectionStatus.CONFIRMED);
     },
     onError: (error: Error) => {
       toast({
