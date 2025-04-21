@@ -658,10 +658,7 @@ export class DatabaseStorage implements IStorage {
     const [collection] = await db.select().from(collections).where(eq(collections.id, id));
     if (!collection) return undefined;
     
-    // Use direct SQL for date handling to bypass any ORM serialization issues
-    let query = db.update(collections).where(eq(collections.id, id));
-    
-    // Build the update clauses manually
+    // Build the update values
     const setValues: Record<string, any> = {};
     
     // Handle regular fields
@@ -675,8 +672,11 @@ export class DatabaseStorage implements IStorage {
       setValues.completed_date = sql`NOW()`; // Use the database's NOW() function
     }
     
-    // Execute the update
-    const [updatedCollection] = await query.set(setValues).returning();
+    // Execute the update correctly using drizzle-orm syntax
+    const [updatedCollection] = await db.update(collections)
+      .set(setValues)
+      .where(eq(collections.id, id))
+      .returning();
     
     // If collection is completed, generate impact data
     if (updates.status === CollectionStatus.COMPLETED && updates.wasteAmount) {

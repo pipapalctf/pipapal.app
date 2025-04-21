@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { apiRequest, queryClient } from '@/lib/queryClient';
-import { Calendar, CheckCircle, Clock, Filter, MapPin, Search, Truck, Package, AlertTriangle, Trash2, ClipboardCheck, ArrowRight, CalendarClock, CheckCheck, X, Map, XCircle, Activity, Scale, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, CheckCircle, Clock, Filter, MapPin, Search, Truck, Package, AlertTriangle, Trash2, ClipboardCheck, ArrowRight, CalendarClock, CheckCheck, X, Map, XCircle, Activity, Scale, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { formatNumber } from '@/lib/utils';
 import { wasteTypeConfig } from '@/lib/types';
 import { format } from 'date-fns';
@@ -103,12 +103,27 @@ export default function CollectorCollectionsPage() {
   );
 
   // Claim a collection (assign to self)
+  const [currentlyClaimingId, setCurrentlyClaimingId] = useState<number | null>(null);
+  
   const claimCollectionMutation = useMutation({
     mutationFn: async (collectionId: number) => {
+      // Set which collection is currently being claimed
+      setCurrentlyClaimingId(collectionId);
+      
+      // First verify if the collection is still available
+      const checkRes = await apiRequest('GET', `/api/collections/${collectionId}`);
+      const collection = await checkRes.json();
+      
+      if (collection.collectorId) {
+        throw new Error('This collection has already been claimed by another collector');
+      }
+      
+      // Update the collection
       const res = await apiRequest('PATCH', `/api/collections/${collectionId}`, {
         collectorId: user.id,
         status: CollectionStatus.CONFIRMED
       });
+      
       return await res.json();
     },
     onSuccess: () => {
@@ -118,6 +133,8 @@ export default function CollectorCollectionsPage() {
         description: 'You have successfully claimed this collection.',
         variant: 'default',
       });
+      // Reset claiming state
+      setCurrentlyClaimingId(null);
     },
     onError: (error: Error) => {
       toast({
@@ -125,6 +142,8 @@ export default function CollectorCollectionsPage() {
         description: error.message,
         variant: 'destructive',
       });
+      // Reset claiming state
+      setCurrentlyClaimingId(null);
     }
   });
 
@@ -207,16 +226,26 @@ export default function CollectorCollectionsPage() {
     const nextStatus = getNextStatus(collection.status);
     
     if (!collection.collectorId && collection.status === CollectionStatus.SCHEDULED) {
+      const isClaimingThis = currentlyClaimingId === collection.id;
       return (
         <Button 
           size="sm" 
           variant="default" 
           className="w-full"
           onClick={() => claimCollectionMutation.mutate(collection.id)}
-          disabled={claimCollectionMutation.isPending}
+          disabled={claimCollectionMutation.isPending || isClaimingThis}
         >
-          <Truck className="mr-2 h-4 w-4" />
-          Claim Pickup
+          {isClaimingThis ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Claiming...
+            </>
+          ) : (
+            <>
+              <Truck className="mr-2 h-4 w-4" />
+              Claim Pickup
+            </>
+          )}
         </Button>
       );
     }
