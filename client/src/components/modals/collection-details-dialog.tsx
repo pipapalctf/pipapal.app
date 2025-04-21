@@ -10,6 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
 import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Collection, User } from '@shared/schema';
 import { Badge } from '@/components/ui/badge';
 import { wasteTypeConfig } from '@/lib/types';
@@ -118,125 +119,127 @@ export function CollectionDetailsDialog({
               </DialogDescription>
             </DialogHeader>
             
-            <div className="grid gap-4">
-              {/* Waste Information */}
-              <div className="grid gap-2">
-                <h3 className="text-sm font-medium">Material Details</h3>
-                <div className="bg-muted/50 p-3 rounded-md grid gap-2">
-                  <div className="flex items-center">
-                    <PackageOpen className="h-4 w-4 mr-2 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground mr-1">Type:</span>
-                    <Badge 
-                      variant="outline" 
-                      className={`text-${getWasteTypeConfig(collection.wasteType).textColor} bg-${getWasteTypeConfig(collection.wasteType).bgColor}/10`}
-                    >
-                      {getWasteTypeConfig(collection.wasteType).label}
-                    </Badge>
-                  </div>
-                  
-                  <div className="flex items-center">
-                    <Scale className="h-4 w-4 mr-2 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground mr-1">Amount:</span>
-                    <span className="text-sm font-medium">{collection.wasteAmount ? `${formatNumber(collection.wasteAmount)} kg` : 'Not recorded'}</span>
-                  </div>
-                  
-                  <div className="flex items-center">
-                    <CircleDollarSign className="h-4 w-4 mr-2 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground mr-1">Est. Value:</span>
-                    <span className="text-sm font-medium">${formatNumber((collection.wasteAmount || 0) * 0.2, 2)}</span>
-                  </div>
-                  
-                  {collection.wasteDescription && (
-                    <div className="flex">
-                      <FileText className="h-4 w-4 mr-2 text-muted-foreground flex-shrink-0 mt-1" />
-                      <div>
-                        <span className="text-sm text-muted-foreground">Description:</span>
-                        <p className="text-sm">{collection.wasteDescription}</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              {/* Location Information */}
-              <div className="grid gap-2">
-                <h3 className="text-sm font-medium">Location Details</h3>
-                <div className="bg-muted/50 p-3 rounded-md grid gap-2">
-                  <div className="flex">
-                    <MapPin className="h-4 w-4 mr-2 text-muted-foreground flex-shrink-0 mt-1" />
-                    <div>
-                      <span className="text-sm text-muted-foreground">Address:</span>
-                      <p className="text-sm">{collection.address}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Timing Information */}
-              <div className="grid gap-2">
-                <h3 className="text-sm font-medium">Collection Dates</h3>
-                <div className="bg-muted/50 p-3 rounded-md grid gap-2">
-                  <div className="flex items-center">
-                    <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground mr-1">Scheduled:</span>
-                    <span className="text-sm">{formatDate(collection.scheduledDate)}</span>
-                  </div>
-                  
-                  <div className="flex items-center">
-                    <CheckCircle2 className="h-4 w-4 mr-2 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground mr-1">Completed:</span>
-                    <span className="text-sm">{collection.completedDate ? formatDate(collection.completedDate) : 'Not completed yet'}</span>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Collector Information */}
-              {collection.collectorId && (
+            <ScrollArea className="max-h-[60vh]">
+              <div className="grid gap-4 p-1">
+                {/* Waste Information */}
                 <div className="grid gap-2">
-                  <h3 className="text-sm font-medium">Collector Information</h3>
+                  <h3 className="text-sm font-medium">Material Details</h3>
                   <div className="bg-muted/50 p-3 rounded-md grid gap-2">
-                    {isLoadingCollector ? (
-                      <div className="flex items-center justify-center p-2">
-                        <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full"></div>
-                        <span className="text-sm ml-2">Loading collector details...</span>
+                    <div className="flex items-center">
+                      <PackageOpen className="h-4 w-4 mr-2 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground mr-1">Type:</span>
+                      <Badge 
+                        variant="outline" 
+                        className={`text-${getWasteTypeConfig(collection.wasteType).textColor} bg-${getWasteTypeConfig(collection.wasteType).bgColor}/10`}
+                      >
+                        {getWasteTypeConfig(collection.wasteType).label}
+                      </Badge>
+                    </div>
+                    
+                    <div className="flex items-center">
+                      <Scale className="h-4 w-4 mr-2 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground mr-1">Amount:</span>
+                      <span className="text-sm font-medium">{collection.wasteAmount ? `${formatNumber(collection.wasteAmount)} kg` : 'Not recorded'}</span>
+                    </div>
+                    
+                    <div className="flex items-center">
+                      <CircleDollarSign className="h-4 w-4 mr-2 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground mr-1">Est. Value:</span>
+                      <span className="text-sm font-medium">${formatNumber((collection.wasteAmount || 0) * 0.2, 2)}</span>
+                    </div>
+                    
+                    {collection.wasteDescription && (
+                      <div className="flex">
+                        <FileText className="h-4 w-4 mr-2 text-muted-foreground flex-shrink-0 mt-1" />
+                        <div>
+                          <span className="text-sm text-muted-foreground">Description:</span>
+                          <p className="text-sm">{collection.wasteDescription}</p>
+                        </div>
                       </div>
-                    ) : !collector ? (
-                      <span className="text-sm text-muted-foreground">Collector information not available</span>
-                    ) : (
-                      <>
-                        <div className="flex items-center">
-                          <UserIcon className="h-4 w-4 mr-2 text-muted-foreground" />
-                          <span className="text-sm text-muted-foreground mr-1">Name:</span>
-                          <span className="text-sm font-medium">{collector.fullName}</span>
-                        </div>
-                        
-                        <div className="flex items-center">
-                          <Phone className="h-4 w-4 mr-2 text-muted-foreground" />
-                          <span className="text-sm text-muted-foreground mr-1">Phone:</span>
-                          <span className="text-sm">{collector.phone || 'Not provided'}</span>
-                        </div>
-                        
-                        <div className="flex items-center">
-                          <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
-                          <span className="text-sm text-muted-foreground mr-1">Email:</span>
-                          <span className="text-sm">{collector.email}</span>
-                        </div>
-                      </>
                     )}
                   </div>
                 </div>
-              )}
-              
-              {/* Notes */}
-              {collection.notes && (
+                
+                {/* Location Information */}
                 <div className="grid gap-2">
-                  <h3 className="text-sm font-medium">Notes</h3>
-                  <div className="bg-muted/50 p-3 rounded-md">
-                    <p className="text-sm">{collection.notes}</p>
+                  <h3 className="text-sm font-medium">Location Details</h3>
+                  <div className="bg-muted/50 p-3 rounded-md grid gap-2">
+                    <div className="flex">
+                      <MapPin className="h-4 w-4 mr-2 text-muted-foreground flex-shrink-0 mt-1" />
+                      <div>
+                        <span className="text-sm text-muted-foreground">Address:</span>
+                        <p className="text-sm">{collection.address}</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              )}
-            </div>
+                
+                {/* Timing Information */}
+                <div className="grid gap-2">
+                  <h3 className="text-sm font-medium">Collection Dates</h3>
+                  <div className="bg-muted/50 p-3 rounded-md grid gap-2">
+                    <div className="flex items-center">
+                      <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground mr-1">Scheduled:</span>
+                      <span className="text-sm">{formatDate(collection.scheduledDate)}</span>
+                    </div>
+                    
+                    <div className="flex items-center">
+                      <CheckCircle2 className="h-4 w-4 mr-2 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground mr-1">Completed:</span>
+                      <span className="text-sm">{collection.completedDate ? formatDate(collection.completedDate) : 'Not completed yet'}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Collector Information */}
+                {collection.collectorId && (
+                  <div className="grid gap-2">
+                    <h3 className="text-sm font-medium">Collector Information</h3>
+                    <div className="bg-muted/50 p-3 rounded-md grid gap-2">
+                      {isLoadingCollector ? (
+                        <div className="flex items-center justify-center p-2">
+                          <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full"></div>
+                          <span className="text-sm ml-2">Loading collector details...</span>
+                        </div>
+                      ) : !collector ? (
+                        <span className="text-sm text-muted-foreground">Collector information not available</span>
+                      ) : (
+                        <>
+                          <div className="flex items-center">
+                            <UserIcon className="h-4 w-4 mr-2 text-muted-foreground" />
+                            <span className="text-sm text-muted-foreground mr-1">Name:</span>
+                            <span className="text-sm font-medium">{collector.fullName}</span>
+                          </div>
+                          
+                          <div className="flex items-center">
+                            <Phone className="h-4 w-4 mr-2 text-muted-foreground" />
+                            <span className="text-sm text-muted-foreground mr-1">Phone:</span>
+                            <span className="text-sm">{collector.phone || 'Not provided'}</span>
+                          </div>
+                          
+                          <div className="flex items-center">
+                            <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
+                            <span className="text-sm text-muted-foreground mr-1">Email:</span>
+                            <span className="text-sm">{collector.email}</span>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Notes */}
+                {collection.notes && (
+                  <div className="grid gap-2">
+                    <h3 className="text-sm font-medium">Notes</h3>
+                    <div className="bg-muted/50 p-3 rounded-md">
+                      <p className="text-sm">{collection.notes}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
             
             <DialogFooter>
               <Button onClick={() => onOpenChange(false)}>Close</Button>
