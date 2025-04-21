@@ -1074,6 +1074,139 @@ export class DatabaseStorage implements IStorage {
     return activity;
   }
   
+  // Material Listings
+  async getMaterialListing(id: number): Promise<MaterialListing | undefined> {
+    const [listing] = await db.select().from(materialListings).where(eq(materialListings.id, id));
+    return listing;
+  }
+  
+  async getMaterialListingsByCollector(collectorId: number): Promise<MaterialListing[]> {
+    return db.select().from(materialListings)
+      .where(eq(materialListings.collectorId, collectorId))
+      .orderBy(desc(materialListings.createdAt));
+  }
+  
+  async getAvailableMaterialListings(): Promise<MaterialListing[]> {
+    return db.select().from(materialListings)
+      .where(eq(materialListings.status, MaterialStatus.AVAILABLE))
+      .orderBy(desc(materialListings.createdAt));
+  }
+  
+  async createMaterialListing(insertListing: InsertMaterialListing): Promise<MaterialListing> {
+    const [listing] = await db.insert(materialListings)
+      .values(insertListing)
+      .returning();
+    
+    // Create activity for the collector
+    await this.createActivity({
+      userId: listing.collectorId,
+      activityType: 'material_listed',
+      description: `Listed ${listing.quantity}kg of ${listing.materialType} for sale`
+    });
+    
+    return listing;
+  }
+  
+  async updateMaterialListing(id: number, updates: Partial<MaterialListing>): Promise<MaterialListing | undefined> {
+    const [listing] = await db.select().from(materialListings).where(eq(materialListings.id, id));
+    if (!listing) return undefined;
+    
+    const [updatedListing] = await db.update(materialListings)
+      .set(updates)
+      .where(eq(materialListings.id, id))
+      .returning();
+    
+    // If status changed to sold, create activity
+    if (updates.status === MaterialStatus.SOLD && listing.status !== MaterialStatus.SOLD) {
+      await this.createActivity({
+        userId: listing.collectorId,
+        activityType: 'material_sold',
+        description: `Sold ${listing.quantity}kg of ${listing.materialType}`
+      });
+    }
+    
+    return updatedListing;
+  }
+  
+  // Material Bids
+  async getMaterialBid(id: number): Promise<MaterialBid | undefined> {
+    const [bid] = await db.select().from(materialBids).where(eq(materialBids.id, id));
+    return bid;
+  }
+  
+  async getMaterialBidsByMaterial(materialId: number): Promise<MaterialBid[]> {
+    return db.select().from(materialBids)
+      .where(eq(materialBids.materialId, materialId))
+      .orderBy(desc(materialBids.createdAt));
+  }
+  
+  async getMaterialBidsByRecycler(recyclerId: number): Promise<MaterialBid[]> {
+    return db.select().from(materialBids)
+      .where(eq(materialBids.recyclerId, recyclerId))
+      .orderBy(desc(materialBids.createdAt));
+  }
+  
+  async createMaterialBid(insertBid: InsertMaterialBid): Promise<MaterialBid> {
+    const [bid] = await db.insert(materialBids)
+      .values(insertBid)
+      .returning();
+    
+    // Create activity for the recycler
+    await this.createActivity({
+      userId: bid.recyclerId,
+      activityType: 'bid_placed',
+      description: `Placed a bid of KES ${bid.amount} on a material listing`
+    });
+    
+    // Also fetch the material listing and collector to notify them
+    const listing = await this.getMaterialListing(bid.materialId);
+    if (listing) {
+      // Create activity for the collector
+      await this.createActivity({
+        userId: listing.collectorId,
+        activityType: 'bid_received',
+        description: `Received a bid of KES ${bid.amount} on your ${listing.materialType} listing`
+      });
+    }
+    
+    return bid;
+  }
+  
+  async updateMaterialBid(id: number, updates: Partial<MaterialBid>): Promise<MaterialBid | undefined> {
+    const [bid] = await db.select().from(materialBids).where(eq(materialBids.id, id));
+    if (!bid) return undefined;
+    
+    const [updatedBid] = await db.update(materialBids)
+      .set(updates)
+      .where(eq(materialBids.id, id))
+      .returning();
+    
+    // If bid was accepted, update material listing status
+    if (updates.status === 'accepted' && bid.status !== 'accepted') {
+      const listing = await this.getMaterialListing(bid.materialId);
+      if (listing) {
+        await this.updateMaterialListing(listing.id, {
+          status: MaterialStatus.SOLD
+        });
+        
+        // Create activities for both parties
+        await this.createActivity({
+          userId: bid.recyclerId,
+          activityType: 'bid_accepted',
+          description: `Your bid was accepted for ${listing.materialType} material`
+        });
+        
+        await this.createActivity({
+          userId: listing.collectorId,
+          activityType: 'bid_accepted',
+          description: `You accepted a bid for your ${listing.materialType} material`
+        });
+      }
+    }
+    
+    return updatedBid;
+  }
+  
   // Seed initial data
   private async seedEcoTipsIfNoneExist() {
     const tips = await this.getEcoTips();
