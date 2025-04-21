@@ -9,7 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { formatNumber } from '@/lib/utils';
 import { format } from 'date-fns';
 import { wasteTypeConfig } from '@/lib/types';
-import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
+import { Collection, MaterialInterest, User as UserType, WasteTypeValue } from '@shared/schema';
 
 interface MaterialInterestsTabProps {
   collectorId: number;
@@ -20,7 +20,7 @@ export function MaterialInterestsTab({ collectorId }: MaterialInterestsTabProps)
   const itemsPerPage = 10;
 
   // Fetch all completed collections that belong to this collector
-  const { data: completedCollections = [], isLoading: isLoadingCollections } = useQuery({
+  const { data: completedCollections = [], isLoading: isLoadingCollections } = useQuery<Collection[]>({
     queryKey: ['/api/collections/collector', collectorId, 'completed'],
     queryFn: async () => {
       const res = await fetch(`/api/collections/collector/${collectorId}/completed`);
@@ -31,7 +31,7 @@ export function MaterialInterestsTab({ collectorId }: MaterialInterestsTabProps)
   });
 
   // Fetch material interests for all collections
-  const { data: collectionInterests = [], isLoading: isLoadingInterests } = useQuery({
+  const { data: collectionInterests = [], isLoading: isLoadingInterests } = useQuery<MaterialInterest[]>({
     queryKey: ['/api/material-interests/collector', collectorId],
     queryFn: async () => {
       const res = await fetch(`/api/material-interests/collector/${collectorId}`);
@@ -42,14 +42,14 @@ export function MaterialInterestsTab({ collectorId }: MaterialInterestsTabProps)
   });
 
   // Fetch all users to get recycler information
-  const { data: users = [] } = useQuery({
+  const { data: users = [] } = useQuery<UserType[]>({
     queryKey: ['/api/users'],
     enabled: !!collectionInterests && collectionInterests.length > 0
   });
 
   // Helper function to get recycler info
-  const getRecyclerInfo = (userId: number) => {
-    return users.find((user: any) => user.id === userId);
+  const getRecyclerInfo = (userId: number): UserType | undefined => {
+    return users.find((user: UserType) => user.id === userId);
   };
 
   // Calculate pagination
@@ -105,8 +105,8 @@ export function MaterialInterestsTab({ collectorId }: MaterialInterestsTabProps)
           </TableRow>
         </TableHeader>
         <TableBody>
-          {paginatedInterests.map((interest: any) => {
-            const collection = completedCollections.find((c: any) => c.id === interest.collectionId);
+          {paginatedInterests.map((interest: MaterialInterest) => {
+            const collection = completedCollections.find((c: Collection) => c.id === interest.collectionId);
             const recycler = getRecyclerInfo(interest.userId);
             
             if (!collection || !recycler) return null;

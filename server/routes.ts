@@ -786,9 +786,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     async (req, res) => {
       if (!req.user) return res.sendStatus(401);
       
-      // Check if user is the collector or an admin
+      // Check if user is the collector
       const collectorId = parseInt(req.params.collectorId);
-      if (req.user.id !== collectorId && req.user.role !== UserRole.ADMIN) {
+      if (req.user.id !== collectorId) {
         return res.status(403).json({ error: 'You do not have permission to view these interests' });
       }
       
@@ -820,9 +820,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     async (req, res) => {
       if (!req.user) return res.sendStatus(401);
       
-      // Check if user is the collector or an admin
+      // Check if user is the collector
       const collectorId = parseInt(req.params.collectorId);
-      if (req.user.id !== collectorId && req.user.role !== UserRole.ADMIN) {
+      if (req.user.id !== collectorId) {
         return res.status(403).json({ error: 'You do not have permission to view these collections' });
       }
       
