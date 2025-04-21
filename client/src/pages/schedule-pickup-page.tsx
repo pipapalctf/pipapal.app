@@ -6,6 +6,7 @@ import MobileNavigation from "@/components/shared/mobile-navigation";
 import SchedulePickupForm from "@/components/forms/schedule-pickup-form";
 import { useQuery } from "@tanstack/react-query";
 import { Collection, CollectionStatus } from "@shared/schema";
+import { CollectionDetailsDialog } from "@/components/modals/collection-details-dialog";
 import { 
   CalendarCheck, 
   CalendarPlus, 
@@ -130,6 +131,10 @@ export default function SchedulePickupPage() {
   // State for the collection being edited
   const [collectionToEdit, setCollectionToEdit] = useState<Collection | null>(null);
   
+  // State for collection details dialog
+  const [selectedCollectionId, setSelectedCollectionId] = useState<number | null>(null);
+  const [collectionDetailsOpen, setCollectionDetailsOpen] = useState(false);
+  
   // Parse collection ID from URL or hash if present
   useEffect(() => {
     // Check for edit in query params or hash
@@ -168,6 +173,12 @@ export default function SchedulePickupPage() {
     setActiveTab("schedule");
     scrollToElement('schedule-tab-content', 80);
     // No URL update needed, just manage with state
+  };
+  
+  // Function to handle view details
+  const handleViewDetails = (collection: Collection) => {
+    setSelectedCollectionId(collection.id);
+    setCollectionDetailsOpen(true);
   };
   
   // Get status badge configuration
@@ -425,6 +436,12 @@ export default function SchedulePickupPage() {
                                       </DropdownMenuTrigger>
                                       <DropdownMenuContent align="end">
                                         <DropdownMenuItem
+                                          onClick={() => handleViewDetails(collection)}
+                                        >
+                                          <Calendar className="mr-2 h-4 w-4" />
+                                          View Details
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
                                           onClick={() => handleEditRequest(collection)}
                                         >
                                           <Edit className="mr-2 h-4 w-4" />
@@ -512,6 +529,7 @@ export default function SchedulePickupPage() {
                                   <TableHead>Location</TableHead>
                                   <TableHead>Amount</TableHead>
                                   <TableHead>Status</TableHead>
+                                  <TableHead className="w-[80px]">Actions</TableHead>
                                 </TableRow>
                               </TableHeader>
                               <TableBody>
