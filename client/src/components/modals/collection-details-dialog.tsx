@@ -195,18 +195,25 @@ export function CollectionDetailsDialog({
   });
   
   // Fetch requester details (the user who created the collection)
-  const { data: requester, isLoading: isLoadingRequester } = useQuery<User>({
+  const { data: requester, isLoading: isLoadingRequester, error: requesterError } = useQuery<User>({
     queryKey: ['/api/users', collection?.userId],
     enabled: open && !!collection?.userId,
     refetchOnWindowFocus: false, // Don't refetch when window gains focus
     staleTime: 30000, // Consider data fresh for 30 seconds
-    onSuccess: (data) => {
-      console.log('Successfully loaded requester data:', data);
-    },
-    onError: (error) => {
-      console.error('Error loading requester data:', error);
-    }
+    retry: 1,
+    gcTime: 0, // Don't keep the data in cache
   });
+  
+  // Log debugging information
+  React.useEffect(() => {
+    if (collection?.userId) {
+      console.log('Collection userId:', collection.userId);
+      console.log('Requester data:', requester);
+      if (requesterError) {
+        console.error('Requester error:', requesterError);
+      }
+    }
+  }, [collection?.userId, requester, requesterError]);
 
   // Get waste type configuration for styling
   const getWasteTypeConfig = (type?: string) => {

@@ -648,6 +648,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   );
   
   // Express interest in recycling materials
+  // Add a route to get all users
+  app.get("/api/users", 
+    requireAuthentication,
+    async (req, res) => {
+      if (!req.user) return res.sendStatus(401);
+      
+      // Get all users (using only for directory purposes)
+      const users = await storage.getAllUsers();
+      
+      // For security reasons, only return non-sensitive user information
+      const safeUsers = users.map(user => ({
+        id: user.id,
+        username: user.username,
+        fullName: user.fullName,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        address: user.address,
+        sustainabilityScore: user.sustainabilityScore
+      }));
+      
+      res.json(safeUsers);
+    }
+  );
+  
   // Add a route to get user details by ID
   app.get("/api/users/:id", 
     requireAuthentication,
@@ -675,6 +700,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sustainabilityScore: user.sustainabilityScore
       };
       
+      console.log('Returning user data for ID:', id, safeUserData);
       res.json(safeUserData);
     }
   );
