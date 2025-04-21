@@ -132,12 +132,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const collection = await storage.getCollection(id);
       if (!collection) return res.status(404).send("Collection not found");
       
-      // Check ownership or collector rights
+      // Check appropriate viewing rights
       const isOwner = collection.userId === req.user.id;
       const isCollector = req.user.role === UserRole.COLLECTOR && 
                          (collection.collectorId === req.user.id || !collection.collectorId);
+      // Allow recyclers to view completed collections with material amount
+      const isRecycler = req.user.role === UserRole.RECYCLER && 
+                        (collection.status === CollectionStatus.COMPLETED && collection.wasteAmount > 0 ||
+                         collection.status === CollectionStatus.IN_PROGRESS && collection.collectorId);
       
-      if (!isOwner && !isCollector) {
+      if (!isOwner && !isCollector && !isRecycler) {
         return res.status(403).json({
           error: 'Access denied',
           message: 'You do not have permission to view this collection'

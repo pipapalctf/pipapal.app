@@ -43,12 +43,16 @@ export function CollectionDetailsDialog({
   const { data: collection, isLoading: isLoadingCollection } = useQuery<Collection>({
     queryKey: ['/api/collections', collectionId],
     enabled: open && !!collectionId,
+    refetchOnWindowFocus: false, // Don't refetch when window gains focus
+    staleTime: 30000, // Consider data fresh for 30 seconds
   });
 
   // Fetch collector details if we have a collector ID
   const { data: collector, isLoading: isLoadingCollector } = useQuery<User>({
     queryKey: ['/api/users', collection?.collectorId],
     enabled: open && !!collection?.collectorId,
+    refetchOnWindowFocus: false, // Don't refetch when window gains focus
+    staleTime: 30000, // Consider data fresh for 30 seconds
   });
 
   // Get waste type configuration for styling
