@@ -21,7 +21,9 @@ import {
   Clock3,
   Edit,
   X,
-  BadgeCheck
+  BadgeCheck,
+  MoreHorizontal,
+  Scale
 } from "lucide-react";
 import { 
   DropdownMenu, 
@@ -42,6 +44,24 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger
 } from "@/components/ui/alert-dialog";
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious
+} from "@/components/ui/pagination";
 import { format } from "date-fns";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -54,6 +74,8 @@ export default function SchedulePickupPage() {
   const { toast } = useToast();
   const [location, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState("schedule");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
   
   // Handle tab selection based on URL parameter
   useEffect(() => {
