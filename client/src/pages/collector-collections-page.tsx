@@ -466,7 +466,17 @@ export default function CollectorCollectionsPage() {
                     <TableBody>
                       {paginatedCollections.map((collection: any) => (
                         <TableRow key={collection.id} className="group hover:bg-muted/50">
-                          <TableCell className="font-medium">#{collection.id}</TableCell>
+                          <TableCell className="font-medium">
+                            <div className="flex items-center">
+                              #{collection.id}
+                              {hasInterests(collection.id) && (
+                                <Badge variant="secondary" className="ml-2 bg-indigo-100 text-indigo-800 border-indigo-200 flex items-center">
+                                  <span className="h-2 w-2 bg-indigo-500 rounded-full mr-1 animate-pulse"></span>
+                                  Interest
+                                </Badge>
+                              )}
+                            </div>
+                          </TableCell>
                           <TableCell>
                             <Badge variant="outline" className={`${getStatusColor(collection.status)}`}>
                               {collection.status.charAt(0).toUpperCase() + collection.status.slice(1)}
@@ -580,7 +590,7 @@ export default function CollectorCollectionsPage() {
                 <CardHeader className="bg-muted/30 pb-4">
                   <CardTitle>Material Interests from Recyclers</CardTitle>
                   <CardDescription>
-                    View recyclers who expressed interest in materials from your completed collections
+                    View recyclers who expressed interest in materials from your active collections
                   </CardDescription>
                 </CardHeader>
                 <CardContent>

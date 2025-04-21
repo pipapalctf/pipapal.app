@@ -841,19 +841,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       try {
-        // Get all completed collections for this collector
-        const completedCollections = await storage.getCompletedCollectionsByCollector(collectorId);
-        console.log(`Found ${completedCollections.length} completed collections for collector ${collectorId}`);
-        completedCollections.forEach(collection => {
-          console.log(`Collection ${collection.id} - wasteType: ${collection.wasteType}, wasteAmount: ${collection.wasteAmount}kg`);
+        // Get all active collections (both completed and in-progress) for this collector
+        const activeCollections = await storage.getActiveCollectionsByCollector(collectorId);
+        console.log(`Found ${activeCollections.length} active collections for collector ${collectorId}`);
+        activeCollections.forEach(collection => {
+          console.log(`Collection ${collection.id} - status: ${collection.status}, wasteType: ${collection.wasteType}, wasteAmount: ${collection.wasteAmount}kg`);
         });
         
-        if (completedCollections.length === 0) {
+        if (activeCollections.length === 0) {
           return res.status(200).json([]);
         }
         
         // Get collection IDs
-        const collectionIds = completedCollections.map(collection => collection.id);
+        const collectionIds = activeCollections.map(collection => collection.id);
         console.log(`Collection IDs: ${collectionIds.join(', ')}`);
         
         // Get material interests for these collections
@@ -931,15 +931,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       try {
-        // Get collections with relevant statuses (get from database)
-        const allCollections = await storage.getAllCollections();
-        
-        // Filter collections for this collector that are either completed or in progress
-        const activeCollections = allCollections.filter(collection => 
-          collection.collectorId === collectorId && 
-          (collection.status === CollectionStatus.COMPLETED || collection.status === CollectionStatus.IN_PROGRESS)
-        );
-        
+        // Get all active collections for this collector
+        const activeCollections = await storage.getActiveCollectionsByCollector(collectorId);
         res.status(200).json(activeCollections);
       } catch (error) {
         console.error("Error fetching active collections for collector:", error);
