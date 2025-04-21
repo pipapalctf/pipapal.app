@@ -213,7 +213,7 @@ export function CollectionDetailsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         {isLoadingCollection ? (
           <div className="flex items-center justify-center p-6">
             <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
@@ -227,7 +227,7 @@ export function CollectionDetailsDialog({
           </DialogHeader>
         ) : (
           <>
-            <DialogHeader>
+            <DialogHeader className="sticky top-0 bg-background z-10 pb-4">
               <div className="flex items-center gap-2">
                 <DialogTitle>Material Details</DialogTitle>
                 <Badge 
@@ -251,8 +251,7 @@ export function CollectionDetailsDialog({
               </DialogDescription>
             </DialogHeader>
             
-            <ScrollArea className="max-h-[60vh]">
-              <div className="grid gap-4 p-1">
+            <div className="grid gap-4 p-1">
                 {/* Waste Information */}
                 <div className="grid gap-2">
                   <h3 className="text-sm font-medium">Material Details</h3>
@@ -379,7 +378,6 @@ export function CollectionDetailsDialog({
                   />
                 )}
               </div>
-            </ScrollArea>
             
             <DialogFooter>
               <Button onClick={() => onOpenChange(false)}>Close</Button>
