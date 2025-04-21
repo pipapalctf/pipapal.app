@@ -635,11 +635,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(404).json({ error: 'Collection not found' });
         }
         
-        // Make sure collection is completed and has waste
-        if (collection.status !== CollectionStatus.COMPLETED || !(collection.wasteAmount && collection.wasteAmount > 0)) {
+        // Make sure collection is either completed or in progress with a collector assigned
+        const isValidStatus = collection.status === CollectionStatus.COMPLETED || 
+                            (collection.status === CollectionStatus.IN_PROGRESS && collection.collectorId);
+        
+        // Make sure collection has waste amount for completed collections
+        // For in-progress collections, we may not have waste amount yet
+        const hasWasteAmount = collection.status === CollectionStatus.COMPLETED ? 
+                             (collection.wasteAmount && collection.wasteAmount > 0) : true;
+        
+        if (!isValidStatus || !hasWasteAmount) {
           return res.status(400).json({ 
-            error: 'Invalid collection', 
-            message: 'This collection is not ready for recycling' 
+            error: 'Invalid collection status', 
+            message: collection.status === CollectionStatus.IN_PROGRESS && !collection.collectorId ?
+                    'This collection has no assigned collector yet' :
+                    'This collection is not ready for recycling' 
           });
         }
         

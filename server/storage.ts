@@ -226,7 +226,11 @@ export class MemStorage implements IStorage {
   
   async getAllCompletedCollections(): Promise<Collection[]> {
     return Array.from(this.collections.values())
-      .filter(collection => collection.status === CollectionStatus.COMPLETED)
+      .filter(collection => 
+        // Include both completed collections and in-progress collections with a collector assigned
+        collection.status === CollectionStatus.COMPLETED ||
+        (collection.status === CollectionStatus.IN_PROGRESS && collection.collectorId)
+      )
       .sort((a, b) => new Date(b.completedDate || b.scheduledDate).getTime() - new Date(a.completedDate || a.scheduledDate).getTime());
   }
   
