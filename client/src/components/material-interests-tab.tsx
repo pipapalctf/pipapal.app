@@ -6,7 +6,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from '@/components/ui/badge';
 import { 
   Loader2, Mail, Phone, ArrowRight, ExternalLink, User, Calendar, 
-  Package, Trash2, Scale, CheckCircle, CheckCheck, XCircle, Clock
+  Package, Trash2, Scale, CheckCircle, CheckCheck, XCircle, Clock,
+  Info, DollarSign
 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { formatNumber } from '@/lib/utils';
@@ -15,6 +16,14 @@ import { wasteTypeConfig } from '@/lib/types';
 import { Collection, MaterialInterest, User as UserType, WasteTypeValue } from '@shared/schema';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface MaterialInterestsTabProps {
   collectorId: number;
@@ -137,18 +146,170 @@ export function MaterialInterestsTab({ collectorId }: MaterialInterestsTabProps)
     );
   }
 
+  // Helper function to extract price from message
+  const extractPriceFromMessage = (message: string): { pricePerKg: number | null, totalOffer: number | null } => {
+    try {
+      // Look for KSh XX.XX per kg pattern
+      const pricePerKgMatch = message.match(/KSh\s+(\d+(?:\.\d+)?)\s+per\s+kg/i);
+      const pricePerKg = pricePerKgMatch ? parseFloat(pricePerKgMatch[1]) : null;
+      
+      // Look for Total offer: KSh XXXX.XX pattern
+      const totalOfferMatch = message.match(/Total\s+offer:\s+KSh\s+(\d+(?:,\d+)*(?:\.\d+)?)/i);
+      const totalOfferString = totalOfferMatch ? totalOfferMatch[1].replace(/,/g, '') : null;
+      const totalOffer = totalOfferString ? parseFloat(totalOfferString) : null;
+      
+      return { pricePerKg, totalOffer };
+    } catch (e) {
+      return { pricePerKg: null, totalOffer: null };
+    }
+  };
+
+  // Component for displaying details dialog
+  const InterestDetailsDialog = ({ interest }: { interest: EnhancedMaterialInterest }) => {
+    const { recycler, collection } = interest;
+    if (!recycler || !collection) return null;
+    
+    return (
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-8 w-8">
+            <Info className="h-4 w-4" />
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader className="sticky top-0 bg-white z-10 pb-4">
+            <DialogTitle>Interest Details</DialogTitle>
+            <DialogDescription>
+              Material interest information from {recycler.fullName || recycler.username}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6 py-4">
+            {/* Recycler Information */}
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Recycler</h3>
+              <div className="bg-muted/50 p-4 rounded-md space-y-2">
+                <div className="flex items-start">
+                  <User className="h-4 w-4 mt-1 mr-2 text-muted-foreground" />
+                  <div>
+                    <div className="font-medium">{recycler.fullName || recycler.username}</div>
+                    {recycler.fullName && recycler.username && (
+                      <div className="text-sm text-muted-foreground">@{recycler.username}</div>
+                    )}
+                  </div>
+                </div>
+                
+                {recycler.email && (
+                  <div className="flex items-center">
+                    <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
+                    <a href={`mailto:${recycler.email}`} className="text-primary hover:underline">
+                      {recycler.email}
+                    </a>
+                  </div>
+                )}
+                
+                {recycler.phone && (
+                  <div className="flex items-center">
+                    <Phone className="h-4 w-4 mr-2 text-muted-foreground" />
+                    <a href={`tel:${recycler.phone}`} className="text-primary hover:underline">
+                      {recycler.phone}
+                    </a>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {/* Collection Information */}
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Collection</h3>
+              <div className="bg-muted/50 p-4 rounded-md space-y-2">
+                <div className="flex items-center">
+                  <Package className="h-4 w-4 mr-2 text-muted-foreground" />
+                  <span>Collection #{collection.id}</span>
+                </div>
+                
+                <div className="flex items-start">
+                  <Calendar className="h-4 w-4 mt-0.5 mr-2 text-muted-foreground" />
+                  <div>
+                    <div>{format(new Date(interest.timestamp), 'MMM d, yyyy')}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {format(new Date(interest.timestamp), 'h:mm a')}
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex items-start">
+                  {wasteTypeConfig[collection.wasteType as WasteTypeValue]?.icon ? (
+                    <span className="mr-2">{wasteTypeConfig[collection.wasteType as WasteTypeValue]?.icon}</span>
+                  ) : (
+                    <Trash2 className="h-4 w-4 mr-2 text-muted-foreground" />
+                  )}
+                  <div>
+                    <div className="capitalize">{collection.wasteType}</div>
+                    {collection.wasteAmount && (
+                      <div className="text-sm text-muted-foreground flex items-center">
+                        <Scale className="mr-1 h-3 w-3" />
+                        {formatNumber(collection.wasteAmount)} kg
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="flex items-start">
+                  <ExternalLink className="h-4 w-4 mt-0.5 mr-2 text-muted-foreground" />
+                  <div>
+                    <div className="font-medium">Location</div>
+                    <div className="text-sm">{collection.address}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Message & Offer */}
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Message & Offer</h3>
+              <div className="bg-muted/50 p-4 rounded-md">
+                <div className="mb-4">
+                  {interest.message ? (
+                    <div className="whitespace-pre-wrap">{interest.message}</div>
+                  ) : (
+                    <span className="text-muted-foreground italic">No message provided</span>
+                  )}
+                </div>
+                
+                {interest.message && extractPriceFromMessage(interest.message).pricePerKg && (
+                  <div className="mt-4 border-t pt-4">
+                    <div className="font-semibold mb-2">Price Offer:</div>
+                    <div className="flex items-center text-green-700 font-medium">
+                      <DollarSign className="h-4 w-4 mr-1" />
+                      KSh {extractPriceFromMessage(interest.message).pricePerKg?.toFixed(2)} per kg
+                    </div>
+                    {extractPriceFromMessage(interest.message).totalOffer && (
+                      <div className="text-sm mt-1">
+                        Total offer: KSh {formatNumber(extractPriceFromMessage(interest.message).totalOffer)}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  };
+  
   return (
     <div className="space-y-4">
       <div className="bg-white rounded-lg border shadow-sm">
         <Table>
           <TableHeader className="bg-muted/50">
             <TableRow>
-              <TableHead className="w-32">Date</TableHead>
+              <TableHead className="w-28">Date</TableHead>
               <TableHead className="w-36">Recycler</TableHead>
               <TableHead className="w-32">Collection</TableHead>
               <TableHead className="w-40">Material</TableHead>
-              <TableHead className="w-48">Contact</TableHead>
-              <TableHead className="w-52">Message</TableHead>
+              <TableHead className="w-36">Price Offer</TableHead>
               <TableHead className="w-28">Status</TableHead>
               <TableHead className="w-40 text-right">Actions</TableHead>
             </TableRow>
@@ -160,6 +321,9 @@ export function MaterialInterestsTab({ collectorId }: MaterialInterestsTabProps)
               
               // Skip if either is missing
               if (!recycler || !collection) return null;
+              
+              // Extract price information from message
+              const { pricePerKg, totalOffer } = extractPriceFromMessage(interest.message || '');
               
               return (
                 <TableRow key={interest.id} className="hover:bg-muted/50">
@@ -208,31 +372,21 @@ export function MaterialInterestsTab({ collectorId }: MaterialInterestsTabProps)
                     </div>
                   </TableCell>
                   <TableCell className="align-top py-4">
-                    <div className="space-y-2">
-                      {recycler.email && (
-                        <a
-                          href={`mailto:${recycler.email}`}
-                          className="flex items-center text-sm text-primary hover:underline"
-                        >
-                          <Mail className="mr-1 h-3 w-3" />
-                          {recycler.email}
-                        </a>
-                      )}
-                      {recycler.phone && (
-                        <a
-                          href={`tel:${recycler.phone}`}
-                          className="flex items-center text-sm text-primary hover:underline"
-                        >
-                          <Phone className="mr-1 h-3 w-3" />
-                          {recycler.phone}
-                        </a>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell className="align-top py-4">
-                    <div className="max-h-[80px] overflow-y-auto pr-2 text-sm">
-                      {interest.message || <span className="text-muted-foreground italic">No message</span>}
-                    </div>
+                    {pricePerKg ? (
+                      <div className="flex flex-col">
+                        <div className="font-medium text-green-700 flex items-center">
+                          <DollarSign className="h-3 w-3 mr-1" />
+                          KSh {pricePerKg.toFixed(2)}/kg
+                        </div>
+                        {totalOffer && (
+                          <div className="text-xs text-green-600">
+                            Total: KSh {formatNumber(totalOffer)}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground text-sm italic">No price offered</span>
+                    )}
                   </TableCell>
                   <TableCell className="align-top py-4">
                     {interest.status === 'accepted' ? (
@@ -251,6 +405,8 @@ export function MaterialInterestsTab({ collectorId }: MaterialInterestsTabProps)
                   </TableCell>
                   <TableCell className="align-top py-4 text-right">
                     <div className="flex justify-end space-x-2">
+                      <InterestDetailsDialog interest={interest} />
+                      
                       {!interest.status || interest.status === 'pending' ? (
                         <>
                           <Button
@@ -287,7 +443,7 @@ export function MaterialInterestsTab({ collectorId }: MaterialInterestsTabProps)
                           </Button>
                         </>
                       ) : (
-                        <span className="text-sm text-muted-foreground italic px-2">
+                        <span className="text-sm text-muted-foreground italic">
                           Already {interest.status}
                         </span>
                       )}
