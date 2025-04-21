@@ -27,6 +27,7 @@ import MobileNavigation from "@/components/shared/mobile-navigation";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { CollectionDetailsDialog } from '@/components/modals/collection-details-dialog';
+import { ExpressInterestDialog } from '@/components/modals/express-interest-dialog';
 
 export default function RecyclerMaterialsPage() {
   const { user } = useAuth();
@@ -39,6 +40,10 @@ export default function RecyclerMaterialsPage() {
   const [selectedCollectionId, setSelectedCollectionId] = useState<number | null>(null);
   const [selectedCollection, setSelectedCollection] = useState<Collection | null>(null);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
+  
+  // State for express interest dialog
+  const [isExpressInterestDialogOpen, setIsExpressInterestDialogOpen] = useState(false);
+  const [expressInterestCollection, setExpressInterestCollection] = useState<Collection | null>(null);
 
   // Fetch collections that are pending/ready for recyclers to process
   const { data: collections = [], isLoading, isError, error } = useQuery<Collection[]>({
@@ -103,20 +108,21 @@ export default function RecyclerMaterialsPage() {
 
   // Express interest in materials mutation
   const expressInterestMutation = useMutation({
-    mutationFn: async (collectionId: number) => {
-      setProcessingCollectionId(collectionId);
-      const response = await apiRequest('POST', '/api/materials/express-interest', { collectionId });
+    mutationFn: async (data: { collectionId: number; amountRequested?: number; pricePerKg?: number; message?: string }) => {
+      setProcessingCollectionId(data.collectionId);
+      const response = await apiRequest('POST', '/api/materials/express-interest', data);
       return response.json();
     },
-    onSuccess: (_, collectionId) => {
+    onSuccess: (_, data) => {
       toast({
         title: "Interest Recorded",
         description: "Your interest in this material has been recorded. The system will notify relevant parties.",
         variant: "default",
       });
       // Add this collection ID to the expressedInterestIds array
-      setExpressedInterestIds(prev => [...prev, collectionId]);
+      setExpressedInterestIds(prev => [...prev, data.collectionId]);
       setProcessingCollectionId(null);
+      setIsExpressInterestDialogOpen(false);
     },
     onError: (error: Error) => {
       toast({
@@ -128,9 +134,15 @@ export default function RecyclerMaterialsPage() {
     }
   });
 
-  // Handle purchasing/acquiring materials
-  const handleAcquireMaterial = (collectionId: number) => {
-    expressInterestMutation.mutate(collectionId);
+  // Handle opening express interest dialog
+  const handleAcquireMaterial = (collection: Collection) => {
+    setExpressInterestCollection(collection);
+    setIsExpressInterestDialogOpen(true);
+  };
+  
+  // Handle express interest form submission
+  const handleExpressInterest = (data: { collectionId: number; amountRequested?: number; pricePerKg?: number; message?: string }) => {
+    expressInterestMutation.mutate(data);
   };
 
   // Get waste type display name and color
@@ -448,7 +460,7 @@ export default function RecyclerMaterialsPage() {
                             ) : (
                               <Button
                                 size="sm"
-                                onClick={() => handleAcquireMaterial(collection.id)}
+                                onClick={() => handleAcquireMaterial(collection)}
                                 disabled={processingCollectionId === collection.id}
                               >
                                 {processingCollectionId === collection.id ? (
@@ -457,7 +469,10 @@ export default function RecyclerMaterialsPage() {
                                     Processing
                                   </>
                                 ) : (
-                                  "Express Interest"
+                                  <>
+                                    <CircleDollarSign className="h-3.5 w-3.5 mr-1" />
+                                    Express Interest
+                                  </>
                                 )}
                               </Button>
                             )}
@@ -511,6 +526,15 @@ export default function RecyclerMaterialsPage() {
         collection={selectedCollection}
         open={isDetailsDialogOpen}
         onOpenChange={setIsDetailsDialogOpen}
+      />
+      
+      {/* Express Interest Dialog */}
+      <ExpressInterestDialog
+        open={isExpressInterestDialogOpen}
+        onOpenChange={setIsExpressInterestDialogOpen}
+        collection={expressInterestCollection}
+        onSubmit={handleExpressInterest}
+        isSubmitting={processingCollectionId !== null}
       />
     </div>
   );
