@@ -56,9 +56,14 @@ export default function LandingPage() {
               alt="PipaPal Logo" 
               className={`transition-all duration-300 ${scrolled ? 'h-10' : 'h-12'} w-auto`} 
             />
-            <span className={`ml-2 font-montserrat font-bold text-secondary transition-all duration-300 ${scrolled ? 'text-xl' : 'text-2xl'}`}>
-              PipaPal
-            </span>
+            <div className="ml-2">
+              <span className={`font-montserrat font-bold text-secondary transition-all duration-300 ${scrolled ? 'text-xl' : 'text-2xl'}`}>
+                PipaPal
+              </span>
+              <span className={`hidden md:inline-block ml-2 text-primary text-xs transition-all duration-300 ${scrolled ? 'opacity-0' : 'opacity-100'}`}>
+                Your Waste Buddy
+              </span>
+            </div>
           </div>
           <div className="flex items-center space-x-4">
             <Link href="/auth">
@@ -82,9 +87,12 @@ export default function LandingPage() {
         <div className="container mx-auto px-4 md:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
             <div>
-              <h1 className="text-4xl md:text-5xl font-montserrat font-bold text-secondary mb-4">
+              <h1 className="text-4xl md:text-5xl font-montserrat font-bold text-secondary mb-2">
                 Waste Management <span className="text-primary">Simplified</span>
               </h1>
+              <h2 className="text-lg md:text-xl text-primary font-medium mb-4">
+                PipaPal - Your Waste Buddy
+              </h2>
               <p className="text-lg md:text-xl text-gray-700 mb-8">
                 PipaPal connects households with waste collectors to make recycling easier and 
                 track your environmental impact in real-time.
@@ -306,7 +314,7 @@ export default function LandingPage() {
                 <span className="ml-2 text-2xl font-montserrat font-bold text-white">PipaPal</span>
               </div>
               <p className="text-gray-400">
-                Connecting households with waste collectors for a greener future.
+                Your Waste Buddy - Connecting households with waste collectors for a greener future.
               </p>
             </div>
             

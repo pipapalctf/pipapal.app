@@ -115,9 +115,12 @@ export default function AuthPage() {
             {/* Form Section */}
             <div className="lg:w-1/2 p-6 md:p-10">
               <div className="mb-8 flex justify-between items-center">
-                <div className="flex items-center">
-                  <Logo size="md" />
-                  <span className="ml-2 text-2xl font-montserrat font-bold text-secondary">PipaPal</span>
+                <div className="flex flex-col">
+                  <div className="flex items-center">
+                    <Logo size="md" />
+                    <span className="ml-2 text-2xl font-montserrat font-bold text-secondary">PipaPal</span>
+                  </div>
+                  <span className="ml-10 text-xs text-primary">Your Waste Buddy</span>
                 </div>
                 <Button 
                   variant="ghost" 
@@ -370,9 +373,12 @@ export default function AuthPage() {
             {/* Hero Section */}
             <div className="lg:w-1/2 bg-gradient-to-br from-primary to-primary-dark text-white p-6 md:p-10 flex flex-col justify-center">
               <div className="max-w-md mx-auto">
-                <h1 className="text-3xl md:text-4xl font-montserrat font-bold mb-4">
+                <h1 className="text-3xl md:text-4xl font-montserrat font-bold mb-2">
                   Sustainable Waste Management
                 </h1>
+                <h2 className="text-xl font-medium mb-4">
+                  Your Waste Buddy
+                </h2>
                 <p className="text-lg opacity-90 mb-6">
                   Join PipaPal and be part of the solution for a cleaner environment. Connect with waste collectors, track your environmental impact, and learn sustainable practices.
                 </p>
