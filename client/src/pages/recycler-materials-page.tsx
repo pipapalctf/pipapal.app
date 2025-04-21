@@ -46,11 +46,55 @@ export default function RecyclerMaterialsPage() {
   const [expressInterestCollection, setExpressInterestCollection] = useState<Collection | null>(null);
 
   // Fetch collections that are pending/ready for recyclers to process
-  const { data: collections = [], isLoading, isError, error } = useQuery<Collection[]>({
+  const { data: collections = [], isLoading: isLoadingCollections, isError, error } = useQuery<Collection[]>({
     queryKey: ['/api/collections'],
     staleTime: 60000, // Add staleTime to keep data for longer (1 minute)
     refetchOnWindowFocus: false, // Prevent refetching when window gains focus
   });
+  
+  // Define the type for material interests
+  interface MaterialInterest {
+    id: number;
+    userId: number;
+    collectionId: number;
+    timestamp: string;
+    status: string;
+    message: string | null;
+    collection?: {
+      id: number;
+      wasteType: string;
+      wasteAmount: number | null;
+    } | null;
+  }
+  
+  // Fetch all material interests for the current recycler
+  const { data: recyclerInterests = [], isLoading: isLoadingInterests } = useQuery<MaterialInterest[]>({
+    queryKey: ['/api/materials/interests'],
+    queryFn: async () => {
+      const response = await fetch('/api/materials/interests');
+      if (!response.ok) throw new Error('Failed to fetch recycler interests');
+      return response.json();
+    },
+    enabled: !!user?.id,
+  });
+  
+  // Update the expressed interest IDs and statuses when recyclerInterests changes
+  useEffect(() => {
+    if (recyclerInterests && recyclerInterests.length > 0) {
+      const expressedIds: number[] = [];
+      const statuses: Record<number, string> = {};
+      
+      recyclerInterests.forEach((interest: MaterialInterest) => {
+        if (interest.collectionId) {
+          expressedIds.push(interest.collectionId);
+          statuses[interest.collectionId] = interest.status;
+        }
+      });
+      
+      setExpressedInterestIds(expressedIds);
+      setInterestStatuses(statuses);
+    }
+  }, [recyclerInterests]);
   
   // Debug collections data
   useEffect(() => {
@@ -103,8 +147,9 @@ export default function RecyclerMaterialsPage() {
 
   // Track which collection is being processed
   const [processingCollectionId, setProcessingCollectionId] = useState<number | null>(null);
-  // Track which collections have already been expressed interest in
+  // For tracking material interests and their statuses
   const [expressedInterestIds, setExpressedInterestIds] = useState<number[]>([]);
+  const [interestStatuses, setInterestStatuses] = useState<Record<number, string>>({});
 
   // Express interest in materials mutation
   const expressInterestMutation = useMutation({
@@ -121,6 +166,13 @@ export default function RecyclerMaterialsPage() {
       });
       // Add this collection ID to the expressedInterestIds array
       setExpressedInterestIds(prev => [...prev, data.collectionId]);
+      // Set the status to pending for this collection
+      setInterestStatuses(prev => ({
+        ...prev,
+        [data.collectionId]: 'pending'
+      }));
+      // Invalidate the interests query to refetch with the new interest
+      queryClient.invalidateQueries({ queryKey: ['/api/materials/interests'] });
       setProcessingCollectionId(null);
       setIsExpressInterestDialogOpen(false);
     },
@@ -336,7 +388,7 @@ export default function RecyclerMaterialsPage() {
             </div>
           </div>
 
-          {isLoading ? (
+          {isLoadingCollections || isLoadingInterests ? (
             <div className="py-12 text-center">
               <div className="inline-block p-4 rounded-full bg-muted">
                 <Clock className="h-8 w-8 animate-spin text-primary" />
@@ -448,15 +500,58 @@ export default function RecyclerMaterialsPage() {
                               Details
                             </Button>
                             {expressedInterestIds.includes(collection.id) ? (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="bg-green-50 text-green-700 border-green-200 hover:bg-green-100 hover:text-green-800"
-                                disabled
-                              >
-                                <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
-                                Interest Expressed
-                              </Button>
+                              (() => {
+                                const status = interestStatuses[collection.id] || 'pending';
+                                if (status === 'completed') {
+                                  return (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 hover:text-blue-800"
+                                      disabled
+                                    >
+                                      <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                                      Transaction Completed
+                                    </Button>
+                                  );
+                                } else if (status === 'accepted') {
+                                  return (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="bg-green-50 text-green-700 border-green-200 hover:bg-green-100 hover:text-green-800"
+                                      disabled
+                                    >
+                                      <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                                      Interest Accepted
+                                    </Button>
+                                  );
+                                } else if (status === 'rejected') {
+                                  return (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="bg-red-50 text-red-700 border-red-200 hover:bg-red-100 hover:text-red-800"
+                                      disabled
+                                    >
+                                      <XCircle className="h-3.5 w-3.5 mr-1" />
+                                      Interest Rejected
+                                    </Button>
+                                  );
+                                } else {
+                                  return (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="bg-yellow-50 text-yellow-700 border-yellow-200 hover:bg-yellow-100 hover:text-yellow-800"
+                                      disabled
+                                    >
+                                      <Clock className="h-3.5 w-3.5 mr-1" />
+                                      Interest Pending
+                                    </Button>
+                                  );
+                                }
+                              })()
                             ) : (
                               <Button
                                 size="sm"
