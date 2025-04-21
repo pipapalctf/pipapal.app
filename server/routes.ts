@@ -780,6 +780,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   );
 
+  // Get all material interests for a specific collector
+  app.get("/api/material-interests/collector/:collectorId", 
+    requireAuthentication,
+    async (req, res) => {
+      if (!req.user) return res.sendStatus(401);
+      
+      // Check if user is the collector or an admin
+      const collectorId = parseInt(req.params.collectorId);
+      if (req.user.id !== collectorId && req.user.role !== UserRole.ADMIN) {
+        return res.status(403).json({ error: 'You do not have permission to view these interests' });
+      }
+      
+      try {
+        // Get all completed collections for this collector
+        const completedCollections = await storage.getCompletedCollectionsByCollector(collectorId);
+        
+        if (completedCollections.length === 0) {
+          return res.status(200).json([]);
+        }
+        
+        // Get collection IDs
+        const collectionIds = completedCollections.map(collection => collection.id);
+        
+        // Get material interests for these collections
+        const interests = await storage.getMaterialInterestsByCollections(collectionIds);
+        
+        res.status(200).json(interests);
+      } catch (error) {
+        console.error("Error fetching material interests for collector:", error);
+        res.status(500).send("Failed to fetch material interests");
+      }
+    }
+  );
+  
+  // Get completed collections for a specific collector
+  app.get("/api/collections/collector/:collectorId/completed", 
+    requireAuthentication,
+    async (req, res) => {
+      if (!req.user) return res.sendStatus(401);
+      
+      // Check if user is the collector or an admin
+      const collectorId = parseInt(req.params.collectorId);
+      if (req.user.id !== collectorId && req.user.role !== UserRole.ADMIN) {
+        return res.status(403).json({ error: 'You do not have permission to view these collections' });
+      }
+      
+      try {
+        // Get all completed collections for this collector
+        const completedCollections = await storage.getCompletedCollectionsByCollector(collectorId);
+        res.status(200).json(completedCollections);
+      } catch (error) {
+        console.error("Error fetching completed collections for collector:", error);
+        res.status(500).send("Failed to fetch completed collections");
+      }
+    }
+  );
+
   const httpServer = createServer(app);
   
   // WebSocket server for real-time notifications
