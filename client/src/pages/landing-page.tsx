@@ -126,7 +126,7 @@ export default function LandingPage() {
                 <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-primary/30 rounded-lg"></div>
                 <div className="relative bg-white rounded-xl shadow-xl p-4 z-10">
                   <img 
-                    src="/images/dashboard-preview.png" 
+                    src="/dashboard-preview.png" 
                     alt="PipaPal Dashboard Preview" 
                     className="rounded-lg w-full h-auto object-contain"
                   />
