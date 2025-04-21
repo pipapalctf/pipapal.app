@@ -403,7 +403,7 @@ export function CollectionDetailsDialog({
                   </div>
                 )}
                 
-                {/* Collector Information */}
+                {/* Collector Information - show for all users if a collector is assigned */}
                 {collection.collectorId && (
                   <div className="grid gap-2">
                     <h3 className="text-sm font-medium">Collector Information</h3>
@@ -433,6 +433,24 @@ export function CollectionDetailsDialog({
                             <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
                             <span className="text-sm text-muted-foreground mr-1">Email:</span>
                             <span className="text-sm">{collector.email}</span>
+                          </div>
+                          
+                          {/* Contact buttons for collector */}
+                          <div className="flex justify-end gap-2 mt-1">
+                            <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" asChild>
+                              <a href={`mailto:${collector.email}`}>
+                                <Mail className="h-3 w-3 mr-1" />
+                                Email
+                              </a>
+                            </Button>
+                            {collector.phone && (
+                              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" asChild>
+                                <a href={`tel:${collector.phone}`}>
+                                  <Phone className="h-3 w-3 mr-1" />
+                                  Call
+                                </a>
+                              </Button>
+                            )}
                           </div>
                         </>
                       )}
