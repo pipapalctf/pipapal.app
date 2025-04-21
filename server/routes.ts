@@ -640,14 +640,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
         
-        // Create a material interest record in the database
-        const materialInterest = await storage.createMaterialInterest({
-          collectionId: collection.id,
-          recyclerId: req.user.id,
-          message: message || null,
-          status: 'pending'
-        });
-        
         // Create an activity for the recycler
         await storage.createActivity({
           userId: req.user.id,
@@ -679,8 +671,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const collectorNotification = {
             type: 'notification',
             message: `${recyclerName} (Recycler) wants to purchase ${collection.wasteType} materials (${collection.wasteAmount || 0}kg) that you collected from ${collection.address}`,
-            collectionId: collection.id,
-            interestId: materialInterest.id
+            collectionId: collection.id
           };
           
           collectorClients.forEach(client => {
@@ -692,8 +683,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         res.status(200).json({ 
           success: true, 
-          message: 'Interest expressed successfully',
-          interestId: materialInterest.id
+          message: 'Interest expressed successfully'
         });
         
       } catch (error) {
@@ -702,61 +692,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(400).json({ errors: error.format() });
         }
         res.status(500).send("Failed to express interest in materials");
-      }
-    }
-  );
-  
-  // Get material interests for a collector
-  app.get('/api/collector/interests', 
-    requirePermission(Permissions.COLLECT_WASTE),
-    async (req, res) => {
-      try {
-        if (!req.user) return res.sendStatus(401);
-        
-        // Get all interests for collections by this collector
-        const interests = await storage.getMaterialInterestsByCollector(req.user.id);
-        
-        // We need to fetch additional data for each interest
-        const enrichedInterests = await Promise.all(
-          interests.map(async (interest) => {
-            const collection = await storage.getCollection(interest.collectionId);
-            const recycler = await storage.getUser(interest.recyclerId);
-            
-            if (!collection || !recycler) {
-              return null;
-            }
-            
-            return {
-              id: interest.id,
-              message: interest.message,
-              status: interest.status,
-              createdAt: interest.createdAt,
-              updatedAt: interest.updatedAt,
-              collection: {
-                id: collection.id,
-                wasteType: collection.wasteType,
-                wasteAmount: collection.wasteAmount,
-                address: collection.address,
-                completedDate: collection.completedDate
-              },
-              recycler: {
-                id: recycler.id,
-                fullName: recycler.fullName,
-                username: recycler.username,
-                email: recycler.email,
-                phone: recycler.phone
-              }
-            };
-          })
-        );
-        
-        // Filter out any null values (where collection or recycler was not found)
-        const validInterests = enrichedInterests.filter(interest => interest !== null);
-        
-        res.json(validInterests);
-      } catch (error) {
-        console.error("Error fetching material interests:", error);
-        res.status(500).send("Failed to fetch material interests");
       }
     }
   );

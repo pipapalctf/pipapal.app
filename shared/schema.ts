@@ -125,17 +125,6 @@ export const activities = pgTable("activities", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Material interests table - tracks recycler interest in materials
-export const materialInterests = pgTable("material_interests", {
-  id: serial("id").primaryKey(),
-  collectionId: integer("collection_id").notNull().references(() => collections.id),
-  recyclerId: integer("recycler_id").notNull().references(() => users.id),
-  message: text("message"),
-  status: text("status").default("pending").notNull(), // pending, approved, rejected
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at")
-});
-
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users)
   .pick({
@@ -203,14 +192,6 @@ export const insertActivitySchema = createInsertSchema(activities)
     timestamp: true,
   });
 
-export const insertMaterialInterestSchema = createInsertSchema(materialInterests)
-  .pick({
-    collectionId: true,
-    recyclerId: true,
-    message: true,
-    status: true,
-  });
-
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   collections: many(collections),
@@ -255,17 +236,6 @@ export const activitiesRelations = relations(activities, ({ one }) => ({
   }),
 }));
 
-export const materialInterestsRelations = relations(materialInterests, ({ one }) => ({
-  collection: one(collections, {
-    fields: [materialInterests.collectionId],
-    references: [collections.id],
-  }),
-  recycler: one(users, {
-    fields: [materialInterests.recyclerId],
-    references: [users.id],
-  }),
-}));
-
 // Export types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -284,6 +254,3 @@ export type EcoTip = typeof ecoTips.$inferSelect;
 
 export type InsertActivity = z.infer<typeof insertActivitySchema>;
 export type Activity = typeof activities.$inferSelect;
-
-export type InsertMaterialInterest = z.infer<typeof insertMaterialInterestSchema>;
-export type MaterialInterest = typeof materialInterests.$inferSelect;
