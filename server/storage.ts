@@ -658,25 +658,34 @@ export class DatabaseStorage implements IStorage {
     const [collection] = await db.select().from(collections).where(eq(collections.id, id));
     if (!collection) return undefined;
     
-    // Build the update values
-    const setValues: Record<string, any> = {};
+    // Use drizzle-orm's type-safe update mechanism
+    const updateQuery = db.update(collections).where(eq(collections.id, id));
     
-    // Handle regular fields
-    if (updates.status !== undefined) setValues.status = updates.status;
-    if (updates.notes !== undefined) setValues.notes = updates.notes;
-    if (updates.wasteAmount !== undefined) setValues.waste_amount = updates.wasteAmount;
-    if (updates.collectorId !== undefined) setValues.collector_id = updates.collectorId;
+    // Map the update fields directly to the schema fields 
+    // Add fields as needed, properly mapping to the correct column names
+    if (updates.status !== undefined) {
+      updateQuery.set({ status: updates.status });
+    }
+    
+    if (updates.notes !== undefined) {
+      updateQuery.set({ notes: updates.notes });
+    }
+    
+    if (updates.wasteAmount !== undefined) {
+      updateQuery.set({ wasteAmount: updates.wasteAmount });
+    }
+    
+    if (updates.collectorId !== undefined) {
+      updateQuery.set({ collectorId: updates.collectorId });
+    }
     
     // Handle completedDate separately
     if (updates.status === CollectionStatus.COMPLETED && !collection.completedDate) {
-      setValues.completed_date = sql`NOW()`; // Use the database's NOW() function
+      updateQuery.set({ completedDate: sql`NOW()` }); // Use the database's NOW() function
     }
     
-    // Execute the update correctly using drizzle-orm syntax
-    const [updatedCollection] = await db.update(collections)
-      .set(setValues)
-      .where(eq(collections.id, id))
-      .returning();
+    // Execute the update
+    const [updatedCollection] = await updateQuery.returning();
     
     // If collection is completed, generate impact data
     if (updates.status === CollectionStatus.COMPLETED && updates.wasteAmount) {
