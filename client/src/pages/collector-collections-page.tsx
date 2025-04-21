@@ -510,11 +510,6 @@ export default function CollectorCollectionsPage() {
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center">
-                              {wasteTypeConfig[collection.wasteType as keyof typeof wasteTypeConfig]?.icon ? (
-                                <span className="mr-2">{wasteTypeConfig[collection.wasteType as keyof typeof wasteTypeConfig]?.icon}</span>
-                              ) : (
-                                <Trash2 className="mr-2 h-4 w-4 text-muted-foreground" />
-                              )}
                               <div className="flex flex-col">
                                 <span className="capitalize">{collection.wasteType}</span>
                                 {collection.wasteDescription && (
@@ -682,12 +677,7 @@ export default function CollectorCollectionsPage() {
               
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label className="text-right">Waste Type</Label>
-                <div className="col-span-3 flex items-center">
-                  {wasteTypeConfig[selectedCollection.wasteType as keyof typeof wasteTypeConfig]?.icon ? (
-                    <span className="mr-2">{wasteTypeConfig[selectedCollection.wasteType as keyof typeof wasteTypeConfig]?.icon}</span>
-                  ) : (
-                    <Trash2 className="mr-2 h-4 w-4 text-muted-foreground" />
-                  )}
+                <div className="col-span-3">
                   <div className="flex flex-col">
                     <span className="capitalize">{selectedCollection.wasteType}</span>
                     {selectedCollection.wasteDescription && (
