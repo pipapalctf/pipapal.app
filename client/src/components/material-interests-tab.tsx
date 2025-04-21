@@ -68,7 +68,7 @@ export function MaterialInterestsTab({ collectorId }: MaterialInterestsTabProps)
   
   // Mutation for updating material interest status
   const updateInterestMutation = useMutation({
-    mutationFn: async ({ interestId, status }: { interestId: number; status: 'accepted' | 'rejected' }) => {
+    mutationFn: async ({ interestId, status }: { interestId: number; status: 'accepted' | 'rejected' | 'completed' }) => {
       setIsUpdating(interestId);
       const response = await apiRequest(
         'PATCH',
@@ -397,7 +397,11 @@ export function MaterialInterestsTab({ collectorId }: MaterialInterestsTabProps)
                     )}
                   </TableCell>
                   <TableCell className="align-top py-4">
-                    {interest.status === 'accepted' ? (
+                    {interest.status === 'completed' ? (
+                      <Badge variant="outline" className="bg-blue-50 text-blue-700 hover:bg-blue-50 border-blue-200">
+                        <CheckCheck className="mr-1 h-3 w-3" /> Completed
+                      </Badge>
+                    ) : interest.status === 'accepted' ? (
                       <Badge variant="outline" className="bg-green-50 text-green-700 hover:bg-green-50 border-green-200">
                         <CheckCheck className="mr-1 h-3 w-3" /> Accepted
                       </Badge>
@@ -450,9 +454,26 @@ export function MaterialInterestsTab({ collectorId }: MaterialInterestsTabProps)
                             Reject
                           </Button>
                         </>
+                      ) : interest.status === 'accepted' ? (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          className="bg-blue-600 hover:bg-blue-700 text-white"
+                          onClick={() => updateInterestMutation.mutate({ 
+                            interestId: interest.id, 
+                            status: 'completed'
+                          })}
+                          disabled={isUpdating === interest.id || updateInterestMutation.isPending}
+                        >
+                          {isUpdating === interest.id ? 
+                            <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : 
+                            <CheckCheck className="mr-1 h-3 w-3" />
+                          }
+                          Mark as Completed
+                        </Button>
                       ) : (
                         <span className="text-sm text-muted-foreground italic">
-                          Already {interest.status}
+                          {interest.status === 'completed' ? 'Transaction completed' : `Already ${interest.status}`}
                         </span>
                       )}
                     </div>

@@ -131,7 +131,7 @@ export const materialInterests = pgTable("material_interests", {
   userId: integer("user_id").notNull().references(() => users.id), // The recycler expressing interest
   collectionId: integer("collection_id").notNull().references(() => collections.id),
   timestamp: timestamp("timestamp").notNull().defaultNow(),
-  status: text("status").notNull().default("pending"), // pending, accepted, rejected
+  status: text("status").notNull().default("pending"), // pending, accepted, rejected, completed
   message: text("message"),
 });
 
