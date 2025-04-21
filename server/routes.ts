@@ -705,6 +705,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     }
   );
+  
+  // Get material interests for a collector
+  app.get('/api/collector/interests', 
+    requirePermission(Permissions.COLLECT_WASTE),
+    async (req, res) => {
+      try {
+        if (!req.user) return res.sendStatus(401);
+        
+        // Get all interests for collections by this collector
+        const interests = await storage.getMaterialInterestsByCollector(req.user.id);
+        
+        // We need to fetch additional data for each interest
+        const enrichedInterests = await Promise.all(
+          interests.map(async (interest) => {
+            const collection = await storage.getCollection(interest.collectionId);
+            const recycler = await storage.getUser(interest.recyclerId);
+            
+            if (!collection || !recycler) {
+              return null;
+            }
+            
+            return {
+              id: interest.id,
+              message: interest.message,
+              status: interest.status,
+              createdAt: interest.createdAt,
+              updatedAt: interest.updatedAt,
+              collection: {
+                id: collection.id,
+                wasteType: collection.wasteType,
+                wasteAmount: collection.wasteAmount,
+                address: collection.address,
+                completedDate: collection.completedDate
+              },
+              recycler: {
+                id: recycler.id,
+                fullName: recycler.fullName,
+                username: recycler.username,
+                email: recycler.email,
+                phone: recycler.phone
+              }
+            };
+          })
+        );
+        
+        // Filter out any null values (where collection or recycler was not found)
+        const validInterests = enrichedInterests.filter(interest => interest !== null);
+        
+        res.json(validInterests);
+      } catch (error) {
+        console.error("Error fetching material interests:", error);
+        res.status(500).send("Failed to fetch material interests");
+      }
+    }
+  );
 
   const httpServer = createServer(app);
   
