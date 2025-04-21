@@ -2,11 +2,14 @@ import React, { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Recycle, Leaf, Package, Filter, MapPin, ArrowRight, Calendar, CircleDollarSign, Truck, AlertCircle, CheckCircle2, Scale, Clock, Cpu, Apple, FlaskConical } from 'lucide-react';
+import { 
+  Recycle, Leaf, Package, Filter, MapPin, ArrowRight, Calendar, CircleDollarSign, 
+  Truck, AlertCircle, CheckCircle2, Scale, Clock, Cpu, Apple, FlaskConical,
+  Search, ChevronLeft, ChevronRight, ArrowUpDown
+} from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { 
   Collection,
@@ -21,6 +24,8 @@ import { useLocation } from 'wouter';
 import Navbar from "@/components/shared/navbar";
 import Footer from "@/components/shared/footer";
 import MobileNavigation from "@/components/shared/mobile-navigation";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Input } from '@/components/ui/input';
 
 export default function RecyclerMaterialsPage() {
   const { user } = useAuth();
