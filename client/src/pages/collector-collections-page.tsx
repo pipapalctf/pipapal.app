@@ -515,7 +515,14 @@ export default function CollectorCollectionsPage() {
                               ) : (
                                 <Trash2 className="mr-2 h-4 w-4 text-muted-foreground" />
                               )}
-                              <span className="capitalize">{collection.wasteType}</span>
+                              <div className="flex flex-col">
+                                <span className="capitalize">{collection.wasteType}</span>
+                                {collection.wasteDescription && (
+                                  <span className="text-xs text-muted-foreground">
+                                    {collection.wasteDescription}
+                                  </span>
+                                )}
+                              </div>
                               {collection.wasteAmount && (
                                 <Badge variant="outline" className="ml-2 bg-teal-50 text-teal-700 border-teal-200">
                                   {formatNumber(collection.wasteAmount)} kg
@@ -681,7 +688,14 @@ export default function CollectorCollectionsPage() {
                   ) : (
                     <Trash2 className="mr-2 h-4 w-4 text-muted-foreground" />
                   )}
-                  <span className="capitalize">{selectedCollection.wasteType}</span>
+                  <div className="flex flex-col">
+                    <span className="capitalize">{selectedCollection.wasteType}</span>
+                    {selectedCollection.wasteDescription && (
+                      <span className="text-sm text-muted-foreground">
+                        {selectedCollection.wasteDescription}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
               
