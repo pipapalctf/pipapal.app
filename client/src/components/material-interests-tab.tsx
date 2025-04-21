@@ -13,7 +13,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { formatNumber } from '@/lib/utils';
 import { format } from 'date-fns';
 import { wasteTypeConfig } from '@/lib/types';
-import { Collection, MaterialInterest, User as UserType, WasteTypeValue } from '@shared/schema';
+import { Collection, CollectionStatus, MaterialInterest, User as UserType, WasteTypeValue } from '@shared/schema';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -63,6 +63,7 @@ export function MaterialInterestsTab({ collectorId }: MaterialInterestsTabProps)
       wasteType: string;
       wasteAmount: number | null;
       address: string;
+      status: string;
     };
   };
   
@@ -227,7 +228,12 @@ export function MaterialInterestsTab({ collectorId }: MaterialInterestsTabProps)
               <div className="bg-muted/50 p-4 rounded-md space-y-2">
                 <div className="flex items-center">
                   <Package className="h-4 w-4 mr-2 text-muted-foreground" />
-                  <span>Collection #{collection.id}</span>
+                  <div className="flex items-center gap-2">
+                    <span>Collection #{collection.id}</span>
+                    <Badge variant="outline" className={`${getStatusColor(collection.status)}`}>
+                      {collection.status.charAt(0).toUpperCase() + collection.status.slice(1)}
+                    </Badge>
+                  </div>
                 </div>
                 
                 <div className="flex items-start">
@@ -355,7 +361,10 @@ export function MaterialInterestsTab({ collectorId }: MaterialInterestsTabProps)
                   </TableCell>
                   <TableCell className="align-top py-4">
                     <div className="flex flex-col">
-                      <div className="font-medium">#{collection.id}</div>
+                      <div className="font-medium flex items-center gap-1">
+                        #{collection.id}
+                        <span className={`w-2 h-2 rounded-full ${getStatusColor(collection.status).replace('text-', 'bg-')}`}></span>
+                      </div>
                       <div className="text-xs text-muted-foreground truncate max-w-[120px]">
                         {collection.address}
                       </div>

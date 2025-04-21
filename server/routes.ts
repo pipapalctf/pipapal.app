@@ -881,7 +881,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 id: collection.id,
                 wasteType: collection.wasteType,
                 wasteAmount: collection.wasteAmount,
-                address: collection.address
+                address: collection.address,
+                status: collection.status
               } : null
             };
           })
