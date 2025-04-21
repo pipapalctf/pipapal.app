@@ -918,6 +918,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   );
   
+  // Get all active collections (both completed and in-progress) for a specific collector
+  app.get("/api/collections/collector/:collectorId/active", 
+    requireAuthentication,
+    async (req, res) => {
+      if (!req.user) return res.sendStatus(401);
+      
+      // Check if user is the collector
+      const collectorId = parseInt(req.params.collectorId);
+      if (req.user.id !== collectorId) {
+        return res.status(403).json({ error: 'You do not have permission to view these collections' });
+      }
+      
+      try {
+        // Get collections with relevant statuses (get from database)
+        const allCollections = await storage.getAllCollections();
+        
+        // Filter collections for this collector that are either completed or in progress
+        const activeCollections = allCollections.filter(collection => 
+          collection.collectorId === collectorId && 
+          (collection.status === CollectionStatus.COMPLETED || collection.status === CollectionStatus.IN_PROGRESS)
+        );
+        
+        res.status(200).json(activeCollections);
+      } catch (error) {
+        console.error("Error fetching active collections for collector:", error);
+        res.status(500).send("Failed to fetch active collections");
+      }
+    }
+  );
+  
   // Update material interest status (accept or reject)
   app.patch("/api/material-interests/:interestId/status", 
     requireAuthentication,

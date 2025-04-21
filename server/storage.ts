@@ -12,7 +12,7 @@ import session from "express-session";
 import createMemoryStore from "memorystore";
 import connectPg from "connect-pg-simple";
 import { db, pool } from "./db";
-import { and, eq, desc, gte, ne, sql, sum, inArray } from "drizzle-orm";
+import { and, eq, desc, gte, ne, sql, sum, inArray, or, isNotNull } from "drizzle-orm";
 
 const MemoryStore = createMemoryStore(session);
 const PostgresSessionStore = connectPg(session);
@@ -31,6 +31,7 @@ export interface IStorage {
   getCollectionsByUser(userId: number): Promise<Collection[]>;
   getUpcomingCollectionsByUser(userId: number): Promise<Collection[]>;
   getCompletedCollectionsByCollector(collectorId: number): Promise<Collection[]>;
+  getActiveCollectionsByCollector(collectorId: number): Promise<Collection[]>;
   getAllCompletedCollections(): Promise<Collection[]>;
   createCollection(collection: InsertCollection): Promise<Collection>;
   updateCollection(id: number, updates: Partial<Collection>): Promise<Collection | undefined>;
@@ -724,6 +725,18 @@ export class DatabaseStorage implements IStorage {
       .where(and(
         eq(collections.collectorId, collectorId),
         eq(collections.status, CollectionStatus.COMPLETED)
+      ))
+      .orderBy(desc(collections.completedDate));
+  }
+  
+  async getActiveCollectionsByCollector(collectorId: number): Promise<Collection[]> {
+    return db.select().from(collections)
+      .where(and(
+        eq(collections.collectorId, collectorId),
+        or(
+          eq(collections.status, CollectionStatus.COMPLETED),
+          eq(collections.status, CollectionStatus.IN_PROGRESS)
+        )
       ))
       .orderBy(desc(collections.completedDate));
   }
