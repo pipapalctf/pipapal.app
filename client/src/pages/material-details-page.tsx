@@ -224,7 +224,15 @@ export default function MaterialDetailsPage() {
         <div className="container mx-auto px-4 py-8">
           {/* Back Button and Status Badge */}
           <div className="flex items-center justify-between mb-6">
-            <Button variant="outline" onClick={() => navigate(-1)}>
+            <Button variant="outline" onClick={() => {
+              if (user?.role === UserRole.RECYCLER) {
+                navigate("/materials");
+              } else if (user?.role === UserRole.COLLECTOR) {
+                navigate("/materials/manage");
+              } else {
+                navigate("/dashboard");
+              }
+            }}>
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back
             </Button>
@@ -252,7 +260,7 @@ export default function MaterialDetailsPage() {
             </h1>
             <p className="text-muted-foreground flex items-center">
               <Calendar className="h-4 w-4 mr-2" />
-              Listed on {new Date(material.createdAt).toLocaleDateString()}
+              Listed on {material.createdAt ? new Date(material.createdAt).toLocaleDateString() : "N/A"}
             </p>
           </div>
           
@@ -385,7 +393,7 @@ export default function MaterialDetailsPage() {
                                 </Badge>
                               </div>
                               <CardDescription className="text-sm">
-                                Bid placed on {new Date(bid.createdAt).toLocaleDateString()} at {new Date(bid.createdAt).toLocaleTimeString()}
+                                Bid placed on {bid.createdAt ? new Date(bid.createdAt).toLocaleDateString() : "N/A"} {bid.createdAt ? `at ${new Date(bid.createdAt).toLocaleTimeString()}` : ""}
                               </CardDescription>
                             </CardHeader>
                             
