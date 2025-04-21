@@ -117,10 +117,10 @@ export function MaterialInterestsTab({ collectorId }: MaterialInterestsTabProps)
                   <div className="flex flex-col">
                     <div className="flex items-center">
                       <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
-                      {format(new Date(interest.createdAt), 'MMM d, yyyy')}
+                      {format(new Date(interest.timestamp), 'MMM d, yyyy')}
                     </div>
                     <span className="text-xs text-muted-foreground">
-                      {format(new Date(interest.createdAt), 'h:mm a')}
+                      {format(new Date(interest.timestamp), 'h:mm a')}
                     </span>
                   </div>
                 </TableCell>
@@ -139,14 +139,14 @@ export function MaterialInterestsTab({ collectorId }: MaterialInterestsTabProps)
                   <div className="flex flex-col">
                     <span className="font-medium">#{collection.id}</span>
                     <span className="text-xs text-muted-foreground">
-                      {format(new Date(collection.completedDate), 'MMM d, yyyy')}
+                      {collection.completedDate ? format(new Date(collection.completedDate), 'MMM d, yyyy') : '-'}
                     </span>
                   </div>
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center">
-                    {wasteTypeConfig[collection.wasteType]?.icon ? (
-                      <span className="mr-2">{wasteTypeConfig[collection.wasteType]?.icon}</span>
+                    {wasteTypeConfig[collection.wasteType as WasteTypeValue]?.icon ? (
+                      <span className="mr-2">{wasteTypeConfig[collection.wasteType as WasteTypeValue]?.icon}</span>
                     ) : (
                       <Trash2 className="mr-2 h-4 w-4 text-muted-foreground" />
                     )}
