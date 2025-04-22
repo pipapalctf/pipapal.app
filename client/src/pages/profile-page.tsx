@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { apiRequest, queryClient, getQueryFn } from "@/lib/queryClient";
-import { formatDistance } from "date-fns";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -31,8 +30,7 @@ import MobileNavigation from "@/components/shared/mobile-navigation";
 // Icons
 import { Check, Loader2, UserIcon, KeyIcon, MapPinIcon, PhoneIcon, AtSign, AlertCircle, 
   BriefcaseIcon, CheckCircleIcon, Building2Icon, Clock4Icon, MapIcon, Settings, BellIcon,
-  SunIcon, MoonIcon, LaptopIcon, BellOffIcon, ClockIcon, Recycle, Calendar, Truck,
-  Trash2, Award, Star, ArrowUpRight } from "lucide-react";
+  SunIcon, MoonIcon, LaptopIcon, BellOffIcon } from "lucide-react";
 
 // Profile form schema
 const profileFormSchema = z.object({
@@ -85,13 +83,6 @@ export default function ProfilePage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("profile");
-  
-  // Query for user activities
-  const { data: activities, isLoading: activitiesLoading } = useQuery({
-    queryKey: ['/api/activities', user?.id],
-    queryFn: () => getQueryFn()(`/api/activities/user/${user?.id}`),
-    enabled: !!user?.id
-  });
   
   // Check if user is a collector or recycler
   const isBusinessUser = user?.role === 'collector' || user?.role === 'recycler';
@@ -319,7 +310,7 @@ export default function ProfilePage() {
         </div>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full max-w-3xl mx-auto">
-          <TabsList className={`grid w-full ${isBusinessUser ? 'grid-cols-2 md:grid-cols-5' : 'grid-cols-2 md:grid-cols-4'} mb-8 gap-2`}>
+          <TabsList className={`grid w-full ${isBusinessUser ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-2 md:grid-cols-3'} mb-8 gap-2`}>
             <TabsTrigger value="profile" className="flex items-center justify-center">
               <UserIcon className="mr-2 h-4 w-4" />
               <span className="sm:inline">Profile Information</span>
@@ -341,11 +332,6 @@ export default function ProfilePage() {
               <Settings className="mr-2 h-4 w-4" />
               <span className="sm:inline">Preferences</span>
               <span className="sm:hidden">Prefs</span>
-            </TabsTrigger>
-            <TabsTrigger value="activity" className="flex items-center justify-center">
-              <ClockIcon className="mr-2 h-4 w-4" />
-              <span className="sm:inline">Recent Activity</span>
-              <span className="sm:hidden">Activity</span>
             </TabsTrigger>
           </TabsList>
           
@@ -1040,104 +1026,6 @@ export default function ProfilePage() {
                   <Check className="mr-2 h-4 w-4" />
                   Save Preferences
                 </Button>
-              </CardFooter>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="activity">
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
-                <CardDescription>
-                  Track your recent actions and events on the platform
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {activitiesLoading ? (
-                  <div className="flex justify-center p-6">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  </div>
-                ) : activities && activities.length > 0 ? (
-                  <div className="space-y-6">
-                    {activities.map((activity, index) => {
-                      // Determine icon based on activity type
-                      let ActivityIcon = ClockIcon;
-                      switch (activity.activityType) {
-                        case 'collection_scheduled':
-                          ActivityIcon = Calendar;
-                          break;
-                        case 'collection_completed':
-                          ActivityIcon = Truck;
-                          break;
-                        case 'waste_recycled':
-                          ActivityIcon = Recycle;
-                          break;
-                        case 'badge_earned':
-                          ActivityIcon = Award;
-                          break;
-                        case 'points_earned':
-                          ActivityIcon = Star;
-                          break;
-                        case 'waste_collected':
-                          ActivityIcon = Trash2;
-                          break;
-                        default:
-                          ActivityIcon = ClockIcon;
-                      }
-                      
-                      return (
-                        <div key={activity.id} className="flex items-start space-x-4">
-                          <div className={`rounded-full p-2 ${
-                            activity.activityType.includes('collection') 
-                              ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' 
-                              : activity.activityType.includes('waste') 
-                                ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
-                                : activity.activityType.includes('badge') 
-                                  ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'
-                                  : activity.activityType.includes('points')
-                                    ? 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300'
-                                    : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
-                          }`}>
-                            <ActivityIcon className="h-4 w-4" />
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between">
-                              <p className="font-medium text-sm">{activity.description}</p>
-                              <span className="text-xs text-gray-500 dark:text-gray-400">
-                                {activity.timestamp ? 
-                                  formatDistance(new Date(activity.timestamp), new Date(), { addSuffix: true }) : 
-                                  formatDistance(new Date(activity.createdAt), new Date(), { addSuffix: true })}
-                              </span>
-                            </div>
-                            {activity.points && (
-                              <div className="mt-1 text-xs inline-flex items-center rounded-full px-2 py-1 bg-primary/10 text-primary">
-                                <Star className="h-3 w-3 mr-1" /> {activity.points} points earned
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <div className="mx-auto h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-                      <ClockIcon className="h-6 w-6 text-gray-500" />
-                    </div>
-                    <h3 className="text-lg font-medium">No activity yet</h3>
-                    <p className="text-gray-500 mt-2">
-                      Your activities will appear here once you start using the platform.
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-              <CardFooter className="border-t p-6">
-                <div className="w-full flex justify-center">
-                  <Button variant="outline" className="w-full max-w-xs" onClick={() => console.log("View all activities")}>
-                    View All Activities
-                    <ArrowUpRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </div>
               </CardFooter>
             </Card>
           </TabsContent>
