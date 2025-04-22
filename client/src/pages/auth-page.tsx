@@ -33,7 +33,7 @@ import { RoleSelectionDialog } from "@/components/auth/role-selection-dialog";
 
 // Login form schema
 const loginFormSchema = z.object({
-  username: z.string().min(3, "Username must be at least 3 characters"),
+  email: z.string().email("Please enter a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
@@ -99,7 +99,7 @@ export default function AuthPage() {
   const loginForm = useForm<LoginFormValues>({
     resolver: zodResolver(loginFormSchema),
     defaultValues: {
-      username: "",
+      email: "",
       password: "",
     },
   });
@@ -216,12 +216,12 @@ export default function AuthPage() {
                         <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-6">
                           <FormField
                             control={loginForm.control}
-                            name="username"
+                            name="email"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Username</FormLabel>
+                                <FormLabel>Email Address</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="johnking" {...field} />
+                                  <Input type="email" placeholder="your.email@example.com" {...field} />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>

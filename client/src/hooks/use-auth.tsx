@@ -31,9 +31,9 @@ type AuthContextType = {
   resendVerificationEmailMutation: UseMutationResult<void, Error, void>;
 };
 
-const loginSchema = insertUserSchema.pick({
-  username: true,
-  password: true,
+const loginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(6),
 });
 
 type LoginData = z.infer<typeof loginSchema>;
@@ -78,7 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     mutationFn: async (credentials: LoginData) => {
       // First attempt Firebase authentication
       const firebaseResult = await signInWithEmail(
-        credentials.username, // Using username as email for simplicity
+        credentials.email,
         credentials.password
       );
       
@@ -100,7 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     onError: (error: Error) => {
       toast({
         title: "Login failed",
-        description: error.message || "Invalid username or password",
+        description: error.message || "Invalid email or password",
         variant: "destructive",
       });
     },

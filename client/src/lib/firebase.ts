@@ -46,32 +46,35 @@ export const createUserWithEmail = async (email: string, password: string) => {
   }
 };
 
-export const signInWithEmail = async (username: string, password: string) => {
+export const signInWithEmail = async (email: string, password: string) => {
   try {
-    // We're using username for login, so we'll use the Firebase REST API directly via our own endpoint
-    const response = await fetch('/api/login', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ username, password }),
-      credentials: 'include'
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => null);
-      throw new Error(errorData?.message || 'Invalid username or password');
-    }
-    
-    // If successful, return the user information
-    const userData = await response.json();
-    return { user: userData, success: true };
+    // Sign in using Firebase Authentication
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    return { user: userCredential.user, success: true };
   } catch (error: any) {
     console.error("Error signing in:", error);
     
+    // Provide more user-friendly error messages based on Firebase error codes
+    if (error.code === 'auth/invalid-email') {
+      return {
+        success: false,
+        error: "Please enter a valid email address."
+      };
+    } else if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+      return {
+        success: false,
+        error: "Invalid email or password. Please try again."
+      };
+    } else if (error.code === 'auth/too-many-requests') {
+      return {
+        success: false,
+        error: "Too many failed login attempts. Please try again later or reset your password."
+      };
+    }
+    
     return { 
       success: false, 
-      error: error.message || "Invalid username or password. Please try again."
+      error: error.message || "Invalid email or password. Please try again."
     };
   }
 };
