@@ -41,6 +41,7 @@ type WebSocketMessageEvent = {
   event?: string;
   message?: string;
   collectionId?: number;
+  interestId?: number; 
   status?: string;
   collection?: CollectionData; // For new collection events with collection data
   // Chat message specific fields
@@ -153,6 +154,7 @@ export function useNotifications() {
           read: false,
           timestamp: new Date(),
           collectionId: data.collectionId,
+          interestId: data.interestId,
           status: data.status,
           // Chat message specific fields
           senderId: data.senderId,
@@ -172,6 +174,8 @@ export function useNotifications() {
           toastTitle = 'New Collection Available';
         } else if (data.type === 'new_message') {
           toastTitle = 'New Message';
+        } else if (data.type === 'notification' && data.message && data.message.includes('interest')) {
+          toastTitle = 'Material Interest';
         }
         
         toast({
@@ -199,6 +203,27 @@ export function useNotifications() {
                 console.log('Collection data:', JSON.stringify(data.collection));
               }
             }
+          }
+        }
+        
+        // Handle interest notifications for recyclers and collectors
+        if (data.type === 'notification' && data.message && data.message.includes('interest')) {
+          console.log(`Refreshing material interests due to interest notification`);
+          
+          // For recyclers, refresh their interests
+          if (user.role === 'recycler') {
+            queryClient.invalidateQueries({ queryKey: ['/api/materials/interests'] });
+          }
+          
+          // For collectors, refresh the specific collection's interests
+          if (user.role === 'collector' && data.collectionId) {
+            queryClient.invalidateQueries({ queryKey: ['/api/collections', data.collectionId, 'interests'] });
+            queryClient.invalidateQueries({ queryKey: ['/api/material-interests/collector', user.id] });
+          }
+          
+          // If there's a specific collection involved, refresh its details
+          if (data.collectionId) {
+            queryClient.invalidateQueries({ queryKey: ['/api/collections', data.collectionId] });
           }
         }
       } catch (error) {
