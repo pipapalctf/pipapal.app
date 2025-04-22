@@ -46,43 +46,32 @@ export const createUserWithEmail = async (email: string, password: string) => {
   }
 };
 
-export const signInWithEmail = async (email: string, password: string) => {
+export const signInWithEmail = async (username: string, password: string) => {
   try {
-    // For username-based login, we need to determine if this is a username or email
-    const isEmail = email.includes('@');
+    // We're using username for login, so we'll use the Firebase REST API directly via our own endpoint
+    const response = await fetch('/api/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ username, password }),
+      credentials: 'include'
+    });
     
-    if (isEmail) {
-      // If it's an email address, use it directly
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      return { user: userCredential.user, success: true };
-    } else {
-      // If the input is not an email, throw a custom error with helpful message
-      throw new Error("Please provide a valid email address to sign in.");
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      throw new Error(errorData?.message || 'Invalid username or password');
     }
+    
+    // If successful, return the user information
+    const userData = await response.json();
+    return { user: userData, success: true };
   } catch (error: any) {
     console.error("Error signing in:", error);
     
-    // Provide more user-friendly error messages based on Firebase error codes
-    if (error.code === 'auth/invalid-email') {
-      return {
-        success: false,
-        error: "Please enter a valid email address."
-      };
-    } else if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-      return {
-        success: false,
-        error: "Invalid email or password. Please try again."
-      };
-    } else if (error.code === 'auth/too-many-requests') {
-      return {
-        success: false,
-        error: "Too many failed login attempts. Please try again later or reset your password."
-      };
-    }
-    
     return { 
       success: false, 
-      error: error.message || "Invalid email or password."
+      error: error.message || "Invalid username or password. Please try again."
     };
   }
 };
