@@ -114,7 +114,7 @@ export function NotificationBell() {
                   <span className="text-xs text-muted-foreground">
                     {format(notification.timestamp, 'HH:mm')}
                   </span>
-                  {notification.type === 'collection_update' && notification.collectionId && (
+                  {(notification.type === 'collection_update' || notification.type === 'notification') && notification.collectionId && (
                     <Button 
                       variant="link" 
                       size="sm" 
