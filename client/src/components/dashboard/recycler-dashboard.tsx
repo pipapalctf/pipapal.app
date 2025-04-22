@@ -3,10 +3,11 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
-import { Recycle, Leaf, Package, TrendingUp, FileText, Scale, Truck, ShoppingBag, MapPin, Star, Calendar, ChevronRight, Clock, Users } from 'lucide-react';
+import { Recycle, Leaf, Package, TrendingUp, FileText, Scale, Truck, ShoppingBag, MapPin, Star, Calendar, ChevronRight, Clock, Users, Activity } from 'lucide-react';
 import { User, CollectionStatus } from '@shared/schema';
 import { formatNumber } from '@/lib/utils';
 import RoleBasedCTA from './role-based-cta';
+import RecentActivity from './recent-activity';
 
 interface RecyclerDashboardProps {
   user: User;
@@ -185,7 +186,7 @@ export default function RecyclerDashboard({ user }: RecyclerDashboardProps) {
       </div>
       
       <Tabs defaultValue="materials" className="mt-2">
-        <TabsList className="grid w-full grid-cols-3 rounded-xl bg-muted/50 p-1">
+        <TabsList className="grid w-full grid-cols-4 rounded-xl bg-muted/50 p-1">
           <TabsTrigger value="materials" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">
             <Recycle className="h-4 w-4 mr-2" />
             Materials
@@ -197,6 +198,10 @@ export default function RecyclerDashboard({ user }: RecyclerDashboardProps) {
           <TabsTrigger value="suppliers" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">
             <Truck className="h-4 w-4 mr-2" />
             Suppliers
+          </TabsTrigger>
+          <TabsTrigger value="activities" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">
+            <Activity className="h-4 w-4 mr-2" />
+            Activities
           </TabsTrigger>
         </TabsList>
         
@@ -614,6 +619,81 @@ export default function RecyclerDashboard({ user }: RecyclerDashboardProps) {
                       </p>
                     </div>
                   )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+        
+        {/* Activities Tab */}
+        <TabsContent value="activities" className="space-y-6 pt-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="md:col-span-1">
+              <RecentActivity />
+            </div>
+            
+            <Card className="border-0 shadow-md overflow-hidden md:col-span-1">
+              <div className="h-2 bg-gradient-to-r from-purple-400 to-pink-500"></div>
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center text-lg">
+                  <Star className="mr-2 h-5 w-5 text-purple-500" />
+                  Sustainability Milestones
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="relative pl-6 border-l border-gray-200 dark:border-gray-700 space-y-6 py-2">
+                  {/* Milestone items */}
+                  <div className="relative">
+                    <div className="absolute -left-9 mt-1.5 h-4 w-4 rounded-full border-2 border-green-500 bg-white"></div>
+                    <div className="mb-1 text-sm font-medium text-green-600">
+                      100 kg Milestone
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      You've processed over 100 kg of recyclable materials! Great impact on our environment.
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      April 15, 2025
+                    </p>
+                  </div>
+                  
+                  <div className="relative">
+                    <div className="absolute -left-9 mt-1.5 h-4 w-4 rounded-full border-2 border-blue-500 bg-white"></div>
+                    <div className="mb-1 text-sm font-medium text-blue-600">
+                      First Plastic Processing
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Started processing plastic waste into reusable materials. A big step for circular economy.
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      March 22, 2025
+                    </p>
+                  </div>
+                  
+                  <div className="relative">
+                    <div className="absolute -left-9 mt-1.5 h-4 w-4 rounded-full border-2 border-amber-500 bg-white"></div>
+                    <div className="mb-1 text-sm font-medium text-amber-600">
+                      Community Partnership
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Established partnership with local collectors for steady material supply.
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      February 10, 2025
+                    </p>
+                  </div>
+                  
+                  <div className="relative">
+                    <div className="absolute -left-9 mt-1.5 h-4 w-4 rounded-full border-2 border-purple-500 bg-white"></div>
+                    <div className="mb-1 text-sm font-medium text-purple-600">
+                      Joined PipaPal
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Started your journey as a recycler on the PipaPal platform.
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      January 05, 2025
+                    </p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
