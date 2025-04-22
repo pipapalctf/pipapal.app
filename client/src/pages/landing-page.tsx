@@ -493,8 +493,8 @@ export default function LandingPage() {
             <div>
               <h3 className="text-lg font-bold text-white mb-4">Company</h3>
               <ul className="space-y-2">
-                <li><a href="#" className="hover:text-primary transition-colors">About Us</a></li>
-                <li><a href="#" className="hover:text-primary transition-colors">Our Mission</a></li>
+                <li><a href="/about" className="hover:text-primary transition-colors">About Us</a></li>
+                <li><a href="/mission" className="hover:text-primary transition-colors">Our Mission</a></li>
                 <li><a href="#" className="hover:text-primary transition-colors">Careers</a></li>
                 <li><a href="#" className="hover:text-primary transition-colors">Contact</a></li>
               </ul>

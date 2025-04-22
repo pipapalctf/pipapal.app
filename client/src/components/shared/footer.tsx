@@ -32,6 +32,8 @@ export default function Footer() {
             <h4 className="font-montserrat font-bold text-lg mb-4">Quick Links</h4>
             <ul className="space-y-2">
               <li><Link href="/" className="text-gray-300 hover:text-white transition-colors">Home</Link></li>
+              <li><Link href="/about" className="text-gray-300 hover:text-white transition-colors">About Us</Link></li>
+              <li><Link href="/mission" className="text-gray-300 hover:text-white transition-colors">Our Mission</Link></li>
               <li><Link href="/schedule-pickup" className="text-gray-300 hover:text-white transition-colors">Schedule Collection</Link></li>
               <li><Link href="/ecotips" className="text-gray-300 hover:text-white transition-colors">EcoTips</Link></li>
               <li><Link href="/impact" className="text-gray-300 hover:text-white transition-colors">Impact Dashboard</Link></li>
@@ -71,9 +73,10 @@ export default function Footer() {
         <div className="border-t border-gray-700 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
           <p className="text-gray-400 text-sm">© {new Date().getFullYear()} PipaPal. All rights reserved.</p>
           <div className="mt-4 md:mt-0">
+            <Link href="/about" className="text-gray-400 hover:text-white text-sm mx-2">About Us</Link>
+            <Link href="/mission" className="text-gray-400 hover:text-white text-sm mx-2">Our Mission</Link>
             <a href="#" className="text-gray-400 hover:text-white text-sm mx-2">Privacy Policy</a>
             <a href="#" className="text-gray-400 hover:text-white text-sm mx-2">Terms of Service</a>
-            <a href="#" className="text-gray-400 hover:text-white text-sm mx-2">Cookie Policy</a>
           </div>
         </div>
       </div>
