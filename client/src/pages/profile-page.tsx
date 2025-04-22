@@ -6,6 +6,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { WasteType } from "@shared/schema";
 
 // UI Components
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +16,10 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 // Layout Components
 import Navbar from "@/components/shared/navbar";
@@ -340,6 +345,347 @@ export default function ProfilePage() {
               </CardFooter>
             </Card>
           </TabsContent>
+          
+          {isBusinessUser && (
+            <TabsContent value="business">
+              <Card>
+                <CardHeader>
+                  <CardTitle>{user?.role === 'collector' ? 'Collector' : 'Recycler'} Business Information</CardTitle>
+                  <CardDescription>
+                    Update your business details and certification information
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Form {...businessForm}>
+                    <form id="business-form" onSubmit={businessForm.handleSubmit(onBusinessSubmit)} className="space-y-6">
+                      {/* Business Type and Name Section */}
+                      <div className="border-b border-border pb-6">
+                        <h3 className="text-lg font-semibold mb-4">Business Information</h3>
+                        
+                        <FormField
+                          control={businessForm.control}
+                          name="businessType"
+                          render={({ field }) => (
+                            <FormItem className="mb-4">
+                              <FormLabel>Business Type</FormLabel>
+                              <FormControl>
+                                <RadioGroup
+                                  onValueChange={field.onChange}
+                                  value={field.value}
+                                  className="flex flex-col space-y-1"
+                                >
+                                  <FormItem className="flex items-center space-x-3 space-y-0">
+                                    <FormControl>
+                                      <RadioGroupItem value="individual" />
+                                    </FormControl>
+                                    <FormLabel className="font-normal">
+                                      Individual Operator
+                                    </FormLabel>
+                                  </FormItem>
+                                  <FormItem className="flex items-center space-x-3 space-y-0">
+                                    <FormControl>
+                                      <RadioGroupItem value="organization" />
+                                    </FormControl>
+                                    <FormLabel className="font-normal">
+                                      Organization/Company
+                                    </FormLabel>
+                                  </FormItem>
+                                </RadioGroup>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={businessForm.control}
+                          name="businessName"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Business Name</FormLabel>
+                              <FormControl>
+                                <div className="flex items-center border rounded-md focus-within:ring-2 focus-within:ring-primary/30 focus-within:border-primary">
+                                  <Building2Icon className="h-4 w-4 ml-3 text-gray-400" />
+                                  <Input 
+                                    placeholder={businessForm.watch("businessType") === "individual" 
+                                      ? "Your business or trading name" 
+                                      : "Official company name"} 
+                                    className="border-0 focus-visible:ring-0" 
+                                    {...field} 
+                                  />
+                                </div>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      
+                      {/* Service Details Section */}
+                      <div className="border-b border-border pb-6">
+                        <h3 className="text-lg font-semibold mb-4">Service Details</h3>
+                        
+                        <FormField
+                          control={businessForm.control}
+                          name="serviceLocation"
+                          render={({ field }) => (
+                            <FormItem className="mb-4">
+                              <FormLabel>Service Area/Location</FormLabel>
+                              <FormControl>
+                                <div className="flex items-center border rounded-md focus-within:ring-2 focus-within:ring-primary/30 focus-within:border-primary">
+                                  <MapIcon className="h-4 w-4 ml-3 text-gray-400" />
+                                  <Input 
+                                    placeholder="e.g. Nyahururu, Laikipia County" 
+                                    className="border-0 focus-visible:ring-0" 
+                                    {...field} 
+                                  />
+                                </div>
+                              </FormControl>
+                              <FormDescription>
+                                Specify the areas where you operate
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={businessForm.control}
+                          name="serviceType"
+                          render={({ field }) => (
+                            <FormItem className="mb-4">
+                              <FormLabel>Service Type</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select service type" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="pickup">Pickup Only</SelectItem>
+                                  <SelectItem value="drop_off">Drop-off Only</SelectItem>
+                                  <SelectItem value="both">Both Pickup and Drop-off</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={businessForm.control}
+                          name="operatingHours"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Operating Hours</FormLabel>
+                              <FormControl>
+                                <div className="flex items-center border rounded-md focus-within:ring-2 focus-within:ring-primary/30 focus-within:border-primary">
+                                  <Clock4Icon className="h-4 w-4 ml-3 text-gray-400" />
+                                  <Input 
+                                    placeholder="e.g. Mon-Fri: 8am-5pm, Sat: 9am-2pm" 
+                                    className="border-0 focus-visible:ring-0" 
+                                    {...field} 
+                                  />
+                                </div>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      
+                      {/* Waste Specialization Section */}
+                      <div className="border-b border-border pb-6">
+                        <h3 className="text-lg font-semibold mb-4">Waste Specialization</h3>
+                        
+                        <FormField
+                          control={businessForm.control}
+                          name="wasteSpecialization"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>What types of waste do you handle?</FormLabel>
+                              <FormDescription className="mb-3">
+                                Select all that apply
+                              </FormDescription>
+                              <div className="grid grid-cols-2 gap-4">
+                                {Object.entries(WasteType).map(([key, value]) => (
+                                  <FormItem
+                                    key={key}
+                                    className="flex flex-row items-start space-x-3 space-y-0"
+                                  >
+                                    <FormControl>
+                                      <Checkbox
+                                        checked={field.value?.includes(value)}
+                                        onCheckedChange={(checked) => {
+                                          const currentValues = field.value || [];
+                                          if (checked) {
+                                            field.onChange([...currentValues, value]);
+                                          } else {
+                                            field.onChange(
+                                              currentValues.filter((v) => v !== value)
+                                            );
+                                          }
+                                        }}
+                                      />
+                                    </FormControl>
+                                    <FormLabel className="font-normal cursor-pointer">
+                                      {value.charAt(0).toUpperCase() + value.slice(1)}
+                                    </FormLabel>
+                                  </FormItem>
+                                ))}
+                              </div>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
+                      {/* Certification Section */}
+                      <div className="border-b border-border pb-6">
+                        <h3 className="text-lg font-semibold mb-4">Certification Information</h3>
+                        
+                        <FormField
+                          control={businessForm.control}
+                          name="isCertified"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 mb-4">
+                              <FormControl>
+                                <Checkbox
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                />
+                              </FormControl>
+                              <div className="space-y-1 leading-none">
+                                <FormLabel>
+                                  I have waste management certification
+                                </FormLabel>
+                                <FormDescription>
+                                  Check this if you have any certification from NEMA or other waste management authorities
+                                </FormDescription>
+                              </div>
+                            </FormItem>
+                          )}
+                        />
+                        
+                        {businessForm.watch("isCertified") && (
+                          <FormField
+                            control={businessForm.control}
+                            name="certificationDetails"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Certification Details</FormLabel>
+                                <FormControl>
+                                  <Textarea
+                                    placeholder="Provide details about your certification (e.g. NEMA certification number, date issued, etc.)"
+                                    className="min-h-[100px]"
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        )}
+                      </div>
+                      
+                      {/* Contact Person Section (only for organizations) */}
+                      {businessForm.watch("businessType") === "organization" && (
+                        <div className="border-b border-border pb-6">
+                          <h3 className="text-lg font-semibold mb-4">Contact Person Information</h3>
+                          
+                          <FormField
+                            control={businessForm.control}
+                            name="contactPersonName"
+                            render={({ field }) => (
+                              <FormItem className="mb-4">
+                                <FormLabel>Contact Person Name</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    placeholder="Full name of the primary contact person" 
+                                    {...field} 
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={businessForm.control}
+                            name="contactPersonPosition"
+                            render={({ field }) => (
+                              <FormItem className="mb-4">
+                                <FormLabel>Position</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    placeholder="e.g. Manager, Environmental Officer, etc." 
+                                    {...field} 
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <FormField
+                              control={businessForm.control}
+                              name="contactPersonEmail"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Email</FormLabel>
+                                  <FormControl>
+                                    <Input 
+                                      type="email"
+                                      placeholder="Contact person's email address" 
+                                      {...field} 
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            
+                            <FormField
+                              control={businessForm.control}
+                              name="contactPersonPhone"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Phone Number</FormLabel>
+                                  <FormControl>
+                                    <Input 
+                                      placeholder="Contact person's phone number" 
+                                      {...field} 
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </form>
+                  </Form>
+                </CardContent>
+                <CardFooter className="flex justify-end border-t p-6">
+                  <Button form="business-form" type="submit" disabled={updateBusinessMutation.isPending}>
+                    {updateBusinessMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Check className="mr-2 h-4 w-4" />
+                        Update Business Information
+                      </>
+                    )}
+                  </Button>
+                </CardFooter>
+              </Card>
+            </TabsContent>
+          )}
           
           <TabsContent value="security">
             <Card>
