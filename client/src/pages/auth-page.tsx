@@ -18,13 +18,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useAuth } from "@/hooks/use-auth";
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { Loader2, ArrowLeft, ArrowRight, CheckCircle } from "lucide-react";
+import { Loader2, ArrowLeft, ArrowRight, CheckCircle, Phone, Mail } from "lucide-react";
 import Logo from "@/components/logo";
 import { UserRole } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
@@ -73,9 +74,11 @@ export default function AuthPage() {
   const [registrationStep, setRegistrationStep] = useState<"accountInfo" | "verification" | "complete">("accountInfo");
   const [userFormData, setUserFormData] = useState<RegisterFormValues | null>(null);
   const [phoneNumber, setPhoneNumber] = useState<string>("");
+  const [email, setEmail] = useState<string>("");
   const [isLoadingOtp, setIsLoadingOtp] = useState<boolean>(false);
   const [otpSent, setOtpSent] = useState<boolean>(false);
   const [devOtpCode, setDevOtpCode] = useState<string | null>(null);
+  const [verificationMethod, setVerificationMethod] = useState<"phone" | "email">("phone");
   const { toast } = useToast();
 
   // OTP form
@@ -125,24 +128,18 @@ export default function AuthPage() {
   // Registration first step submission - collect user data
   function onRegisterSubmit(values: RegisterFormValues) {
     setUserFormData(values);
-    // Ensure phone has a value before setting it
-    if (values.phone) {
-      setPhoneNumber(values.phone);
-      // Send OTP to the provided phone number
-      sendVerificationCode(values.phone);
-    } else {
-      toast({
-        title: "Error",
-        description: "Please provide a valid phone number",
-        variant: "destructive",
-      });
-      return;
+    
+    // Save the email for future use
+    if (values.email) {
+      setEmail(values.email);
     }
+    
+    // Proceed to verification step - we'll choose verification method there
     setRegistrationStep("verification");
   }
   
-  // Send OTP verification code
-  const sendVerificationCode = async (phone: string) => {
+  // Send SMS verification code
+  const sendSmsVerificationCode = async (phone: string) => {
     if (!phone || phone.trim() === '') {
       toast({
         title: "Error",
@@ -228,9 +225,66 @@ export default function AuthPage() {
     }
   };
   
-  // Verify OTP and complete registration
-  const verifyOtpAndRegister = async (otpData: { otp: string }) => {
-    if (!userFormData) return;
+  // Send email verification code
+  const sendEmailVerificationCode = async (emailAddress: string) => {
+    if (!emailAddress || emailAddress.trim() === '') {
+      toast({
+        title: "Error",
+        description: "Please provide a valid email address",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsLoadingOtp(true);
+    setDevOtpCode(null); // Reset any previous dev code
+    
+    try {
+      const response = await apiRequest("POST", "/api/email/send", {
+        email: emailAddress,
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to send verification code");
+      }
+      
+      // Get the response data
+      const responseData = await response.json();
+      
+      // Check if we're in development mode and a code was provided
+      if (responseData.developmentMode && responseData.code) {
+        setDevOtpCode(responseData.code);
+        toast({
+          title: "Test Mode",
+          description: "A verification code has been generated for testing",
+        });
+      } else {
+        // Standard notification for production mode
+        toast({
+          title: "Verification code sent",
+          description: "Please check your email for a 6-digit verification code",
+        });
+      }
+      
+      setOtpSent(true);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send verification code. Please try again.",
+        variant: "destructive",
+      });
+      
+      // Go back to account info step if email sending fails
+      setRegistrationStep("accountInfo");
+    } finally {
+      setIsLoadingOtp(false);
+    }
+  };
+  
+  // Verify phone OTP and complete registration
+  const verifyPhoneAndRegister = async (otpData: { otp: string }) => {
+    if (!userFormData || !phoneNumber) return;
     
     setIsLoadingOtp(true);
     
@@ -275,6 +329,63 @@ export default function AuthPage() {
       });
     } finally {
       setIsLoadingOtp(false);
+    }
+  };
+  
+  // Verify email code and complete registration
+  const verifyEmailAndRegister = async (otpData: { otp: string }) => {
+    if (!userFormData || !email) return;
+    
+    setIsLoadingOtp(true);
+    
+    try {
+      // Verify email code first
+      const verifyResponse = await apiRequest("POST", "/api/email/verify-registration", {
+        email: email,
+        code: otpData.otp
+      });
+      
+      if (!verifyResponse.ok) {
+        const errorData = await verifyResponse.json();
+        throw new Error(errorData.error || "Invalid verification code");
+      }
+      
+      // If code is valid, submit registration
+      registerMutation.mutate({
+        ...userFormData,
+        emailVerified: true,
+        email: email
+      }, {
+        onSuccess: () => {
+          setRegistrationStep("complete");
+        },
+        onError: (error) => {
+          toast({
+            title: "Registration failed",
+            description: error.message || "Failed to create account. Please try again.",
+            variant: "destructive",
+          });
+          // Go back to account info step if registration fails
+          setRegistrationStep("accountInfo");
+        }
+      });
+    } catch (error: any) {
+      toast({
+        title: "Verification failed",
+        description: error.message || "Invalid verification code. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingOtp(false);
+    }
+  };
+  
+  // Handle verification code submission
+  const verifyCodeAndRegister = async (otpData: { otp: string }) => {
+    if (verificationMethod === 'phone') {
+      await verifyPhoneAndRegister(otpData);
+    } else {
+      await verifyEmailAndRegister(otpData);
     }
   };
   
