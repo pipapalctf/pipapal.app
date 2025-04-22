@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -119,10 +119,14 @@ export default function ProfilePage() {
   // Update profile mutation
   const updateProfileMutation = useMutation({
     mutationFn: async (data: ProfileFormValues) => {
-      const res = await apiRequest("PATCH", "/api/user", data);
+      // Use the specific user ID endpoint
+      if (!user?.id) throw new Error("User ID is required");
+      const res = await apiRequest("PATCH", `/api/users/${user.id}`, data);
       return await res.json();
     },
     onSuccess: (data) => {
+      // Update the user data in cache
+      queryClient.setQueryData(["/api/user"], data);
       toast({
         title: "Profile updated",
         description: "Your profile has been updated successfully.",
@@ -130,9 +134,10 @@ export default function ProfilePage() {
       });
     },
     onError: (error: Error) => {
+      console.error("Profile update error:", error);
       toast({
         title: "Error updating profile",
-        description: error.message,
+        description: error.message || "An error occurred while updating your profile",
         variant: "destructive",
       });
     },
@@ -141,7 +146,9 @@ export default function ProfilePage() {
   // Update password mutation
   const updatePasswordMutation = useMutation({
     mutationFn: async (data: { currentPassword: string; newPassword: string }) => {
-      const res = await apiRequest("POST", "/api/user/password", data);
+      // Use the specific user ID endpoint
+      if (!user?.id) throw new Error("User ID is required");
+      const res = await apiRequest("POST", `/api/users/${user.id}/password`, data);
       return await res.json();
     },
     onSuccess: (data) => {
@@ -153,9 +160,10 @@ export default function ProfilePage() {
       passwordForm.reset();
     },
     onError: (error: Error) => {
+      console.error("Password update error:", error);
       toast({
         title: "Error updating password",
-        description: error.message,
+        description: error.message || "An error occurred while updating your password",
         variant: "destructive",
       });
     },
@@ -164,10 +172,14 @@ export default function ProfilePage() {
   // Update business information mutation
   const updateBusinessMutation = useMutation({
     mutationFn: async (data: BusinessFormValues) => {
-      const res = await apiRequest("PATCH", "/api/user", data);
+      // Use the specific user ID endpoint instead of generic /api/user
+      if (!user?.id) throw new Error("User ID is required");
+      const res = await apiRequest("PATCH", `/api/users/${user.id}`, data);
       return await res.json();
     },
     onSuccess: (data) => {
+      // Update the user data in cache
+      queryClient.setQueryData(["/api/user"], data);
       toast({
         title: "Business information updated",
         description: "Your business details have been updated successfully.",
@@ -175,9 +187,10 @@ export default function ProfilePage() {
       });
     },
     onError: (error: Error) => {
+      console.error("Business update error:", error);
       toast({
         title: "Error updating business information",
-        description: error.message,
+        description: error.message || "An error occurred while updating your business information",
         variant: "destructive",
       });
     },
