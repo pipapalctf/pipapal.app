@@ -156,10 +156,31 @@ export default function OnboardingPage() {
   // Onboarding mutation using dedicated endpoint
   const completeOnboardingMutation = useMutation({
     mutationFn: async (data: any) => {
-      const res = await apiRequest("POST", "/api/onboarding", data);
-      return await res.json();
+      console.log("Making onboarding API request with data:", JSON.stringify(data));
+      try {
+        const res = await apiRequest("POST", "/api/onboarding", data);
+        console.log("API response status:", res.status);
+        if (!res.ok) {
+          // Try to get more details about the error
+          const errorText = await res.text();
+          console.error("Error response from API:", errorText);
+          try {
+            const jsonError = JSON.parse(errorText);
+            throw new Error(jsonError.message || "Server error");
+          } catch (e) {
+            throw new Error(errorText || "Server error");
+          }
+        }
+        const jsonData = await res.json();
+        console.log("API response data:", JSON.stringify(jsonData));
+        return jsonData;
+      } catch (error) {
+        console.error("Error in onboarding mutation:", error);
+        throw error;
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("Onboarding success, updated user:", JSON.stringify(data));
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       toast({
         title: "Onboarding completed!",
@@ -181,18 +202,25 @@ export default function OnboardingPage() {
           const errorData = JSON.parse(error.response);
           errorMessage = errorData.message || errorMessage;
         } catch (e) {
+          console.error("Error parsing error response:", e);
           // If parsing fails, use the default message
         }
       }
       
+      // Show detailed error in console for debugging
+      console.error("Formatted error message:", errorMessage);
+      
       toast({
-        title: "Error",
+        title: "Onboarding Failed",
         description: errorMessage,
         variant: "destructive",
       });
       
       setSubmitting(false);
     },
+    onSettled: () => {
+      setSubmitting(false);
+    }
   });
   
   function onOrganizationSubmit(values: OrganizationOnboardingValues) {

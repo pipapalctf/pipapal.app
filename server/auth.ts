@@ -118,11 +118,16 @@ export function setupAuth(app: Express) {
   
   // Dedicated endpoint for completing onboarding
   app.post("/api/onboarding", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (!req.isAuthenticated()) {
+      console.log("Onboarding request rejected: User not authenticated");
+      return res.sendStatus(401);
+    }
     
     try {
       const user = req.user;
       const userData = req.body;
+      console.log("Onboarding API called with user:", user.id, user.username, user.role);
+      console.log("Onboarding data received:", JSON.stringify(userData));
       const updates: Record<string, any> = { onboardingCompleted: true };
       
       // Process role-specific fields based on user role
@@ -193,12 +198,19 @@ export function setupAuth(app: Express) {
         }
       }
       
+      // Log updates that will be applied
+      console.log("Updates to be applied to user:", JSON.stringify(updates));
+      
       // Update user in database
       const updatedUser = await storage.updateUser(user.id, updates);
       
       if (!updatedUser) {
+        console.log("User not found during onboarding update:", user.id);
         return res.status(404).json({ message: "User not found" });
       }
+      
+      console.log("User successfully updated:", updatedUser.id, updatedUser.username);
+      console.log("Onboarding status:", updatedUser.onboardingCompleted);
       
       // Create activity for completing onboarding
       await storage.createActivity({
@@ -208,6 +220,7 @@ export function setupAuth(app: Express) {
         points: 5
       });
       
+      console.log("Onboarding activity created, sending response");
       res.json(updatedUser);
     } catch (error) {
       console.error("Error completing onboarding:", error);
