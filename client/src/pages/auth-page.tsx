@@ -30,6 +30,8 @@ import Logo from "@/components/logo";
 import { UserRole } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import EmailVerification from "@/components/auth/email-verification";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 
 // Login form schema
 const loginFormSchema = z.object({
