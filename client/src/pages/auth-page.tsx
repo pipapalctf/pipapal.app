@@ -78,9 +78,14 @@ export default function AuthPage() {
   
   const [activeTab, setActiveTab] = useState<string>(getTabFromUrl());
   
-  const handleGoogleSignIn = () => {
-    // Open role selection dialog instead of immediately signing in
-    setRoleDialogOpen(true);
+  const handleGoogleSignIn = (isRegister: boolean) => {
+    // Only show role selection dialog when registering a new account
+    if (isRegister) {
+      setRoleDialogOpen(true);
+    } else {
+      // For login, don't prompt for role - directly sign in
+      loginWithGoogleMutation.mutate(undefined);
+    }
   };
   
   const handleRoleSelect = (role: string) => {
@@ -190,7 +195,7 @@ export default function AuthPage() {
                         variant="outline" 
                         type="button" 
                         className="w-full mb-6" 
-                        onClick={handleGoogleSignIn}
+                        onClick={() => handleGoogleSignIn(false)}
                         disabled={loginWithGoogleMutation.isPending}
                       >
                         {loginWithGoogleMutation.isPending ? (
@@ -279,7 +284,7 @@ export default function AuthPage() {
                         variant="outline" 
                         type="button" 
                         className="w-full mb-6" 
-                        onClick={handleGoogleSignIn}
+                        onClick={() => handleGoogleSignIn(true)}
                         disabled={loginWithGoogleMutation.isPending}
                       >
                         {loginWithGoogleMutation.isPending ? (

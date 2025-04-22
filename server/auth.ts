@@ -143,7 +143,17 @@ export function setupAuth(app: Express) {
             user = updatedUser;
           }
         }
+        // For existing users, we don't change their role, even if the client sent one
+        // We just log them in with their existing account
       } else {
+        // Only create a new user if one doesn't exist yet
+        // If role is undefined or not provided (for logins), we need to return an error
+        if (!role) {
+          return res.status(404).json({ 
+            message: "User not found. Please register first to create an account."
+          });
+        }
+        
         // Create new user with Google info
         // Generate a random password (they'll login with Google, not password)
         const randomPassword = randomBytes(16).toString('hex');
