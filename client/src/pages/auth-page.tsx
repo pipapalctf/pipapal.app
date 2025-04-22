@@ -75,12 +75,9 @@ export default function AuthPage() {
   const [activeTab, setActiveTab] = useState<string>("login");
   const [registrationStep, setRegistrationStep] = useState<"accountInfo" | "verification" | "complete">("accountInfo");
   const [userFormData, setUserFormData] = useState<RegisterFormValues | null>(null);
-  const [phoneNumber, setPhoneNumber] = useState<string>("");
   const [email, setEmail] = useState<string>("");
   const [isLoadingOtp, setIsLoadingOtp] = useState<boolean>(false);
-  const [otpSent, setOtpSent] = useState<boolean>(false);
   const [devOtpCode, setDevOtpCode] = useState<string | null>(null);
-  const [verificationMethod, setVerificationMethod] = useState<"phone" | "email">("phone");
   const { toast } = useToast();
 
   // OTP form
@@ -134,7 +131,6 @@ export default function AuthPage() {
     // Always use email for verification
     if (values.email) {
       setEmail(values.email);
-      setVerificationMethod("email");
       
       // Immediately send verification code to email
       setRegistrationStep("verification");
@@ -148,92 +144,7 @@ export default function AuthPage() {
     }
   }
   
-  // Send SMS verification code
-  const sendSmsVerificationCode = async (phone: string) => {
-    if (!phone || phone.trim() === '') {
-      toast({
-        title: "Error",
-        description: "Please provide a valid phone number",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    setIsLoadingOtp(true);
-    setDevOtpCode(null); // Reset any previous dev code
-    
-    try {
-      const response = await apiRequest("POST", "/api/otp/send", {
-        phoneNumber: phone,
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to send verification code");
-      }
-      
-      // Get the response data
-      const responseData = await response.json();
-      
-      // Check if we're in development mode (server sends a developmentMode flag)
-      if (responseData.developmentMode && responseData.otp) {
-        // Use the OTP directly from the response if available
-        setDevOtpCode(responseData.otp);
-        
-        // If message contains Twilio verification instructions, show that in a special toast
-        if (responseData.message.includes('verify your number in Twilio')) {
-          toast({
-            title: "Twilio Account Notice",
-            description: "Phone number needs to be verified in your Twilio account first. Using test code for now.",
-            duration: 8000,
-            variant: "destructive"
-          });
-        } else {
-          toast({
-            title: "Test Mode",
-            description: "A verification code has been generated for testing",
-          });
-        }
-      } else if (responseData.message && 
-                (responseData.message.includes('Development mode') || 
-                 responseData.message.includes('Use code') || 
-                 responseData.message.includes('trial account'))) {
-        // Fallback: try to extract the OTP code from the message (for backward compatibility)
-        const match = responseData.message.match(/code:? ([0-9]{6})/i);
-        if (match && match[1]) {
-          setDevOtpCode(match[1]);
-          toast({
-            title: "Test Mode",
-            description: "A verification code has been generated for testing",
-          });
-        } else {
-          toast({
-            title: "Verification Code",
-            description: responseData.message,
-          });
-        }
-      } else {
-        // Standard notification for production mode
-        toast({
-          title: "Verification code sent",
-          description: "Please check your phone for a 6-digit verification code",
-        });
-      }
-      
-      setOtpSent(true);
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to send verification code. Please try again.",
-        variant: "destructive",
-      });
-      
-      // Go back to account info step if OTP sending fails
-      setRegistrationStep("accountInfo");
-    } finally {
-      setIsLoadingOtp(false);
-    }
-  };
+  // SMS verification has been removed in favor of email verification only
   
   // Send email verification using Firebase
   const sendEmailVerificationCode = async (emailAddress: string) => {
@@ -279,7 +190,6 @@ export default function AuthPage() {
         });
       }
       
-      setOtpSent(true);
     } catch (error: any) {
       toast({
         title: "Error",
@@ -294,55 +204,7 @@ export default function AuthPage() {
     }
   };
   
-  // Verify phone OTP and complete registration
-  const verifyPhoneAndRegister = async (otpData: { otp: string }) => {
-    if (!userFormData || !phoneNumber) return;
-    
-    setIsLoadingOtp(true);
-    
-    try {
-      // Verify OTP first
-      const verifyResponse = await apiRequest("POST", "/api/otp/verify-registration", {
-        phoneNumber: phoneNumber,
-        otp: otpData.otp
-      });
-      
-      if (!verifyResponse.ok) {
-        const errorData = await verifyResponse.json();
-        throw new Error(errorData.error || "Invalid verification code");
-      }
-      
-      // If OTP is valid, submit registration
-      // Note: RegisterData type from use-auth.tsx requires confirmPassword
-      // The registerMutation handles removing it before API call
-      registerMutation.mutate({
-        ...userFormData,
-        phoneVerified: true,
-        phone: phoneNumber
-      }, {
-        onSuccess: () => {
-          setRegistrationStep("complete");
-        },
-        onError: (error) => {
-          toast({
-            title: "Registration failed",
-            description: error.message || "Failed to create account. Please try again.",
-            variant: "destructive",
-          });
-          // Go back to account info step if registration fails
-          setRegistrationStep("accountInfo");
-        }
-      });
-    } catch (error: any) {
-      toast({
-        title: "Verification failed",
-        description: error.message || "Invalid verification code. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoadingOtp(false);
-    }
-  };
+  // Phone verification has been removed in favor of email verification only
   
   // Verify email code and complete registration using Firebase
   const verifyEmailAndRegister = async (otpData: { otp: string }) => {
