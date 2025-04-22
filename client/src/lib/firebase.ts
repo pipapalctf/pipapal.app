@@ -24,6 +24,12 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
 
+// Add custom parameters to the Google provider
+googleProvider.setCustomParameters({
+  // Force account selection even if one account is available
+  prompt: 'select_account'
+});
+
 // Firebase Authentication functions
 export const createUserWithEmail = async (email: string, password: string) => {
   try {
@@ -42,10 +48,38 @@ export const createUserWithEmail = async (email: string, password: string) => {
 
 export const signInWithEmail = async (email: string, password: string) => {
   try {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    return { user: userCredential.user, success: true };
+    // For username-based login, we need to determine if this is a username or email
+    const isEmail = email.includes('@');
+    
+    if (isEmail) {
+      // If it's an email address, use it directly
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      return { user: userCredential.user, success: true };
+    } else {
+      // If the input is not an email, throw a custom error with helpful message
+      throw new Error("Please provide a valid email address to sign in.");
+    }
   } catch (error: any) {
     console.error("Error signing in:", error);
+    
+    // Provide more user-friendly error messages based on Firebase error codes
+    if (error.code === 'auth/invalid-email') {
+      return {
+        success: false,
+        error: "Please enter a valid email address."
+      };
+    } else if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+      return {
+        success: false,
+        error: "Invalid email or password. Please try again."
+      };
+    } else if (error.code === 'auth/too-many-requests') {
+      return {
+        success: false,
+        error: "Too many failed login attempts. Please try again later or reset your password."
+      };
+    }
+    
     return { 
       success: false, 
       error: error.message || "Invalid email or password."
@@ -59,6 +93,30 @@ export const signInWithGoogle = async () => {
     return { user: result.user, success: true };
   } catch (error: any) {
     console.error("Error signing in with Google:", error);
+    
+    // Provide more user-friendly error messages based on Firebase error codes
+    if (error.code === 'auth/unauthorized-domain') {
+      return { 
+        success: false, 
+        error: "This domain is not authorized for Firebase Authentication. Please contact the administrator to add this domain to the Firebase console."
+      };
+    } else if (error.code === 'auth/popup-closed-by-user') {
+      return {
+        success: false,
+        error: "Sign-in popup was closed before completing the process. Please try again."
+      };
+    } else if (error.code === 'auth/cancelled-popup-request') {
+      return {
+        success: false,
+        error: "The sign-in process was cancelled. Please try again."
+      };
+    } else if (error.code === 'auth/popup-blocked') {
+      return {
+        success: false,
+        error: "The sign-in popup was blocked by your browser. Please allow popups for this site and try again."
+      };
+    }
+    
     return { 
       success: false, 
       error: error.message || "Failed to sign in with Google. Please try again."

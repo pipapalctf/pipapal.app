@@ -33,7 +33,7 @@ import { RoleSelectionDialog } from "@/components/auth/role-selection-dialog";
 
 // Login form schema
 const loginFormSchema = z.object({
-  username: z.string().min(3, "Username must be at least 3 characters"),
+  username: z.string().email("Please enter a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
@@ -219,9 +219,9 @@ export default function AuthPage() {
                             name="username"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Username</FormLabel>
+                                <FormLabel>Email Address</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="yourusername" {...field} />
+                                  <Input type="email" placeholder="your.email@example.com" {...field} />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
