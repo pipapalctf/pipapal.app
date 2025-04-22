@@ -43,21 +43,56 @@ export default function LocationPicker({ defaultValue, onChange }: LocationPicke
   const onPlaceSelected = useCallback(() => {
     if (autocompleteRef.current) {
       const place = autocompleteRef.current.getPlace();
-      if (place.formatted_address) {
+      console.log("Selected place:", place);
+      
+      if (place.geometry?.location) {
+        // Always prioritize getting coordinates
+        const location = {
+          lat: place.geometry.location.lat(),
+          lng: place.geometry.location.lng()
+        };
+        
+        // Use the best address representation available
+        let selectedAddress = "";
+        
+        if (place.formatted_address) {
+          // First choice: formatted address
+          selectedAddress = place.formatted_address;
+        } else if (place.name) {
+          // Second choice: place name
+          selectedAddress = place.name;
+        } else {
+          // Fallback: use coordinates
+          selectedAddress = `Location at ${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}`;
+        }
+        
+        console.log("Using address:", selectedAddress);
+        setAddress(selectedAddress);
+        onChange(selectedAddress, location);
+        
+        toast({
+          title: "Location Selected",
+          description: selectedAddress
+        });
+      } else if (place.formatted_address) {
+        // If we have address but no coordinates (rare)
         setAddress(place.formatted_address);
+        onChange(place.formatted_address);
         
-        // Get location coordinates if available
-        const location = place.geometry?.location 
-          ? { 
-              lat: place.geometry.location.lat(), 
-              lng: place.geometry.location.lng() 
-            } 
-          : undefined;
-        
-        onChange(place.formatted_address, location);
+        toast({
+          title: "Address Selected",
+          description: "Note: No precise coordinates available for this location."
+        });
+      } else {
+        console.error("Selected place has no location data:", place);
+        toast({
+          title: "Location Error",
+          description: "This location doesn't have coordinates. Please try another location.",
+          variant: "destructive"
+        });
       }
     }
-  }, [onChange]);
+  }, [onChange, toast]);
   
   // Handle detect current location
   const detectCurrentLocation = useCallback(() => {
@@ -83,7 +118,7 @@ export default function LocationPicker({ defaultValue, onChange }: LocationPicke
           variant: "destructive"
         });
       }
-    }, 10000); // 10 seconds timeout
+    }, 15000); // 15 seconds timeout - increased from 10s
     
     navigator.geolocation.getCurrentPosition(
       async (position) => {
@@ -95,40 +130,61 @@ export default function LocationPicker({ defaultValue, onChange }: LocationPicke
           
           console.log("Current position detected:", latitude, longitude);
           
-          // Set a default address if geocoding fails
-          const defaultAddress = "Nairobi, Kenya";
-          setAddress(defaultAddress);
-          onChange(defaultAddress, location);
-          
+          // Add a loading toast to indicate processing
           toast({
             title: "Location Detected",
-            description: "Using approximate location. You can update it for more accuracy."
+            description: "Getting your address from coordinates..."
           });
           
-          // Try geocoding in the background
+          // Immediately geocode without setting a default address first
           try {
             const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+            
+            // Validate API key before making the request
+            if (!apiKey || apiKey === "your-google-maps-api-key") {
+              console.error("Invalid Google Maps API key");
+              throw new Error("Invalid Google Maps API key configuration");
+            }
+            
+            // Make the geocoding request with region biasing for Kenya
             const response = await fetch(
-              `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`
+              `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}&region=ke`
             );
             
             const data = await response.json();
             console.log("Geocoding response:", data);
             
             if (data.status === "OK" && data.results && data.results.length > 0) {
+              // Find the most accurate result - prefer the first result which is typically the most precise
               const formattedAddress = data.results[0].formatted_address;
               console.log("Address found:", formattedAddress);
               setAddress(formattedAddress);
               onChange(formattedAddress, location);
               
               toast({
-                title: "Location Updated",
-                description: "We found your address: " + formattedAddress
+                title: "Address Found",
+                description: formattedAddress
               });
+            } else if (data.status === "ZERO_RESULTS") {
+              throw new Error("No address found for this location");
+            } else if (data.status === "REQUEST_DENIED") {
+              throw new Error("API key error: " + (data.error_message || "Request denied"));
+            } else {
+              throw new Error("Geocoding failed: " + data.status);
             }
-          } catch (geocodeError) {
-            console.error("Background geocoding failed:", geocodeError);
-            // Already using default address, so no need to show error
+          } catch (geocodeError: any) {
+            console.error("Geocoding failed:", geocodeError);
+            
+            // Set a fallback address if geocoding fails, but keep the correct coordinates
+            const defaultAddress = "Nyahururu, Kenya";
+            setAddress(defaultAddress);
+            onChange(defaultAddress, location);
+            
+            toast({
+              title: "Address Lookup Failed",
+              description: "Using default location. Please update your address manually for accuracy.",
+              variant: "destructive"
+            });
           }
           
           setIsDetectingLocation(false);
@@ -149,11 +205,11 @@ export default function LocationPicker({ defaultValue, onChange }: LocationPicke
         let errorMessage = "Failed to get your location.";
         
         if (error.code === 1) {
-          errorMessage = "Location access denied. Please grant permission or enter address manually.";
+          errorMessage = "Location access denied. Please grant permission in your browser settings and try again.";
         } else if (error.code === 2) {
-          errorMessage = "Location unavailable. Please try again or enter address manually.";
+          errorMessage = "Location unavailable. Please check your device's location services and try again.";
         } else if (error.code === 3) {
-          errorMessage = "Location request timed out. Please try again or enter address manually.";
+          errorMessage = "Location request timed out. Please try again with a better connection.";
         }
         
         toast({
@@ -162,15 +218,10 @@ export default function LocationPicker({ defaultValue, onChange }: LocationPicke
           variant: "destructive"
         });
         setIsDetectingLocation(false);
-        
-        // Set a default address even in error case so users can continue
-        const defaultAddress = "Nairobi, Kenya";
-        setAddress(defaultAddress);
-        onChange(defaultAddress, { lat: -1.2921, lng: 36.8219 }); // Default Nairobi coordinates
       },
       {
         enableHighAccuracy: true,
-        timeout: 5000,
+        timeout: 10000, // Increased timeout to 10 seconds
         maximumAge: 0
       }
     );
@@ -228,8 +279,14 @@ export default function LocationPicker({ defaultValue, onChange }: LocationPicke
             options={{
               // Restrict to Kenya locations only
               componentRestrictions: { country: ['ke'] },
-              fields: ['formatted_address', 'geometry.location'],
-              types: ['address']
+              fields: ['formatted_address', 'geometry.location', 'name', 'place_id'],
+              types: ['geocode', 'address', 'establishment'], // Broaden types to include more results
+              bounds: {
+                north: 5.5, // Northern Kenya bound
+                south: -4.8, // Southern Kenya bound
+                east: 41.9, // Eastern Kenya bound
+                west: 33.9  // Western Kenya bound
+              }
             }}
           >
             <Input 
