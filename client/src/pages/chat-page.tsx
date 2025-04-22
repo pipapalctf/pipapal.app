@@ -1,0 +1,379 @@
+import React, { useState, useEffect, useRef } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { ChatMessage } from "@shared/schema";
+import { useAuth } from "@/hooks/use-auth";
+import { apiRequest } from "@/lib/queryClient";
+import { useWebSocketContext } from "@/hooks/use-websocket";
+import { useToast } from "@/hooks/use-toast";
+
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from "@/components/ui/resizable";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
+import { UserIcon, Send, Loader2 } from "lucide-react";
+
+type Conversation = {
+  id: number;
+  username: string;
+  fullName: string;
+  role: string;
+  phone: string | null;
+  unreadCount: number;
+};
+
+const ChatPage: React.FC = () => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const chatEndRef = useRef<HTMLDivElement>(null);
+  const [selectedUser, setSelectedUser] = useState<number | null>(null);
+  const [message, setMessage] = useState("");
+  const { socket, connected } = useWebSocketContext();
+
+  // Fetch conversations
+  const { data: conversations, isLoading: conversationsLoading } = useQuery<Conversation[]>({
+    queryKey: ["/api/chat/conversations"],
+    throwOnError: true,
+  });
+
+  // Fetch messages with selected user
+  const { data: messages, isLoading: messagesLoading } = useQuery<ChatMessage[]>({
+    queryKey: ["/api/chat/messages", selectedUser],
+    enabled: !!selectedUser,
+    throwOnError: true,
+    onSuccess: () => {
+      // Scroll to bottom when messages load
+      setTimeout(() => {
+        scrollToBottom();
+      }, 100);
+    }
+  });
+
+  // Mutation to send a message via REST API
+  const sendMessageMutation = useMutation({
+    mutationFn: async (data: { receiverId: number; content: string }) => {
+      const response = await apiRequest("POST", "/api/chat/messages", data);
+      return response.json();
+    },
+    onSuccess: () => {
+      // Clear message input
+      setMessage("");
+      // Invalidate queries to refresh messages
+      queryClient.invalidateQueries({ queryKey: ["/api/chat/messages", selectedUser] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error sending message",
+        description: error.message || "Failed to send message",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Socket event handler for incoming messages
+  useEffect(() => {
+    if (!socket || !connected) return;
+
+    const handleMessage = (event: MessageEvent) => {
+      try {
+        const data = JSON.parse(event.data);
+        
+        // Handle new message events
+        if (data.type === "new_message") {
+          // If we're in the conversation with the sender, invalidate messages
+          if (selectedUser === data.senderId) {
+            queryClient.invalidateQueries({ queryKey: ["/api/chat/messages", selectedUser] });
+          }
+          
+          // Always invalidate conversations to update unread count
+          queryClient.invalidateQueries({ queryKey: ["/api/chat/conversations"] });
+          
+          // Show toast notification if not in the conversation
+          if (selectedUser !== data.senderId) {
+            toast({
+              title: `New message from ${data.senderName}`,
+              description: data.content.length > 50 ? `${data.content.substring(0, 50)}...` : data.content,
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Error handling WebSocket message:", error);
+      }
+    };
+
+    socket.addEventListener("message", handleMessage);
+
+    return () => {
+      socket.removeEventListener("message", handleMessage);
+    };
+  }, [socket, connected, selectedUser, queryClient, toast]);
+
+  // Function to send a message
+  const handleSendMessage = () => {
+    if (!user || !selectedUser || !message.trim()) return;
+
+    // Option 1: Send via REST API
+    sendMessageMutation.mutate({
+      receiverId: selectedUser,
+      content: message,
+    });
+
+    // Option 2: Send via WebSocket for real-time delivery
+    // Commented out as we're using the REST API for sending
+    /*
+    if (socket && connected) {
+      socket.send(JSON.stringify({
+        type: "chat_message",
+        receiverId: selectedUser,
+        content: message,
+      }));
+      setMessage("");
+    }
+    */
+  };
+
+  // Handle key press in text area
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  // Scroll to bottom of messages
+  const scrollToBottom = () => {
+    if (chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
+  // Get initials for avatar
+  const getInitials = (name: string) => {
+    if (!name) return "?";
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .substring(0, 2);
+  };
+
+  // Get role display text
+  const getRoleDisplay = (role: string) => {
+    switch (role) {
+      case "collector":
+        return "Waste Collector";
+      case "recycler":
+        return "Recycler";
+      case "household":
+        return "Household";
+      case "organization":
+        return "Organization";
+      default:
+        return role;
+    }
+  };
+
+  return (
+    <div className="container mx-auto py-6">
+      <h1 className="text-3xl font-bold mb-6">Messages</h1>
+
+      <Card className="overflow-hidden border-none shadow-md">
+        <ResizablePanelGroup direction="horizontal" className="min-h-[600px]">
+          {/* Conversations Panel */}
+          <ResizablePanel defaultSize={25} minSize={20} maxSize={30}>
+            <div className="h-full flex flex-col">
+              <CardHeader className="px-4 py-3">
+                <CardTitle className="text-lg">Conversations</CardTitle>
+                <CardDescription>
+                  Chat with waste collectors, recyclers, and other users
+                </CardDescription>
+              </CardHeader>
+              <ScrollArea className="flex-1">
+                {conversationsLoading ? (
+                  <div className="flex items-center justify-center h-40">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : conversations?.length === 0 ? (
+                  <div className="text-center p-4 text-muted-foreground">
+                    No conversations yet
+                  </div>
+                ) : (
+                  <div className="space-y-1 p-2">
+                    {conversations?.map((convo) => (
+                      <div
+                        key={convo.id}
+                        onClick={() => setSelectedUser(convo.id)}
+                        className={`flex items-center gap-3 p-2 rounded-md cursor-pointer
+                          ${
+                            selectedUser === convo.id
+                              ? "bg-primary/10 hover:bg-primary/15"
+                              : "hover:bg-accent"
+                          }
+                        `}
+                      >
+                        <Avatar className="h-10 w-10 border">
+                          <AvatarFallback className="bg-primary/10 text-primary">
+                            {getInitials(convo.fullName || convo.username)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex justify-between items-center w-full">
+                            <p className="font-medium truncate">
+                              {convo.fullName || convo.username}
+                            </p>
+                            {convo.unreadCount > 0 && (
+                              <Badge variant="secondary" className="ml-2">
+                                {convo.unreadCount}
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {getRoleDisplay(convo.role)}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </ScrollArea>
+            </div>
+          </ResizablePanel>
+
+          <ResizableHandle withHandle />
+
+          {/* Chat Panel */}
+          <ResizablePanel defaultSize={75}>
+            <div className="h-full flex flex-col">
+              {!selectedUser ? (
+                <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
+                  <UserIcon className="h-16 w-16 text-muted-foreground/40 mb-4" />
+                  <h3 className="text-xl font-medium mb-2">Select a conversation</h3>
+                  <p className="text-muted-foreground max-w-md">
+                    Choose a conversation from the list to start chatting.
+                    Connect with waste collectors, recyclers, and other users.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  {/* Chat Header */}
+                  <CardHeader className="px-6 py-4 border-b">
+                    <div className="flex items-center">
+                      <Avatar className="h-9 w-9 mr-2">
+                        <AvatarFallback className="bg-primary/10 text-primary">
+                          {getInitials(
+                            conversations?.find((c) => c.id === selectedUser)?.fullName || ""
+                          )}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <CardTitle className="text-base">
+                          {conversations?.find((c) => c.id === selectedUser)?.fullName || "User"}
+                        </CardTitle>
+                        <CardDescription>
+                          {getRoleDisplay(
+                            conversations?.find((c) => c.id === selectedUser)?.role || ""
+                          )}
+                        </CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+
+                  {/* Chat Messages */}
+                  <ScrollArea className="flex-1 p-4">
+                    {messagesLoading ? (
+                      <div className="flex items-center justify-center h-40">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                      </div>
+                    ) : messages?.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        No messages yet. Start a conversation!
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {messages?.map((msg) => {
+                          const isMe = msg.senderId === user?.id;
+                          return (
+                            <div
+                              key={msg.id}
+                              className={`flex ${isMe ? "justify-end" : "justify-start"}`}
+                            >
+                              <div
+                                className={`max-w-[75%] rounded-lg p-3 ${
+                                  isMe
+                                    ? "bg-primary text-primary-foreground"
+                                    : "bg-accent"
+                                }`}
+                              >
+                                <p className="text-sm">{msg.content}</p>
+                                <p
+                                  className={`text-xs mt-1 ${
+                                    isMe
+                                      ? "text-primary-foreground/80"
+                                      : "text-muted-foreground"
+                                  }`}
+                                >
+                                  {new Date(msg.timestamp).toLocaleTimeString([], {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })}
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                        <div ref={chatEndRef} />
+                      </div>
+                    )}
+                  </ScrollArea>
+
+                  {/* Message Input */}
+                  <CardFooter className="p-4 pt-2 border-t">
+                    <div className="flex items-end w-full gap-2">
+                      <Textarea
+                        value={message}
+                        onChange={(e) => setMessage(e.target.value)}
+                        onKeyDown={handleKeyPress}
+                        placeholder="Type your message..."
+                        className="flex-1 min-h-[60px] max-h-32"
+                      />
+                      <Button
+                        onClick={handleSendMessage}
+                        disabled={!message.trim() || sendMessageMutation.isPending}
+                        className="h-10"
+                      >
+                        {sendMessageMutation.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Send className="h-4 w-4" />
+                        )}
+                        <span className="sr-only">Send</span>
+                      </Button>
+                    </div>
+                  </CardFooter>
+                </>
+              )}
+            </div>
+          </ResizablePanel>
+        </ResizablePanelGroup>
+      </Card>
+    </div>
+  );
+};
+
+export default ChatPage;
