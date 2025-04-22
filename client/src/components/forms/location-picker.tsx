@@ -59,7 +59,7 @@ export default function LocationPicker({ defaultValue, onChange }: LocationPicke
     }
   }, [onChange]);
   
-  // Handle detect current location
+  // Handle detect current location with improved accuracy and error handling
   const detectCurrentLocation = useCallback(() => {
     setIsDetectingLocation(true);
     
@@ -83,7 +83,13 @@ export default function LocationPicker({ defaultValue, onChange }: LocationPicke
           variant: "destructive"
         });
       }
-    }, 10000); // 10 seconds timeout
+    }, 15000); // 15 seconds timeout for slower devices/connections
+    
+    // Show initial toast to let user know we're detecting location
+    toast({
+      title: "Detecting Location",
+      description: "Please allow location access if prompted"
+    });
     
     navigator.geolocation.getCurrentPosition(
       async (position) => {
@@ -95,40 +101,80 @@ export default function LocationPicker({ defaultValue, onChange }: LocationPicke
           
           console.log("Current position detected:", latitude, longitude);
           
-          // Set a default address if geocoding fails
-          const defaultAddress = "Nairobi, Kenya";
-          setAddress(defaultAddress);
-          onChange(defaultAddress, location);
-          
+          // Prepare loading state
           toast({
-            title: "Location Detected",
-            description: "Using approximate location. You can update it for more accuracy."
+            title: "Location Found",
+            description: "Getting your address details..."
           });
           
-          // Try geocoding in the background
+          // Try reverse geocoding with the Google Maps Geocoding API
           try {
             const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+            
+            // First try with the Google Maps Geocoding API
             const response = await fetch(
-              `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`
+              `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}&result_type=street_address|premise|subpremise|route|neighborhood`
             );
             
             const data = await response.json();
             console.log("Geocoding response:", data);
             
             if (data.status === "OK" && data.results && data.results.length > 0) {
-              const formattedAddress = data.results[0].formatted_address;
+              // Find the most detailed result (usually the first one)
+              const bestResult = data.results[0];
+              const formattedAddress = bestResult.formatted_address;
+              
               console.log("Address found:", formattedAddress);
               setAddress(formattedAddress);
               onChange(formattedAddress, location);
               
               toast({
-                title: "Location Updated",
-                description: "We found your address: " + formattedAddress
+                title: "Location Detected Successfully",
+                description: "Using your current location: " + formattedAddress
               });
+              
+              setIsDetectingLocation(false);
+              return; // Exit early if we have a good result
+            } else if (data.status === "ZERO_RESULTS") {
+              // If we get no results, try again with fewer restrictions
+              const fallbackResponse = await fetch(
+                `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`
+              );
+              
+              const fallbackData = await fallbackResponse.json();
+              
+              if (fallbackData.status === "OK" && fallbackData.results && fallbackData.results.length > 0) {
+                const formattedAddress = fallbackData.results[0].formatted_address;
+                setAddress(formattedAddress);
+                onChange(formattedAddress, location);
+                
+                toast({
+                  title: "Location Detected",
+                  description: "Using approximate address: " + formattedAddress
+                });
+                
+                setIsDetectingLocation(false);
+                return;
+              }
+            } else if (data.status === "REQUEST_DENIED" || data.status === "INVALID_REQUEST") {
+              throw new Error(`Google API Error: ${data.error_message || data.status}`);
             }
+            
+            // If we reach here, we couldn't get a good address
+            throw new Error("Could not get a valid address for your location");
+            
           } catch (geocodeError) {
-            console.error("Background geocoding failed:", geocodeError);
-            // Already using default address, so no need to show error
+            console.error("Geocoding failed:", geocodeError);
+            // Fallback to default address
+            const defaultAddress = "Nairobi, Kenya";
+            setAddress(defaultAddress);
+            onChange(defaultAddress, location);
+            
+            toast({
+              title: "Address Not Found",
+              description: "Using your GPS coordinates, but could not determine exact address. Please enter it manually for accuracy.",
+              variant: "destructive"
+            });
           }
           
           setIsDetectingLocation(false);
@@ -147,31 +193,30 @@ export default function LocationPicker({ defaultValue, onChange }: LocationPicke
         clearTimeout(timeoutId); // Clear the timeout in error case too
         
         let errorMessage = "Failed to get your location.";
+        let errorTitle = "Location Detection Failed";
         
         if (error.code === 1) {
-          errorMessage = "Location access denied. Please grant permission or enter address manually.";
+          errorMessage = "Location access was denied. Please click 'Allow' when prompted for location access or enter your address manually.";
+          errorTitle = "Permission Denied";
         } else if (error.code === 2) {
-          errorMessage = "Location unavailable. Please try again or enter address manually.";
+          errorMessage = "Location unavailable. Your device cannot determine your current position. Please enter your address manually.";
+          errorTitle = "Location Unavailable";
         } else if (error.code === 3) {
-          errorMessage = "Location request timed out. Please try again or enter address manually.";
+          errorMessage = "Location request timed out. Please check your GPS or internet connection and try again.";
+          errorTitle = "Request Timeout";
         }
         
         toast({
-          title: "Location Detection Failed",
+          title: errorTitle,
           description: errorMessage,
           variant: "destructive"
         });
         setIsDetectingLocation(false);
-        
-        // Set a default address even in error case so users can continue
-        const defaultAddress = "Nairobi, Kenya";
-        setAddress(defaultAddress);
-        onChange(defaultAddress, { lat: -1.2921, lng: 36.8219 }); // Default Nairobi coordinates
       },
       {
         enableHighAccuracy: true,
-        timeout: 5000,
-        maximumAge: 0
+        timeout: 10000, // Increased timeout for GPS acquisition
+        maximumAge: 0 // Always get fresh position
       }
     );
   }, [onChange, toast, isDetectingLocation]);
@@ -186,30 +231,52 @@ export default function LocationPicker({ defaultValue, onChange }: LocationPicke
   if (!isLoaded || loadError) {
     return (
       <div className="space-y-2">
-        <div className="flex w-full items-center gap-2">
-          <Input 
-            placeholder="Enter your Kenya address manually" 
-            value={address}
-            onChange={handleAddressChange}
-            className="flex-1"
-          />
+        <div className="flex flex-col md:flex-row w-full items-start md:items-center gap-2">
+          <div className="relative flex-1 w-full">
+            <Input 
+              placeholder="Enter your Kenya address manually" 
+              value={address}
+              onChange={handleAddressChange}
+              className="w-full pr-8"
+            />
+            <MapPin className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+          </div>
           <Button 
-            variant="outline" 
-            size="icon"
+            variant="secondary" 
+            size="default"
             onClick={detectCurrentLocation}
             disabled={isDetectingLocation || !!loadError}
-            title="Detect my location"
+            title="Detect my current location"
+            className="relative overflow-hidden w-full md:w-auto whitespace-nowrap"
           >
             {isDetectingLocation ? (
-              <LoaderCircle className="h-4 w-4 animate-spin" />
+              <>
+                <LoaderCircle className="h-4 w-4 animate-spin mr-2" />
+                <span>Detecting...</span>
+              </>
             ) : (
-              <Compass className="h-4 w-4" />
+              <>
+                <Compass className="h-4 w-4 mr-2" />
+                <span>Detect Location</span>
+              </>
+            )}
+            {isDetectingLocation && (
+              <div className="absolute bottom-0 left-0 h-1 bg-primary animate-pulse" style={{ 
+                width: '100%', 
+                animation: 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+              }}></div>
             )}
           </Button>
         </div>
-        {loadError && (
-          <p className="text-xs text-destructive">
+        {loadError ? (
+          <p className="text-xs text-destructive flex items-center">
+            <MapPin className="h-3 w-3 mr-1 inline" />
             Google Maps not available. Please enter your Kenya address manually.
+          </p>
+        ) : (
+          <p className="text-xs text-muted-foreground flex items-center">
+            <MapPin className="h-3 w-3 mr-1 inline" />
+            For accurate pickup, please allow location access or type your precise address
           </p>
         )}
       </div>
@@ -218,8 +285,8 @@ export default function LocationPicker({ defaultValue, onChange }: LocationPicke
   
   return (
     <div className="space-y-2">
-      <div className="flex w-full items-center gap-2">
-        <div className="relative flex-1">
+      <div className="flex flex-col md:flex-row w-full items-start md:items-center gap-2">
+        <div className="relative flex-1 w-full">
           <Autocomplete
             onLoad={(autocomplete) => {
               autocompleteRef.current = autocomplete;
@@ -242,19 +309,36 @@ export default function LocationPicker({ defaultValue, onChange }: LocationPicke
           <MapPin className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
         </div>
         <Button 
-          variant="outline" 
-          size="icon"
+          variant="secondary" 
+          size="default"
           onClick={detectCurrentLocation}
           disabled={isDetectingLocation}
-          title="Detect my location"
+          title="Detect my current location"
+          className="relative overflow-hidden w-full md:w-auto whitespace-nowrap"
         >
           {isDetectingLocation ? (
-            <LoaderCircle className="h-4 w-4 animate-spin" />
+            <>
+              <LoaderCircle className="h-4 w-4 animate-spin mr-2" />
+              <span>Detecting...</span>
+            </>
           ) : (
-            <Compass className="h-4 w-4" />
+            <>
+              <Compass className="h-4 w-4 mr-2" />
+              <span>Detect Location</span>
+            </>
+          )}
+          {isDetectingLocation && (
+            <div className="absolute bottom-0 left-0 h-1 bg-primary animate-pulse" style={{ 
+              width: '100%', 
+              animation: 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+            }}></div>
           )}
         </Button>
       </div>
+      <p className="text-xs text-muted-foreground flex items-center">
+        <MapPin className="h-3 w-3 mr-1 inline" />
+        For accurate pickup, please allow location access or type your precise address
+      </p>
     </div>
   );
 }
