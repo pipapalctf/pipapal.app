@@ -7,11 +7,6 @@ import { useWebSocketContext } from "@/hooks/use-websocket";
 import { useToast } from "@/hooks/use-toast";
 
 import {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-} from "@/components/ui/resizable";
-import {
   Card,
   CardContent,
   CardDescription,
@@ -25,7 +20,15 @@ import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { UserIcon, Send, Loader2, MessageSquare } from "lucide-react";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { 
+  UserIcon, 
+  Send, 
+  Loader2, 
+  MessageSquare, 
+  ChevronLeft, 
+  Menu 
+} from "lucide-react";
 
 type Conversation = {
   id: number;
@@ -192,15 +195,30 @@ const ChatPage: React.FC = () => {
     }
   };
 
+  // State to handle the mobile conversation drawer
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+
+  // Function to handle user selection and close drawer on mobile
+  const handleSelectUser = (userId: number) => {
+    setSelectedUser(userId);
+    setMobileDrawerOpen(false);
+  }
+
+  // Function to go back to conversation list on mobile
+  const handleBackToList = () => {
+    setSelectedUser(null);
+  }
+
   return (
-    <div className="container mx-auto py-6">
+    <div className="container mx-auto py-6 px-4 md:px-6">
       <h1 className="text-3xl font-bold mb-6">Messages</h1>
 
-      <Card className="overflow-hidden border-none shadow-md">
-        <ResizablePanelGroup direction="horizontal" className="min-h-[calc(100vh-180px)]">
-          {/* Conversations Panel */}
-          <ResizablePanel defaultSize={30} minSize={25} maxSize={35}>
-            <div className="h-full flex flex-col">
+      {/* Desktop layout */}
+      <div className="hidden md:block">
+        <Card className="overflow-hidden border-none shadow-md">
+          <div className="grid grid-cols-3 min-h-[calc(100vh-180px)]">
+            {/* Conversations Panel - Desktop */}
+            <div className="col-span-1 border-r border-border h-full flex flex-col">
               <CardHeader className="px-4 py-3 border-b">
                 <CardTitle className="text-lg font-bold">Conversations</CardTitle>
                 <CardDescription className="text-sm text-muted-foreground">
@@ -262,13 +280,9 @@ const ChatPage: React.FC = () => {
                 )}
               </ScrollArea>
             </div>
-          </ResizablePanel>
 
-          <ResizableHandle withHandle />
-
-          {/* Chat Panel */}
-          <ResizablePanel defaultSize={70}>
-            <div className="h-full flex flex-col bg-gray-50/50">
+            {/* Chat Panel - Desktop */}
+            <div className="col-span-2 h-full flex flex-col bg-gray-50/50">
               {!selectedUser ? (
                 <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
                   <div className="bg-white p-8 rounded-lg shadow-sm max-w-md mx-auto">
@@ -319,7 +333,7 @@ const ChatPage: React.FC = () => {
                           </div>
                           <h3 className="text-lg font-medium mb-2">No messages yet</h3>
                           <p className="text-sm text-muted-foreground">
-                            Start a conversation by sending a message below. Your messages will appear here.
+                            Start a conversation by sending a message below.
                           </p>
                         </div>
                       </div>
@@ -378,7 +392,7 @@ const ChatPage: React.FC = () => {
                       <Button
                         onClick={handleSendMessage}
                         disabled={!message.trim() || sendMessageMutation.isPending}
-                        className="h-10 px-4"
+                        className="h-12 px-4"
                         size="icon"
                       >
                         {sendMessageMutation.isPending ? (
@@ -393,9 +407,193 @@ const ChatPage: React.FC = () => {
                 </>
               )}
             </div>
-          </ResizablePanel>
-        </ResizablePanelGroup>
-      </Card>
+          </div>
+        </Card>
+      </div>
+
+      {/* Mobile Layout */}
+      <div className="md:hidden">
+        <Card className="overflow-hidden border-none shadow-md">
+          {!selectedUser ? (
+            // Conversation list view (mobile)
+            <div className="flex flex-col h-[calc(100vh-130px)]">
+              <CardHeader className="px-4 py-3 border-b">
+                <CardTitle className="text-lg font-bold">Conversations</CardTitle>
+                <CardDescription className="text-sm text-muted-foreground">
+                  Chat with waste collectors, recyclers, and other users
+                </CardDescription>
+              </CardHeader>
+              <ScrollArea className="flex-1">
+                {conversationsLoading ? (
+                  <div className="flex items-center justify-center h-40">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : conversations?.length === 0 ? (
+                  <div className="text-center p-6 text-muted-foreground">
+                    <div className="mb-4">
+                      <UserIcon className="h-12 w-12 text-muted-foreground/25 mx-auto" />
+                    </div>
+                    <p className="font-medium mb-1">No conversations yet</p>
+                    <p className="text-sm text-muted-foreground">
+                      Your chat conversations will appear here
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-1 p-2">
+                    {conversations?.map((convo) => (
+                      <div
+                        key={convo.id}
+                        onClick={() => handleSelectUser(convo.id)}
+                        className="flex items-center gap-3 p-3 border-b border-border cursor-pointer"
+                      >
+                        <Avatar className="h-12 w-12 border border-muted">
+                          <AvatarFallback className="bg-primary/10 text-primary font-medium">
+                            {getInitials(convo.fullName || convo.username)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex justify-between items-center w-full">
+                            <p className="font-medium truncate">
+                              {convo.fullName || convo.username}
+                            </p>
+                            {convo.unreadCount > 0 && (
+                              <Badge variant="secondary" className="ml-2 bg-primary text-white">
+                                {convo.unreadCount}
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {getRoleDisplay(convo.role)}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </ScrollArea>
+            </div>
+          ) : (
+            // Individual chat view (mobile)
+            <div className="flex flex-col h-[calc(100vh-130px)]">
+              {/* Chat Header with Back Button */}
+              <CardHeader className="px-4 py-3 border-b flex flex-row items-center">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={handleBackToList}
+                  className="mr-2 h-8 w-8"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </Button>
+                <div className="flex items-center">
+                  <Avatar className="h-9 w-9 mr-2">
+                    <AvatarFallback className="bg-primary/10 text-primary">
+                      {getInitials(
+                        conversations?.find((c) => c.id === selectedUser)?.fullName || ""
+                      )}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <CardTitle className="text-base">
+                      {conversations?.find((c) => c.id === selectedUser)?.fullName || "User"}
+                    </CardTitle>
+                    <CardDescription className="text-xs">
+                      {getRoleDisplay(
+                        conversations?.find((c) => c.id === selectedUser)?.role || ""
+                      )}
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+
+              {/* Chat Messages */}
+              <ScrollArea className="flex-1 p-4 bg-gray-50/50">
+                {messagesLoading ? (
+                  <div className="flex items-center justify-center h-40">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : messages?.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <div className="bg-white rounded-lg shadow-sm p-6 mx-auto">
+                      <div className="text-center mb-4">
+                        <MessageSquare className="h-12 w-12 text-muted-foreground/30 mx-auto" />
+                      </div>
+                      <h3 className="text-lg font-medium mb-2">No messages yet</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Start a conversation by sending a message below.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {messages?.map((msg) => {
+                      const isMe = msg.senderId === user?.id;
+                      return (
+                        <div
+                          key={msg.id}
+                          className={`flex ${isMe ? "justify-end" : "justify-start"}`}
+                        >
+                          <div
+                            className={`max-w-[85%] rounded-lg p-3 shadow-sm ${
+                              isMe
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-white border border-gray-100"
+                            }`}
+                          >
+                            <p className="text-sm whitespace-pre-wrap break-words">
+                              {msg.content}
+                            </p>
+                            <p
+                              className={`text-xs mt-1 ${
+                                isMe
+                                  ? "text-primary-foreground/80"
+                                  : "text-muted-foreground"
+                              }`}
+                            >
+                              {msg.timestamp 
+                                ? new Date(msg.timestamp).toLocaleTimeString([], {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  }) 
+                                : "Just now"}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    <div ref={chatEndRef} />
+                  </div>
+                )}
+              </ScrollArea>
+
+              {/* Message Input */}
+              <CardFooter className="p-3 border-t bg-white">
+                <div className="flex items-end w-full gap-2">
+                  <Textarea
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    onKeyDown={handleKeyPress}
+                    placeholder="Type your message..."
+                    className="flex-1 min-h-[50px] max-h-32 rounded-lg border-gray-200 focus:border-primary"
+                  />
+                  <Button
+                    onClick={handleSendMessage}
+                    disabled={!message.trim() || sendMessageMutation.isPending}
+                    className="h-10 w-10"
+                    size="icon"
+                  >
+                    {sendMessageMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </CardFooter>
+            </div>
+          )}
+        </Card>
+      </div>
     </div>
   );
 };
