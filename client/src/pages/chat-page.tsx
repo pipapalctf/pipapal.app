@@ -525,11 +525,21 @@ const ChatPage: React.FC = () => {
           {!selectedUser ? (
             // Conversation list view (mobile)
             <div className="flex flex-col h-[calc(100vh-130px)]">
-              <CardHeader className="px-4 py-3 border-b">
-                <CardTitle className="text-lg font-bold">Conversations</CardTitle>
-                <CardDescription className="text-sm text-muted-foreground">
-                  Chat with waste collectors, recyclers, and other users
-                </CardDescription>
+              <CardHeader className="px-4 py-3 border-b flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg font-bold">Conversations</CardTitle>
+                  <CardDescription className="text-sm text-muted-foreground">
+                    Chat with waste collectors, recyclers, and other users
+                  </CardDescription>
+                </div>
+                <Button
+                  onClick={() => setNewChatOpen(true)}
+                  size="sm"
+                  className="h-9 px-3"
+                >
+                  <UserPlus className="h-4 w-4 mr-1" />
+                  New
+                </Button>
               </CardHeader>
               <ScrollArea className="flex-1">
                 {conversationsLoading ? (
@@ -545,6 +555,14 @@ const ChatPage: React.FC = () => {
                     <p className="text-sm text-muted-foreground">
                       Your chat conversations will appear here
                     </p>
+                    <Button 
+                      onClick={() => setNewChatOpen(true)} 
+                      className="mt-4"
+                      variant="outline"
+                    >
+                      <UserPlus className="h-4 w-4 mr-2" />
+                      Start a new conversation
+                    </Button>
                   </div>
                 ) : (
                   <div className="space-y-1 p-2">
