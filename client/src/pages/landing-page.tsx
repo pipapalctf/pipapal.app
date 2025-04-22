@@ -288,7 +288,7 @@ export default function LandingPage() {
                   <span>Track your environmental impact metrics</span>
                 </li>
               </ul>
-              <Link href="/auth">
+              <Link href="/auth?tab=register">
                 <Button className="w-full bg-blue-600 hover:bg-blue-700">
                   Register as a Collector
                   <ArrowRight className="ml-2 h-5 w-5" />
@@ -325,7 +325,7 @@ export default function LandingPage() {
                   <span>Access detailed analytics</span>
                 </li>
               </ul>
-              <Link href="/auth">
+              <Link href="/auth?tab=register">
                 <Button className="w-full bg-amber-600 hover:bg-amber-700">
                   Register as a Recycler
                   <ArrowRight className="ml-2 h-5 w-5" />
@@ -362,7 +362,7 @@ export default function LandingPage() {
                   <span>Support corporate sustainability goals</span>
                 </li>
               </ul>
-              <Link href="/auth">
+              <Link href="/auth?tab=register">
                 <Button className="w-full bg-purple-600 hover:bg-purple-700">
                   Register as an Organization
                   <ArrowRight className="ml-2 h-5 w-5" />
@@ -391,7 +391,7 @@ export default function LandingPage() {
               Join PipaPal today and start your journey towards more sustainable waste management
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4 mb-6">
-              <Link href="/auth">
+              <Link href="/auth?tab=register">
                 <Button size="lg" className="px-8 w-full sm:w-auto">
                   Get Started Now
                   <ChevronRight className="ml-2 h-5 w-5" />
