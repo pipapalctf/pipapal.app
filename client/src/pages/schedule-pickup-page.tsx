@@ -71,7 +71,7 @@ import { format } from "date-fns";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { scrollToSection, scrollToElement, createScrollHandler } from "@/lib/scroll-utils";
+import { scrollToSection, scrollToElement, createScrollHandler, handleTabChange } from "@/lib/scroll-utils";
 import { useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 
@@ -311,7 +311,13 @@ export default function SchedulePickupPage() {
             </p>
           </div>
           
-          <Tabs value={activeTab} onValueChange={handleTabChange(`${activeTab}-tab-content`, setActiveTab)} className="mb-6">
+          <Tabs value={activeTab} onValueChange={(value) => {
+              setActiveTab(value);
+              // Use setTimeout to ensure the tab content is rendered before scrolling
+              setTimeout(() => {
+                scrollToElement(`${value}-tab-content`, 80);
+              }, 10);
+            }} className="mb-6">
             <TabsList className="grid w-full grid-cols-2 mb-8">
               <TabsTrigger value="schedule" className="flex items-center">
                 <CalendarPlus className="mr-2 h-4 w-4" />
