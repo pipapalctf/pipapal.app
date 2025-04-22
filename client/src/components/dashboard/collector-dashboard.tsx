@@ -7,6 +7,7 @@ import { Truck, Package, MapPin, Clock, DollarSign, Star, Route, Scale, Leaf } f
 import { User, CollectionStatus } from '@shared/schema';
 import { formatNumber } from '@/lib/utils';
 import RoleBasedCTA from './role-based-cta';
+import RecentActivity from './recent-activity';
 import { ServiceAreaMap } from '@/components/maps/service-area-map';
 
 interface CollectorDashboardProps {
@@ -227,10 +228,11 @@ export default function CollectorDashboard({ user }: CollectorDashboardProps) {
       </div>
       
       <Tabs defaultValue="jobs">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="jobs">Job Summary</TabsTrigger>
           <TabsTrigger value="performance">Performance</TabsTrigger>
           <TabsTrigger value="areas">Areas Served</TabsTrigger>
+          <TabsTrigger value="activities">Activities</TabsTrigger>
         </TabsList>
         
         {/* Jobs Summary Tab */}
@@ -567,6 +569,81 @@ export default function CollectorDashboard({ user }: CollectorDashboardProps) {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+        
+        {/* Activities Tab */}
+        <TabsContent value="activities" className="space-y-6 pt-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="md:col-span-1">
+              <RecentActivity />
+            </div>
+            
+            <Card className="border-0 shadow-md overflow-hidden md:col-span-1">
+              <div className="h-2 bg-gradient-to-r from-blue-400 to-cyan-500"></div>
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center text-lg">
+                  <Star className="mr-2 h-5 w-5 text-blue-500" />
+                  Collection Achievements
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="relative pl-6 border-l border-gray-200 dark:border-gray-700 space-y-6 py-2">
+                  {/* Achievement items */}
+                  <div className="relative">
+                    <div className="absolute -left-9 mt-1.5 h-4 w-4 rounded-full border-2 border-green-500 bg-white"></div>
+                    <div className="mb-1 text-sm font-medium text-green-600">
+                      1,000 kg Milestone
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      You've collected over 1,000 kg of recyclable waste! Great work on reducing landfill waste.
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      April 18, 2025
+                    </p>
+                  </div>
+                  
+                  <div className="relative">
+                    <div className="absolute -left-9 mt-1.5 h-4 w-4 rounded-full border-2 border-blue-500 bg-white"></div>
+                    <div className="mb-1 text-sm font-medium text-blue-600">
+                      50th Collection
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Completed your 50th waste collection. Your consistent efforts are making Kenya cleaner!
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      March 30, 2025
+                    </p>
+                  </div>
+                  
+                  <div className="relative">
+                    <div className="absolute -left-9 mt-1.5 h-4 w-4 rounded-full border-2 border-amber-500 bg-white"></div>
+                    <div className="mb-1 text-sm font-medium text-amber-600">
+                      On-Time Expert
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Maintained a 95% on-time collection rate for the past month.
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      February 28, 2025
+                    </p>
+                  </div>
+                  
+                  <div className="relative">
+                    <div className="absolute -left-9 mt-1.5 h-4 w-4 rounded-full border-2 border-blue-500 bg-white"></div>
+                    <div className="mb-1 text-sm font-medium text-blue-600">
+                      Joined PipaPal
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Started your journey as a waste collector on the PipaPal platform.
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      January 15, 2025
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
       
