@@ -33,6 +33,13 @@ export function NotificationBell() {
     navigate(`/collections/${collectionId}`);
   };
   
+  const handleViewChat = (senderId: number) => {
+    markAllAsRead();
+    setOpen(false);
+    // Navigate to the chat page with the specific user
+    navigate(`/chat?user=${senderId}`);
+  };
+  
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -84,7 +91,14 @@ export function NotificationBell() {
               >
                 <div className="flex justify-between">
                   <span className="text-sm font-medium">
-                    {notification.type === 'collection_update' ? 'Collection Update' : 'Notification'}
+                    {notification.type === 'collection_update' 
+                      ? 'Collection Update' 
+                      : notification.type === 'new_message'
+                        ? 'New Message'
+                        : notification.type === 'new_collection'
+                          ? 'New Collection'
+                          : 'Notification'
+                    }
                   </span>
                   <Button 
                     variant="ghost" 
@@ -108,6 +122,16 @@ export function NotificationBell() {
                       onClick={() => handleViewCollection(notification.collectionId!)}
                     >
                       View details
+                    </Button>
+                  )}
+                  {notification.type === 'new_message' && notification.senderId && (
+                    <Button 
+                      variant="link" 
+                      size="sm" 
+                      className="p-0 h-auto text-xs"
+                      onClick={() => handleViewChat(notification.senderId!)}
+                    >
+                      Reply
                     </Button>
                   )}
                 </div>

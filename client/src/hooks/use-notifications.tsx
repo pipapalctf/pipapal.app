@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
+import { useLocation } from 'wouter';
 import { queryClient } from '@/lib/queryClient';
 
-type NotificationType = 'notification' | 'collection_update' | 'new_collection';
+type NotificationType = 'notification' | 'collection_update' | 'new_collection' | 'new_message';
 // System events that should not be displayed as notifications
 type SystemEventType = '_system';
 // Legacy type kept for backward compatibility with existing server code
@@ -18,6 +19,10 @@ type Notification = {
   timestamp: Date;
   collectionId?: number;
   status?: string;
+  // Chat message specific fields
+  senderId?: number;
+  senderName?: string;
+  chatId?: number;
 };
 
 // Define a type for collection data sent in new_collection events
@@ -37,6 +42,11 @@ type WebSocketMessageEvent = {
   collectionId?: number;
   status?: string;
   collection?: CollectionData; // For new collection events with collection data
+  // Chat message specific fields
+  senderId?: number;
+  senderName?: string;
+  content?: string;
+  chatId?: number;
 };
 
 export function useNotifications() {
@@ -119,18 +129,34 @@ export function useNotifications() {
         
         // Determine notification type
         const notificationType: NotificationType = 
-          ['notification', 'collection_update', 'new_collection'].includes(data.type as string)
+          ['notification', 'collection_update', 'new_collection', 'new_message'].includes(data.type as string)
             ? data.type as NotificationType
             : 'notification'; // Fallback to generic notification
+        
+        // Handle message content depending on notification type
+        let notificationMessage = data.message;
+        let senderId = data.senderId;
+        
+        // For new chat messages, create a custom message
+        if (data.type === 'new_message' && data.senderName && data.content) {
+          notificationMessage = `New message from ${data.senderName}: ${
+            data.content.length > 30 ? data.content.substring(0, 30) + '...' : data.content
+          }`;
+          senderId = data.senderId;
+        }
             
         const newNotification: Notification = {
           id: Math.random().toString(36).substring(2, 9),
           type: notificationType,
-          message: data.message,
+          message: notificationMessage,
           read: false,
           timestamp: new Date(),
           collectionId: data.collectionId,
-          status: data.status
+          status: data.status,
+          // Chat message specific fields
+          senderId: data.senderId,
+          senderName: data.senderName,
+          chatId: data.chatId
         };
         
         // Add notification to state
@@ -143,11 +169,13 @@ export function useNotifications() {
           toastTitle = 'Collection Update';
         } else if (data.type === 'new_collection') {
           toastTitle = 'New Collection Available';
+        } else if (data.type === 'new_message') {
+          toastTitle = 'New Message';
         }
         
         toast({
           title: toastTitle,
-          description: data.message,
+          description: notificationMessage,
           variant: "default",
         });
         
