@@ -324,3 +324,32 @@ export type Activity = typeof activities.$inferSelect;
 
 export type InsertMaterialInterest = z.infer<typeof insertMaterialInterestSchema>;
 export type MaterialInterest = typeof materialInterests.$inferSelect;
+
+// Chat Messages
+export const chatMessages = pgTable("chat_messages", {
+  id: serial("id").primaryKey(),
+  senderId: integer("sender_id").notNull().references(() => users.id),
+  receiverId: integer("receiver_id").notNull().references(() => users.id),
+  content: text("content").notNull(),
+  read: boolean("read").default(false),
+  timestamp: timestamp("timestamp").defaultNow(),
+});
+
+export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
+  sender: one(users, {
+    fields: [chatMessages.senderId],
+    references: [users.id],
+  }),
+  receiver: one(users, {
+    fields: [chatMessages.receiverId],
+    references: [users.id],
+  }),
+}));
+
+export const insertChatMessageSchema = createInsertSchema(chatMessages, {
+  id: z.number().optional(),
+  timestamp: z.date().optional(),
+});
+
+export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
+export type ChatMessage = typeof chatMessages.$inferSelect;

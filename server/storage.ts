@@ -80,6 +80,13 @@ export interface IStorage {
   getMaterialInterestsByUser(userId: number): Promise<MaterialInterest[]>;
   getMaterialInterestsByCollections(collectionIds: number[]): Promise<MaterialInterest[]>;
   
+  // Chat Messages
+  getChatMessages(userId1: number, userId2: number, limit?: number): Promise<ChatMessage[]>;
+  getUsersWithChats(userId: number): Promise<User[]>;
+  getUnreadMessageCount(userId: number): Promise<number>;
+  sendChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
+  markMessagesAsRead(senderId: number, receiverId: number): Promise<void>;
+  
   // Session store
   sessionStore: any;
 }
@@ -92,6 +99,7 @@ export class MemStorage implements IStorage {
   private ecoTips: Map<number, EcoTip>;
   private activities: Map<number, Activity>;
   private materialInterests: Map<number, MaterialInterest>;
+  private chatMessages: Map<number, ChatMessage>;
   sessionStore: any; // Using any for express-session store type
   currentUserId: number;
   currentCollectionId: number;
@@ -100,6 +108,7 @@ export class MemStorage implements IStorage {
   currentEcoTipId: number;
   currentActivityId: number;
   currentMaterialInterestId: number;
+  currentChatMessageId: number;
 
   constructor() {
     this.users = new Map();
@@ -109,6 +118,7 @@ export class MemStorage implements IStorage {
     this.ecoTips = new Map();
     this.activities = new Map();
     this.materialInterests = new Map();
+    this.chatMessages = new Map();
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000,
     });
@@ -119,6 +129,7 @@ export class MemStorage implements IStorage {
     this.currentEcoTipId = 1;
     this.currentActivityId = 1;
     this.currentMaterialInterestId = 1;
+    this.currentChatMessageId = 1;
     
     // Seed eco-tips
     this.seedEcoTips();
@@ -559,6 +570,79 @@ export class MemStorage implements IStorage {
     const updatedInterest = { ...interest, ...updates };
     this.materialInterests.set(id, updatedInterest);
     return updatedInterest;
+  }
+  
+  // Chat functionality
+  async getChatMessages(userId1: number, userId2: number, limit: number = 50): Promise<ChatMessage[]> {
+    return Array.from(this.chatMessages.values())
+      .filter(message => 
+        (message.senderId === userId1 && message.receiverId === userId2) || 
+        (message.senderId === userId2 && message.receiverId === userId1)
+      )
+      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+      .slice(-limit);
+  }
+  
+  async getUsersWithChats(userId: number): Promise<User[]> {
+    // Get all unique user IDs that have exchanged messages with this user
+    const userIds = new Set<number>();
+    
+    Array.from(this.chatMessages.values()).forEach(message => {
+      if (message.senderId === userId) {
+        userIds.add(message.receiverId);
+      } else if (message.receiverId === userId) {
+        userIds.add(message.senderId);
+      }
+    });
+    
+    // Get user objects for those IDs
+    const users: User[] = [];
+    for (const id of userIds) {
+      const user = await this.getUser(id);
+      if (user) {
+        users.push(user);
+      }
+    }
+    
+    return users;
+  }
+  
+  async getUnreadMessageCount(userId: number): Promise<number> {
+    return Array.from(this.chatMessages.values())
+      .filter(message => message.receiverId === userId && !message.read)
+      .length;
+  }
+  
+  async sendChatMessage(message: InsertChatMessage): Promise<ChatMessage> {
+    const id = this.currentChatMessageId++;
+    const now = new Date();
+    
+    const chatMessage: ChatMessage = {
+      ...message,
+      id,
+      timestamp: now,
+      read: false
+    };
+    
+    this.chatMessages.set(id, chatMessage);
+    return chatMessage;
+  }
+  
+  async markMessagesAsRead(senderId: number, receiverId: number): Promise<void> {
+    // Find all unread messages from senderId to receiverId
+    Array.from(this.chatMessages.values())
+      .filter(message => 
+        message.senderId === senderId && 
+        message.receiverId === receiverId && 
+        !message.read
+      )
+      .forEach(message => {
+        // Update each message to mark it as read
+        this.chatMessages.set(message.id, {
+          ...message,
+          read: true
+        });
+      });
   }
   
   // Seed initial data
