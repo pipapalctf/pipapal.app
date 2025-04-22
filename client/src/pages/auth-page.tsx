@@ -225,7 +225,7 @@ export default function AuthPage() {
     }
   };
   
-  // Send email verification code
+  // Send email verification using Firebase
   const sendEmailVerificationCode = async (emailAddress: string) => {
     if (!emailAddress || emailAddress.trim() === '') {
       toast({
@@ -240,21 +240,23 @@ export default function AuthPage() {
     setDevOtpCode(null); // Reset any previous dev code
     
     try {
-      const response = await apiRequest("POST", "/api/email/send", {
+      // Using Firebase for email verification
+      const response = await apiRequest("POST", "/api/firebase/send-verification-email", {
         email: emailAddress,
+        password: userFormData?.password || "", // Temporary password for Firebase auth
       });
       
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to send verification code");
+        throw new Error(errorData.error || "Failed to send verification email");
       }
       
       // Get the response data
       const responseData = await response.json();
       
-      // Check if we're in development mode and a code was provided
-      if (responseData.developmentMode && responseData.code) {
-        setDevOtpCode(responseData.code);
+      // For development and testing
+      if (responseData.developmentMode && responseData.verificationCode) {
+        setDevOtpCode(responseData.verificationCode);
         toast({
           title: "Test Mode",
           description: "A verification code has been generated for testing",
@@ -262,8 +264,8 @@ export default function AuthPage() {
       } else {
         // Standard notification for production mode
         toast({
-          title: "Verification code sent",
-          description: "Please check your email for a 6-digit verification code",
+          title: "Verification email sent",
+          description: "Please check your email for a verification link",
         });
       }
       
@@ -271,7 +273,7 @@ export default function AuthPage() {
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message || "Failed to send verification code. Please try again.",
+        description: error.message || "Failed to send verification email. Please try again.",
         variant: "destructive",
       });
       
@@ -332,17 +334,18 @@ export default function AuthPage() {
     }
   };
   
-  // Verify email code and complete registration
+  // Verify email code and complete registration using Firebase
   const verifyEmailAndRegister = async (otpData: { otp: string }) => {
     if (!userFormData || !email) return;
     
     setIsLoadingOtp(true);
     
     try {
-      // Verify email code first
-      const verifyResponse = await apiRequest("POST", "/api/email/verify-registration", {
+      // With Firebase, we verify the code and create the user in a single step
+      const verifyResponse = await apiRequest("POST", "/api/firebase/verify-email", {
         email: email,
-        code: otpData.otp
+        code: otpData.otp,
+        temporaryPassword: userFormData.password
       });
       
       if (!verifyResponse.ok) {
@@ -350,7 +353,7 @@ export default function AuthPage() {
         throw new Error(errorData.error || "Invalid verification code");
       }
       
-      // If code is valid, submit registration
+      // If Firebase verification is successful, create the user in our system
       registerMutation.mutate({
         ...userFormData,
         emailVerified: true,
