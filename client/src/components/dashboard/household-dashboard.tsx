@@ -790,6 +790,40 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
         </TabsContent>
       </Tabs>
       
+      {/* Achievement Badges */}
+      <Card className="mb-6">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center text-base">
+            <Award className="mr-2 h-5 w-5" />
+            Achievement Badges
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+            {[
+              { name: 'Eco Starter', achieved: user.sustainabilityScore >= 50, icon: '🌱' },
+              { name: 'Recycling Pro', achieved: recyclingRate >= 60, icon: '♻️' },
+              { name: 'Water Saver', achieved: impact?.waterSaved > 500, icon: '💧' },
+              { name: 'Carbon Reducer', achieved: impact?.co2Reduced > 50, icon: '🌿' },
+              { name: 'Tree Saver', achieved: impact?.treesEquivalent > 2, icon: '🌳' },
+              { name: 'Consistency Hero', achieved: collectionsCountByMonth.size >= 3, icon: '🏆' }
+            ].map((badge, index) => (
+              <div 
+                key={index} 
+                className={`flex flex-col items-center justify-center p-2 rounded-lg text-center ${
+                  badge.achieved 
+                    ? 'bg-green-100 dark:bg-green-900/20 text-green-900 dark:text-green-100' 
+                    : 'bg-gray-100 dark:bg-gray-800/30 text-gray-400 dark:text-gray-500'
+                }`}
+              >
+                <div className="text-xl mb-1">{badge.icon}</div>
+                <span className="text-xs font-medium">{badge.name}</span>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+      
       {/* Upcoming Pickups */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-2">
