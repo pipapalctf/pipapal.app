@@ -355,6 +355,11 @@ export default function AuthPage() {
                       {/* Account Information Step */}
                       {registrationStep === "accountInfo" && (
                       <Form {...registerForm}>
+                        <div className="p-4 bg-primary/10 rounded-lg mb-6">
+                          <p className="text-sm text-secondary">
+                            <strong>Step 1 of 3:</strong> Enter your account details to get started.
+                          </p>
+                        </div>
                         <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-5">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                             <FormField
@@ -505,6 +510,12 @@ export default function AuthPage() {
                       {/* Phone Verification Step */}
                       {registrationStep === "verification" && (
                         <div className="space-y-6">
+                          <div className="p-4 bg-primary/10 rounded-lg mb-6">
+                            <p className="text-sm text-secondary">
+                              <strong>Step 2 of 3:</strong> Verify your phone number before creating your account.
+                            </p>
+                          </div>
+                          
                           <div className="text-center mb-6">
                             <p className="text-sm text-gray-600 mb-2">
                               We've sent a 6-digit verification code to
@@ -577,6 +588,11 @@ export default function AuthPage() {
                       {/* Registration Complete Step */}
                       {registrationStep === "complete" && (
                         <div className="text-center space-y-6">
+                          <div className="p-4 bg-primary/10 rounded-lg mb-6">
+                            <p className="text-sm text-secondary">
+                              <strong>Step 3 of 3:</strong> Registration complete! You can now log in to your account.
+                            </p>
+                          </div>
                           <p className="text-gray-600">
                             You can now log in with your username and password to access your account.
                           </p>
