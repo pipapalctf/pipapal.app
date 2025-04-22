@@ -27,7 +27,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { format } from "date-fns";
-import { CalendarIcon, Loader2, Trash2, BadgeCheck, Compass } from "lucide-react";
+import { CalendarIcon, Loader2, Trash2, BadgeCheck, Compass, MapPin } from "lucide-react";
 import { iconMap } from "@/components/ui/icon-badge";
 import { WasteType, Collection } from "@shared/schema";
 import { wasteTypeConfig } from "@/lib/types";
@@ -76,6 +76,7 @@ export default function SchedulePickupForm({ collectionToEdit, onSuccess }: Sche
   
   // Form states
   const [isRescheduling, setIsRescheduling] = useState<boolean>(false);
+  const [showManualEdit, setShowManualEdit] = useState<boolean>(false);
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -90,6 +91,7 @@ export default function SchedulePickupForm({ collectionToEdit, onSuccess }: Sche
   useEffect(() => {
     if (collectionToEdit) {
       setIsRescheduling(true);
+      setShowManualEdit(true); // Always show edit field for existing collections
       form.reset({
         wasteType: collectionToEdit.wasteType,
         wasteDescription: collectionToEdit.wasteDescription || "",
@@ -101,6 +103,7 @@ export default function SchedulePickupForm({ collectionToEdit, onSuccess }: Sche
     } else {
       // Reset the form if no collection is being edited
       setIsRescheduling(false);
+      setShowManualEdit(false); // Default to not showing the manual edit field for new collections
       form.reset({
         address: user?.address || "",
         wasteAmount: 10,
@@ -427,17 +430,38 @@ export default function SchedulePickupForm({ collectionToEdit, onSuccess }: Sche
                     </span>
                   </div>
                   <FormControl>
-                    <LocationPicker 
-                      defaultValue={field.value}
-                      onChange={(address, location) => {
-                        field.onChange(address);
-                        if (location) {
-                          form.setValue("location", location);
-                        } else {
-                          form.unregister("location");
-                        }
-                      }}
-                    />
+                    <div className="space-y-2">
+                      {/* Location Picker for auto-detection */}
+                      <LocationPicker 
+                        defaultValue={field.value}
+                        onChange={(address, location) => {
+                          field.onChange(address);
+                          setShowManualEdit(true); // Show manual edit field after detection
+                          if (location) {
+                            form.setValue("location", location);
+                          } else {
+                            form.unregister("location");
+                          }
+                        }}
+                      />
+                      
+                      {/* Manual Address Edit Field */}
+                      {showManualEdit && (
+                        <div className="relative">
+                          <FormLabel className="text-xs mb-1 block">Edit Address Manually</FormLabel>
+                          <Input
+                            value={field.value}
+                            onChange={(e) => {
+                              field.onChange(e.target.value);
+                              // We keep the coordinates since the user is just refining the address
+                            }}
+                            placeholder="Edit or refine your address if needed"
+                            className="pr-8"
+                          />
+                          <MapPin className="absolute right-3 bottom-3 h-4 w-4 text-muted-foreground pointer-events-none" />
+                        </div>
+                      )}
+                    </div>
                   </FormControl>
                   <FormDescription className="mt-1">
                     For accurate detection, ensure location services are enabled in your browser
