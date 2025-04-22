@@ -28,6 +28,7 @@ import { Loader2 } from "lucide-react";
 import Logo from "@/components/logo";
 import { UserRole } from "@shared/schema";
 import { FcGoogle } from "react-icons/fc";
+import DevLogin from "@/components/auth/dev-login";
 import { Separator } from "@/components/ui/separator";
 import { RoleSelectionDialog } from "@/components/auth/role-selection-dialog";
 
@@ -151,6 +152,12 @@ export default function AuthPage() {
         
       <div className="min-h-screen bg-background flex flex-col">
         <div className="flex-1 container mx-auto px-4 py-8 md:py-12 flex flex-col items-center justify-center">
+          {/* Development login component - only visible in development */}
+          {import.meta.env.DEV && (
+            <div className="mb-4 w-full max-w-6xl mx-auto">
+              <DevLogin />
+            </div>
+          )}
           <div className="w-full max-w-6xl mx-auto">
             <div className="flex flex-col lg:flex-row bg-white rounded-lg shadow-lg overflow-hidden">
             {/* Form Section */}

@@ -963,7 +963,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         // Handle database errors with more specific messages
-        if (error.code === '23505') { // Unique constraint violation
+        const dbError = error as any; // Type assertion for database errors
+        if (dbError.code === '23505') { // Unique constraint violation
           return res.status(400).json({
             error: 'Duplicate interest',
             message: 'You have already expressed interest in this material'
@@ -971,7 +972,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         // Handle other types of errors with useful messages
-        const errorMessage = error.message || "Failed to express interest in materials";
+        const errorMessage = (error as Error).message || "Failed to express interest in materials";
         console.error('Detailed error:', errorMessage);
         
         res.status(500).json({
