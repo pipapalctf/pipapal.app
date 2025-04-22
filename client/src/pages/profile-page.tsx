@@ -237,20 +237,23 @@ export default function ProfilePage() {
         </div>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full max-w-3xl mx-auto">
-          <TabsList className={`grid w-full ${isBusinessUser ? 'grid-cols-3' : 'grid-cols-2'} mb-8`}>
-            <TabsTrigger value="profile" className="flex items-center">
+          <TabsList className={`grid w-full ${isBusinessUser ? 'md:grid-cols-3 grid-cols-1' : 'md:grid-cols-2 grid-cols-1'} mb-8 gap-2`}>
+            <TabsTrigger value="profile" className="flex items-center justify-center">
               <UserIcon className="mr-2 h-4 w-4" />
-              Profile Information
+              <span className="sm:inline">Profile Information</span>
+              <span className="sm:hidden">Profile</span>
             </TabsTrigger>
             {isBusinessUser && (
-              <TabsTrigger value="business" className="flex items-center">
+              <TabsTrigger value="business" className="flex items-center justify-center">
                 <BriefcaseIcon className="mr-2 h-4 w-4" />
-                Business Details
+                <span className="sm:inline">Business Details</span>
+                <span className="sm:hidden">Business</span>
               </TabsTrigger>
             )}
-            <TabsTrigger value="security" className="flex items-center">
+            <TabsTrigger value="security" className="flex items-center justify-center">
               <KeyIcon className="mr-2 h-4 w-4" />
-              Security
+              <span className="sm:inline">Security</span>
+              <span className="sm:hidden">Security</span>
             </TabsTrigger>
           </TabsList>
           
