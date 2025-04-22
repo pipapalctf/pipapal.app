@@ -17,6 +17,7 @@ import { setupAuth } from "./auth";
 import { generateEcoTip } from "./openai";
 import { WebSocketServer, WebSocket } from 'ws';
 import { sendOTP, verifyOTP } from './twilio';
+import { sendVerificationEmail, verifyEmailCode } from './email';
 import { 
   Permissions, 
   requirePermission, 
@@ -54,6 +55,23 @@ const verifyOtpSchema = z.object({
 const verifyRegistrationOtpSchema = z.object({
   phoneNumber: z.string().min(10),
   otp: z.string().length(6),
+});
+
+// Schema for email verification
+const sendEmailVerificationSchema = z.object({
+  email: z.string().email(),
+});
+
+const verifyEmailSchema = z.object({
+  email: z.string().email(),
+  code: z.string().length(6),
+  userId: z.number(),
+});
+
+// Schema for registration email verification
+const verifyRegistrationEmailSchema = z.object({
+  email: z.string().email(),
+  code: z.string().length(6),
 });
 
 // Simple middleware to require authentication
@@ -179,6 +197,119 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: false,
         error: 'Failed to verify phone number',
         details: error.message 
+      });
+    }
+  });
+  
+  // Email verification endpoints
+  app.post('/api/email/send', async (req, res) => {
+    try {
+      const { email } = sendEmailVerificationSchema.parse(req.body);
+      const result = await sendVerificationEmail(email);
+      
+      if (result.success) {
+        if (result.developmentMode && result.code) {
+          res.status(200).json({
+            success: true,
+            message: result.message,
+            developmentMode: true,
+            code: result.code
+          });
+        } else {
+          res.status(200).json({
+            success: true,
+            message: result.message
+          });
+        }
+      } else {
+        res.status(400).json({
+          success: false,
+          error: result.message
+        });
+      }
+    } catch (error: any) {
+      console.error('Error sending email verification:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to send verification code',
+        details: error.message
+      });
+    }
+  });
+  
+  // Email verification for registration process
+  app.post('/api/email/verify-registration', async (req, res) => {
+    try {
+      const { email, code } = verifyRegistrationEmailSchema.parse(req.body);
+      
+      const isValid = verifyEmailCode(email, code);
+      
+      if (isValid) {
+        res.status(200).json({
+          success: true,
+          message: 'Email verified successfully'
+        });
+      } else {
+        res.status(400).json({
+          success: false,
+          error: 'Invalid or expired verification code'
+        });
+      }
+    } catch (error: any) {
+      console.error('Error verifying registration email:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to verify email',
+        details: error.message
+      });
+    }
+  });
+  
+  // Email verification for existing user profile
+  app.post('/api/email/verify', requireAuthentication, async (req, res) => {
+    try {
+      const { email, code, userId } = verifyEmailSchema.parse(req.body);
+      
+      // Ensure the user can only verify their own email
+      if (req.user?.id !== userId) {
+        return res.status(403).json({ error: 'You can only verify your own email' });
+      }
+      
+      const isValid = verifyEmailCode(email, code);
+      
+      if (isValid) {
+        // Update user record to set emailVerified to true
+        const updatedUser = await storage.updateUser(userId, {
+          email: email,
+          emailVerified: true
+        });
+        
+        // Create activity for verified email
+        await storage.createActivity({
+          userId,
+          activityType: 'account_security',
+          description: 'Verified email address',
+          points: 5,
+          timestamp: new Date()
+        });
+        
+        res.status(200).json({
+          success: true,
+          message: 'Email verified successfully',
+          user: updatedUser
+        });
+      } else {
+        res.status(400).json({
+          success: false,
+          error: 'Invalid or expired verification code'
+        });
+      }
+    } catch (error: any) {
+      console.error('Error verifying email:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to verify email',
+        details: error.message
       });
     }
   });

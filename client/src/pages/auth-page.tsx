@@ -179,7 +179,7 @@ export default function AuthPage() {
             title: "Twilio Account Notice",
             description: "Phone number needs to be verified in your Twilio account first. Using test code for now.",
             duration: 8000,
-            variant: "warning"
+            variant: "destructive"
           });
         } else {
           toast({
