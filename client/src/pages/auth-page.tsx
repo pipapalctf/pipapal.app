@@ -181,13 +181,12 @@ export default function AuthPage() {
         throw new Error(errorData.error || "Invalid verification code");
       }
       
-      // If OTP is valid, submit registration
-      const { confirmPassword, ...userData } = userFormData;
-      
+      // If OTP is valid, submit registration with all required fields
       // Set phoneVerified to true since we've verified the phone
       registerMutation.mutate({
-        ...userData,
-        phoneVerified: true
+        ...userFormData, // This includes confirmPassword field which is required by registerSchema
+        phoneVerified: true,
+        phone: phoneNumber // Ensure phone number is included in registration data
       }, {
         onSuccess: () => {
           setRegistrationStep("complete");
