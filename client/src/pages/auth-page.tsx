@@ -518,7 +518,7 @@ export default function AuthPage() {
                       {registrationStep === "verification" && (
                         <>
                           <CardTitle className="text-2xl font-montserrat text-secondary">Verify Your Email</CardTitle>
-                          <CardDescription>We've sent a verification code to your email</CardDescription>
+                          <CardDescription>We've sent a verification code to your email address</CardDescription>
                         </>
                       )}
                       
@@ -709,7 +709,7 @@ export default function AuthPage() {
                         <div className="space-y-6">
                           <div className="p-4 bg-primary/10 rounded-lg mb-6">
                             <p className="text-sm text-secondary">
-                              <strong>Step 2 of 3:</strong> Verify your email address to continue.
+                              <strong>Step 2 of 3:</strong> Verify your email address before creating your account.
                             </p>
                           </div>
                           
