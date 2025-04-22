@@ -366,9 +366,25 @@ export default function OnboardingPage() {
               </div>
               
               <Button 
-                type="submit" 
+                type="button" 
                 className="w-full mt-6" 
                 disabled={submitting}
+                onClick={(e) => {
+                  e.preventDefault();
+                  console.log("Organization button clicked manually");
+                  const formValues = organizationForm.getValues();
+                  console.log("Organization form values:", formValues);
+                  
+                  // Run validation manually
+                  organizationForm.trigger().then(isValid => {
+                    console.log("Organization form validation result:", isValid);
+                    if (isValid) {
+                      onOrganizationSubmit(formValues);
+                    } else {
+                      console.log("Organization form validation failed:", organizationForm.formState.errors);
+                    }
+                  });
+                }}
               >
                 {submitting ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -391,7 +407,16 @@ export default function OnboardingPage() {
         </CardHeader>
         <CardContent>
           <Form {...collectorRecyclerForm}>
-            <form onSubmit={collectorRecyclerForm.handleSubmit(onCollectorRecyclerSubmit)} className="space-y-6">
+            <form 
+              onSubmit={(e) => {
+                console.log("Form submit event triggered");
+                collectorRecyclerForm.handleSubmit((values) => {
+                  console.log("Form validation passed, calling submit handler");
+                  onCollectorRecyclerSubmit(values);
+                })(e);
+              }} 
+              className="space-y-6"
+            >
               {/* Business Type Section */}
               <div className="border-b border-border pb-6">
                 <h3 className="text-lg font-semibold mb-4">Business Information</h3>
@@ -698,9 +723,25 @@ export default function OnboardingPage() {
               </div>
               
               <Button 
-                type="submit" 
+                type="button" 
                 className="w-full mt-6" 
                 disabled={submitting}
+                onClick={(e) => {
+                  e.preventDefault();
+                  console.log("Button clicked manually");
+                  const formValues = collectorRecyclerForm.getValues();
+                  console.log("Form values:", formValues);
+                  
+                  // Run validation manually
+                  collectorRecyclerForm.trigger().then(isValid => {
+                    console.log("Form validation result:", isValid);
+                    if (isValid) {
+                      onCollectorRecyclerSubmit(formValues);
+                    } else {
+                      console.log("Form validation failed:", collectorRecyclerForm.formState.errors);
+                    }
+                  });
+                }}
               >
                 {submitting ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
