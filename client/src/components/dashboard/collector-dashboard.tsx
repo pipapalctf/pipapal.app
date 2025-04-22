@@ -3,8 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Cell, ResponsiveContainer, CartesianGrid, LineChart, Line, PieChart, Pie } from 'recharts';
-import { Truck, Package, MapPin, Clock, DollarSign, Star, Route, Scale, Leaf } from 'lucide-react';
-import { User, CollectionStatus } from '@shared/schema';
+import { Truck, Package, MapPin, Clock, DollarSign, Star, Route, Scale, Leaf, Award } from 'lucide-react';
+import { User, CollectionStatus, Collection, Impact } from '@shared/schema';
 import { formatNumber } from '@/lib/utils';
 import RoleBasedCTA from './role-based-cta';
 import RecentActivity from './recent-activity';
@@ -89,6 +89,31 @@ export default function CollectorDashboard({ user }: CollectorDashboardProps) {
 
   // Random colors for the pie chart
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D', '#FF6B6B', '#6B66FF', '#FFA556', '#4CD790'];
+  
+  // Variables for achievement badges
+  const completedCollections = completedJobs;
+  const onTimeRate = jobsWithCompletionData.length > 0 
+    ? jobsWithCompletionData.filter(job => {
+        const scheduledDate = new Date(job.scheduledDate);
+        const completedDate = new Date(job.completedDate);
+        const diffHours = (completedDate.getTime() - scheduledDate.getTime()) / (1000 * 60 * 60);
+        return diffHours <= 24; // On time if completed within 24 hours of scheduled time
+      }).length / jobsWithCompletionData.length * 100
+    : 0;
+  
+  // Count unique waste types
+  const wasteTypesCount = new Set(collectorJobs.map(job => job.wasteType));
+  
+  // Get impact data
+  const { data: impactData } = useQuery({
+    queryKey: ['/api/impacts', user.id],
+    enabled: !!user.id,
+  });
+  
+  const impact: Impact | undefined = impactData;
+  
+  // User rating based on ratings from customers
+  const userRating = 4.7; // This would ideally come from the database
 
   return (
     <div className="space-y-6 p-2 md:p-4">

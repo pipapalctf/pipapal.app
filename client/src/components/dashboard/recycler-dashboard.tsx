@@ -3,8 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
-import { Recycle, Leaf, Package, TrendingUp, FileText, Scale, Truck, ShoppingBag, MapPin, Star, Calendar, ChevronRight, Clock, Users, Activity } from 'lucide-react';
-import { User, CollectionStatus } from '@shared/schema';
+import { Recycle, Leaf, Package, TrendingUp, FileText, Scale, Truck, ShoppingBag, MapPin, Star, Calendar, ChevronRight, Clock, Users, Activity, Award } from 'lucide-react';
+import { User, CollectionStatus, Collection, Impact } from '@shared/schema';
 import { formatNumber } from '@/lib/utils';
 import RoleBasedCTA from './role-based-cta';
 import RecentActivity from './recent-activity';
@@ -95,6 +95,21 @@ export default function RecyclerDashboard({ user }: RecyclerDashboardProps) {
 
   // Random colors for the pie chart
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D', '#FF6B6B', '#6B66FF', '#FFA556', '#4CD790'];
+  
+  // Variables for achievement badges
+  const completedCollections = purchasedMaterials;
+  const totalWasteRecycled = totalPurchased;
+  
+  // Count unique waste types
+  const wasteTypesCount = new Set(purchasedMaterials.map(material => material.wasteType));
+  
+  // Get impact data
+  const { data: impactData } = useQuery({
+    queryKey: ['/api/impacts', user.id],
+    enabled: !!user.id,
+  });
+  
+  const impact: Impact | undefined = impactData;
 
   return (
     <div className="space-y-6 p-2 md:p-6">
