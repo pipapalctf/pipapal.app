@@ -21,6 +21,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { PhoneVerification } from "@/components/auth/phone-verification";
 
 // Layout Components
 import Navbar from "@/components/shared/navbar";
@@ -804,84 +805,116 @@ export default function ProfilePage() {
           )}
           
           <TabsContent value="security">
-            <Card>
-              <CardHeader>
-                <CardTitle>Change Password</CardTitle>
-                <CardDescription>
-                  Update your password to keep your account secure
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Form {...passwordForm}>
-                  <form id="password-form" onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-6">
-                    <Alert className="bg-muted/50">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertTitle>Password requirements</AlertTitle>
-                      <AlertDescription>
-                        Your password must be at least 8 characters long
-                      </AlertDescription>
-                    </Alert>
-                  
-                    <FormField
-                      control={passwordForm.control}
-                      name="currentPassword"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Current Password</FormLabel>
-                          <FormControl>
-                            <Input type="password" placeholder="Enter your current password" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+            <div className="space-y-6">
+              {/* Password Change Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Change Password</CardTitle>
+                  <CardDescription>
+                    Update your password to keep your account secure
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Form {...passwordForm}>
+                    <form id="password-form" onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-6">
+                      <Alert className="bg-muted/50">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertTitle>Password requirements</AlertTitle>
+                        <AlertDescription>
+                          Your password must be at least 8 characters long
+                        </AlertDescription>
+                      </Alert>
                     
-                    <FormField
-                      control={passwordForm.control}
-                      name="newPassword"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>New Password</FormLabel>
-                          <FormControl>
-                            <Input type="password" placeholder="Enter your new password" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={passwordForm.control}
-                      name="confirmPassword"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Confirm New Password</FormLabel>
-                          <FormControl>
-                            <Input type="password" placeholder="Confirm your new password" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </form>
-                </Form>
-              </CardContent>
-              <CardFooter className="flex justify-end border-t p-6">
-                <Button form="password-form" type="submit" disabled={updatePasswordMutation.isPending}>
-                  {updatePasswordMutation.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Updating...
-                    </>
-                  ) : (
-                    <>
-                      <Check className="mr-2 h-4 w-4" />
-                      Update Password
-                    </>
-                  )}
-                </Button>
-              </CardFooter>
-            </Card>
+                      <FormField
+                        control={passwordForm.control}
+                        name="currentPassword"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Current Password</FormLabel>
+                            <FormControl>
+                              <Input type="password" placeholder="Enter your current password" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={passwordForm.control}
+                        name="newPassword"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>New Password</FormLabel>
+                            <FormControl>
+                              <Input type="password" placeholder="Enter your new password" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={passwordForm.control}
+                        name="confirmPassword"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Confirm New Password</FormLabel>
+                            <FormControl>
+                              <Input type="password" placeholder="Confirm your new password" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </form>
+                  </Form>
+                </CardContent>
+                <CardFooter className="flex justify-end border-t p-6">
+                  <Button form="password-form" type="submit" disabled={updatePasswordMutation.isPending}>
+                    {updatePasswordMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Updating...
+                      </>
+                    ) : (
+                      <>
+                        <Check className="mr-2 h-4 w-4" />
+                        Update Password
+                      </>
+                    )}
+                  </Button>
+                </CardFooter>
+              </Card>
+              
+              {/* Phone Verification Card */}
+              <div className="mt-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Phone Verification</CardTitle>
+                    <CardDescription>
+                      Verify your phone number for added security and to receive important notifications
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {user?.phoneVerified ? (
+                      <div className="flex items-center p-4 bg-green-50 dark:bg-green-950/30 rounded-md">
+                        <CheckCircleIcon className="h-5 w-5 text-green-500 mr-3" />
+                        <div>
+                          <p className="text-sm font-medium text-green-800 dark:text-green-300">
+                            Phone number verified
+                          </p>
+                          <p className="text-xs text-green-600 dark:text-green-400">
+                            Your phone number {user.phone} has been verified.
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <PhoneVerification />
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
           </TabsContent>
           
           <TabsContent value="preferences">
