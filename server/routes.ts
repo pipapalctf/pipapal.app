@@ -1209,6 +1209,131 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   );
 
+  // Chat endpoints
+  // Get chat conversations (users with whom the current user has chatted)
+  app.get("/api/chat/conversations", 
+    requireAuthentication,
+    async (req, res) => {
+      if (!req.user) return res.sendStatus(401);
+      
+      try {
+        const users = await storage.getUsersWithChats(req.user.id);
+        
+        // Remove sensitive information
+        const sanitizedUsers = users.map(user => ({
+          id: user.id,
+          username: user.username,
+          fullName: user.fullName,
+          role: user.role,
+          phone: user.phone,
+          unreadCount: 0 // Will be populated below
+        }));
+        
+        // Get unread message count for each user
+        for (const user of sanitizedUsers) {
+          const unreadCount = await storage.getUnreadMessageCount(req.user.id);
+          user.unreadCount = unreadCount;
+        }
+        
+        res.json(sanitizedUsers);
+      } catch (error) {
+        console.error("Error fetching chat conversations:", error);
+        res.status(500).json({ error: "Failed to load conversations" });
+      }
+    }
+  );
+  
+  // Get chat messages between current user and another user
+  app.get("/api/chat/messages/:userId", 
+    requireAuthentication,
+    async (req, res) => {
+      if (!req.user) return res.sendStatus(401);
+      
+      const otherUserId = parseInt(req.params.userId);
+      if (isNaN(otherUserId)) return res.status(400).json({ error: "Invalid user ID" });
+      
+      try {
+        // Get messages between the two users
+        const messages = await storage.getChatMessages(req.user.id, otherUserId);
+        
+        // Mark messages from the other user as read
+        await storage.markMessagesAsRead(otherUserId, req.user.id);
+        
+        res.json(messages);
+      } catch (error) {
+        console.error("Error fetching chat messages:", error);
+        res.status(500).json({ error: "Failed to load messages" });
+      }
+    }
+  );
+  
+  // Send a new chat message
+  app.post("/api/chat/messages", 
+    requireAuthentication,
+    async (req, res) => {
+      if (!req.user) return res.sendStatus(401);
+      
+      try {
+        const { receiverId, content } = chatMessageSchema.parse(req.body);
+        
+        // Validate the receiver exists
+        const receiver = await storage.getUser(receiverId);
+        if (!receiver) {
+          return res.status(404).json({ error: "Recipient not found" });
+        }
+        
+        // Create the message
+        const message = await storage.sendChatMessage({
+          senderId: req.user.id,
+          receiverId,
+          content,
+          read: false,
+          timestamp: new Date()
+        });
+        
+        // Notify the receiver via WebSocket if they're online
+        const receiverClients = clients.get(receiverId) || [];
+        const notification = {
+          type: 'new_message',
+          senderId: req.user.id,
+          senderName: req.user.fullName || req.user.username,
+          message: content,
+          timestamp: message.timestamp
+        };
+        
+        receiverClients.forEach(client => {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify(notification));
+          }
+        });
+        
+        res.status(201).json(message);
+      } catch (error) {
+        if (error && typeof error === 'object' && 'name' in error && error.name === 'ZodError' && 'format' in error && typeof error.format === 'function') {
+          return res.status(400).json({ error: "Invalid message format", details: error.format() });
+        }
+        console.error("Error sending chat message:", error);
+        res.status(500).json({ error: "Failed to send message" });
+      }
+    }
+  );
+  
+  // Get unread message count
+  app.get("/api/chat/unread", 
+    requireAuthentication,
+    async (req, res) => {
+      if (!req.user) return res.sendStatus(401);
+      
+      try {
+        const count = await storage.getUnreadMessageCount(req.user.id);
+        res.json({ count });
+      } catch (error) {
+        console.error("Error getting unread message count:", error);
+        res.status(500).json({ error: "Failed to get unread count" });
+      }
+    }
+  );
+
   const httpServer = createServer(app);
   
   // WebSocket server for real-time notifications
@@ -1244,6 +1369,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
             event: 'connection_status',
             status: 'connected'
           }));
+          
+          // Check for unread messages
+          storage.getUnreadMessageCount(userId)
+            .then(unreadCount => {
+              if (unreadCount > 0) {
+                ws.send(JSON.stringify({
+                  type: 'unread_messages',
+                  count: unreadCount
+                }));
+              }
+            })
+            .catch(error => {
+              console.error(`Error checking unread messages for user ${userId}:`, error);
+            });
+        }
+        
+        // Handle direct chat messages via WebSocket
+        else if (data.type === 'chat_message' && userId && data.receiverId && data.content) {
+          const receiverId = parseInt(data.receiverId);
+          
+          // Store the message in the database
+          storage.sendChatMessage({
+            senderId: userId,
+            receiverId: receiverId,
+            content: data.content,
+            read: false,
+            timestamp: new Date()
+          })
+          .then(message => {
+            // Send confirmation to sender
+            ws.send(JSON.stringify({
+              type: 'message_sent',
+              messageId: message.id,
+              receiverId: receiverId,
+              timestamp: message.timestamp
+            }));
+            
+            // Forward to recipient if online
+            const receiverClients = clients.get(receiverId) || [];
+            const notification = {
+              type: 'new_message',
+              messageId: message.id,
+              senderId: userId,
+              content: data.content,
+              timestamp: message.timestamp
+            };
+            
+            receiverClients.forEach(client => {
+              if (client.readyState === WebSocket.OPEN) {
+                client.send(JSON.stringify(notification));
+              }
+            });
+          })
+          .catch(error => {
+            console.error('Error processing chat message:', error);
+            ws.send(JSON.stringify({
+              type: 'error',
+              message: 'Failed to send message'
+            }));
+          });
         }
       } catch (error) {
         console.error('Error parsing WebSocket message:', error);
