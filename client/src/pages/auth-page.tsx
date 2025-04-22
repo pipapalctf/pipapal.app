@@ -124,15 +124,33 @@ export default function AuthPage() {
   // Registration first step submission - collect user data
   function onRegisterSubmit(values: RegisterFormValues) {
     setUserFormData(values);
-    setPhoneNumber(values.phone);
+    // Ensure phone has a value before setting it
+    if (values.phone) {
+      setPhoneNumber(values.phone);
+      // Send OTP to the provided phone number
+      sendVerificationCode(values.phone);
+    } else {
+      toast({
+        title: "Error",
+        description: "Please provide a valid phone number",
+        variant: "destructive",
+      });
+      return;
+    }
     setRegistrationStep("verification");
-    
-    // Send OTP to the provided phone number
-    sendVerificationCode(values.phone);
   }
   
   // Send OTP verification code
   const sendVerificationCode = async (phone: string) => {
+    if (!phone || phone.trim() === '') {
+      toast({
+        title: "Error",
+        description: "Please provide a valid phone number",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setIsLoadingOtp(true);
     
     try {
@@ -469,7 +487,14 @@ export default function AuthPage() {
                               <FormItem>
                                 <FormLabel>Address</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="123 Green Street, Eco City" {...field} />
+                                  <Input 
+                                    placeholder="123 Green Street, Eco City" 
+                                    value={field.value || ''} 
+                                    onChange={field.onChange}
+                                    onBlur={field.onBlur}
+                                    ref={field.ref}
+                                    name={field.name}
+                                  />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -483,7 +508,14 @@ export default function AuthPage() {
                               <FormItem>
                                 <FormLabel>Phone Number</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="+254 7XX XXX XXX" {...field} />
+                                  <Input 
+                                    placeholder="+254 7XX XXX XXX" 
+                                    value={field.value || ''} 
+                                    onChange={field.onChange}
+                                    onBlur={field.onBlur}
+                                    ref={field.ref}
+                                    name={field.name}
+                                  />
                                 </FormControl>
                                 <FormDescription>
                                   Enter your phone number with country code (e.g., +254 for Kenya)
@@ -501,7 +533,7 @@ export default function AuthPage() {
                             {registerMutation.isPending ? (
                               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                             ) : null}
-                            Create Account
+                            Continue to Verification
                           </Button>
                         </form>
                       </Form>

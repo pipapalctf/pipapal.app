@@ -161,6 +161,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // OTP verification for registration process (pre-registration)
+  app.post('/api/otp/verify-registration', async (req, res) => {
+    try {
+      const { phoneNumber, otp } = verifyRegistrationOtpSchema.parse(req.body);
+      
+      const isValid = verifyOTP(phoneNumber, otp);
+      
+      if (isValid) {
+        res.status(200).json({ 
+          success: true, 
+          message: 'Phone number verified successfully'
+        });
+      } else {
+        res.status(400).json({ 
+          success: false, 
+          error: 'Invalid or expired verification code' 
+        });
+      }
+    } catch (error: any) {
+      console.error('Error verifying registration OTP:', error);
+      res.status(500).json({ 
+        error: 'Failed to verify phone number',
+        details: error.message 
+      });
+    }
+  });
+  
   // User routes
   app.patch('/api/users/:id', requireAuthentication, async (req, res) => {
     try {
