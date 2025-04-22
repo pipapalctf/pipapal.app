@@ -57,9 +57,19 @@ export function formatPhoneNumber(phoneNumber: string): string {
 }
 
 /**
+ * Response type for sendOTP function
+ */
+export type OtpResponse = {
+  success: boolean;
+  message: string;
+  developmentMode?: boolean;
+  otp?: string;
+};
+
+/**
  * Send OTP verification code to a phone number
  */
-export async function sendOTP(phoneNumber: string): Promise<{ success: boolean, message: string }> {
+export async function sendOTP(phoneNumber: string): Promise<OtpResponse> {
   try {
     const formattedPhoneNumber = formatPhoneNumber(phoneNumber);
     
@@ -75,8 +85,10 @@ export async function sendOTP(phoneNumber: string): Promise<{ success: boolean, 
     if (isDevelopment || !useTwilio) {
       console.log(`[DEV MODE] Would send OTP ${otp} to ${formattedPhoneNumber}`);
       return { 
-        success: true, 
-        message: 'Development mode - OTP generated but not sent. Use code: ' + otp 
+        success: true,
+        developmentMode: true,
+        message: 'Development mode - OTP generated but not sent. Use code: ' + otp,
+        otp: otp // Only included in development mode
       };
     }
     
@@ -98,8 +110,10 @@ export async function sendOTP(phoneNumber: string): Promise<{ success: boolean, 
         // Fall back to development mode
         console.log(`Falling back to dev mode. OTP: ${otp}`);
         return { 
-          success: true, 
-          message: 'Number not verified in Twilio trial account. Use code: ' + otp 
+          success: true,
+          developmentMode: true,
+          message: 'Number not verified in Twilio trial account. Use code: ' + otp,
+          otp: otp
         };
       }
       
@@ -112,8 +126,10 @@ export async function sendOTP(phoneNumber: string): Promise<{ success: boolean, 
     if (isDevelopment) {
       const devOtp = generateDevOTP();
       return { 
-        success: true, 
-        message: 'Development mode - use test code: ' + devOtp 
+        success: true,
+        developmentMode: true,
+        message: 'Development mode - use test code: ' + devOtp,
+        otp: devOtp
       };
     }
     

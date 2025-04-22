@@ -168,12 +168,19 @@ export default function AuthPage() {
       // Get the response data
       const responseData = await response.json();
       
-      // Check if we're in development mode and a code was provided
-      if (responseData.message && 
-          (responseData.message.includes('Development mode') || 
-           responseData.message.includes('Use code') || 
-           responseData.message.includes('trial account'))) {
-        // Extract the OTP code from the message
+      // Check if we're in development mode (server sends a developmentMode flag)
+      if (responseData.developmentMode && responseData.otp) {
+        // Use the OTP directly from the response if available
+        setDevOtpCode(responseData.otp);
+        toast({
+          title: "Development Mode",
+          description: "A test verification code has been generated",
+        });
+      } else if (responseData.message && 
+                (responseData.message.includes('Development mode') || 
+                 responseData.message.includes('Use code') || 
+                 responseData.message.includes('trial account'))) {
+        // Fallback: try to extract the OTP code from the message (for backward compatibility)
         const match = responseData.message.match(/code:? ([0-9]{6})/i);
         if (match && match[1]) {
           setDevOtpCode(match[1]);
