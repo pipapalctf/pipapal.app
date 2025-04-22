@@ -84,6 +84,9 @@ export const users = pgTable("users", {
   
   // Common
   onboardingCompleted: boolean("onboarding_completed").default(false),
+  
+  // Phone verification
+  phoneVerified: boolean("phone_verified").default(false),
 });
 
 // Waste collections table
@@ -183,6 +186,7 @@ export const insertUserSchema = createInsertSchema(users)
     operatingHours: true,
     // Common fields
     onboardingCompleted: true,
+    phoneVerified: true,
   });
 
 export const insertCollectionSchema = createInsertSchema(collections, {
