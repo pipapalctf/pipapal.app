@@ -94,7 +94,7 @@ export function EmailVerification({
     <div className="space-y-6">
       <div className="text-center mb-4">
         <MailCheck size={40} className="mx-auto mb-2 text-primary" />
-        <h3 className="text-lg font-medium">Check your email</h3>
+        <h3 className="text-lg font-medium">Verify Your Email</h3>
         <p className="text-sm text-muted-foreground mt-1">
           We've sent a 6-digit verification code to <span className="font-medium">{email}</span>
         </p>
