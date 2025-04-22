@@ -73,7 +73,7 @@ export default function PublicNavbar() {
                 Log in
               </Button>
             </Link>
-            <Link href="/auth">
+            <Link href="/auth?tab=register">
               <Button size={scrolled ? "sm" : "default"}>
                 Sign up
               </Button>
