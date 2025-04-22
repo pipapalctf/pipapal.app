@@ -809,11 +809,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
                              (collection.wasteAmount && collection.wasteAmount > 0) : true;
         
         if (!isValidStatus || !hasWasteAmount) {
+          console.log(`Express interest validation failed:
+            Collection status: ${collection.status}
+            Has collector: ${Boolean(collection.collectorId)}
+            Has waste amount: ${hasWasteAmount}
+            Waste amount: ${collection.wasteAmount}
+          `);
+          
+          // Provide specific error message based on actual issue
+          let errorMessage = '';
+          
+          if (collection.status !== CollectionStatus.COMPLETED && 
+              collection.status !== CollectionStatus.IN_PROGRESS) {
+            errorMessage = `This collection is in ${collection.status} status and not ready for recycling.`;
+          } else if (collection.status === CollectionStatus.IN_PROGRESS && !collection.collectorId) {
+            errorMessage = 'This collection has no assigned collector yet. Wait until a collector is assigned.';
+          } else if (collection.status === CollectionStatus.COMPLETED && (!collection.wasteAmount || collection.wasteAmount <= 0)) {
+            errorMessage = 'This collection has no waste amount recorded. Cannot express interest in empty collection.';
+          } else {
+            errorMessage = 'This collection is not ready for recycling yet. Please check back later.';
+          }
+          
           return res.status(400).json({ 
             error: 'Invalid collection status', 
-            message: collection.status === CollectionStatus.IN_PROGRESS && !collection.collectorId ?
-                    'This collection has no assigned collector yet' :
-                    'This collection is not ready for recycling' 
+            message: errorMessage
           });
         }
         
@@ -901,10 +920,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
       } catch (error) {
         console.error("Error expressing interest in materials:", error);
+        
+        // Handle validation errors
         if (error instanceof z.ZodError) {
-          return res.status(400).json({ errors: error.format() });
+          return res.status(400).json({ 
+            error: 'Validation error',
+            message: 'Please check your input data',
+            errors: error.format() 
+          });
         }
-        res.status(500).send("Failed to express interest in materials");
+        
+        // Handle database errors with more specific messages
+        if (error.code === '23505') { // Unique constraint violation
+          return res.status(400).json({
+            error: 'Duplicate interest',
+            message: 'You have already expressed interest in this material'
+          });
+        }
+        
+        // Handle other types of errors with useful messages
+        const errorMessage = error.message || "Failed to express interest in materials";
+        console.error('Detailed error:', errorMessage);
+        
+        res.status(500).json({
+          error: 'Server error',
+          message: errorMessage
+        });
       }
     }
   );

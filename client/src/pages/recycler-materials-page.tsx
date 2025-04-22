@@ -156,6 +156,24 @@ export default function RecyclerMaterialsPage() {
     mutationFn: async (data: { collectionId: number; amountRequested?: number; pricePerKg?: number; message?: string }) => {
       setProcessingCollectionId(data.collectionId);
       const response = await apiRequest('POST', '/api/materials/express-interest', data);
+      
+      // Check if the response is not ok and handle error properly
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorMessage: string;
+        
+        try {
+          // Try to parse the error response as JSON
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.error || errorJson.message || `Error ${response.status}: ${response.statusText}`;
+        } catch (e) {
+          // If not JSON, use the text directly
+          errorMessage = errorText || `Error ${response.status}: ${response.statusText}`;
+        }
+        
+        throw new Error(errorMessage);
+      }
+      
       return response.json();
     },
     onSuccess: (_, data) => {
@@ -183,6 +201,7 @@ export default function RecyclerMaterialsPage() {
         variant: "destructive",
       });
       setProcessingCollectionId(null);
+      // Don't close the dialog so user can fix and retry
     }
   });
 
