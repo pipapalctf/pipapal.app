@@ -739,13 +739,39 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
-    return user;
+    try {
+      // First try exact match
+      let [user] = await db.select().from(users).where(eq(users.username, username));
+      
+      // If not found, try case-insensitive match (using ILIKE in Postgres)
+      if (!user) {
+        [user] = await db.select().from(users)
+          .where(sql`LOWER(${users.username}) = LOWER(${username})`);
+      }
+      
+      return user;
+    } catch (error) {
+      console.error('Error in getUserByUsername:', error);
+      return undefined;
+    }
   }
   
   async getUserByEmail(email: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.email, email));
-    return user;
+    try {
+      // First try exact match
+      let [user] = await db.select().from(users).where(eq(users.email, email));
+      
+      // If not found, try case-insensitive match
+      if (!user) {
+        [user] = await db.select().from(users)
+          .where(sql`LOWER(${users.email}) = LOWER(${email})`);
+      }
+      
+      return user;
+    } catch (error) {
+      console.error('Error in getUserByEmail:', error);
+      return undefined;
+    }
   }
   
   async getAllUsers(): Promise<User[]> {
