@@ -6,6 +6,7 @@ import {
   ecoTips, type EcoTip, type InsertEcoTip,
   activities, type Activity, type InsertActivity,
   materialInterests, type MaterialInterest, type InsertMaterialInterest,
+  chatMessages, type ChatMessage, type InsertChatMessage,
   CollectionStatus
 } from "@shared/schema";
 import session from "express-session";
@@ -1223,6 +1224,113 @@ export class DatabaseStorage implements IStorage {
       for (const tip of seedTips) {
         await this.createEcoTip(tip);
       }
+    }
+  }
+  
+  // Chat Messages
+  async getChatMessages(userId1: number, userId2: number, limit: number = 50): Promise<ChatMessage[]> {
+    try {
+      return await db.select()
+        .from(chatMessages)
+        .where(
+          or(
+            and(
+              eq(chatMessages.senderId, userId1),
+              eq(chatMessages.receiverId, userId2)
+            ),
+            and(
+              eq(chatMessages.senderId, userId2),
+              eq(chatMessages.receiverId, userId1)
+            )
+          )
+        )
+        .orderBy(chatMessages.timestamp)
+        .limit(limit);
+    } catch (error) {
+      console.error('Error fetching chat messages:', error);
+      return [];
+    }
+  }
+  
+  async getUsersWithChats(userId: number): Promise<User[]> {
+    try {
+      // Get all unique user IDs that have exchanged messages with this user
+      const senderIds = await db.select({ id: chatMessages.senderId })
+        .from(chatMessages)
+        .where(eq(chatMessages.receiverId, userId))
+        .groupBy(chatMessages.senderId);
+      
+      const receiverIds = await db.select({ id: chatMessages.receiverId })
+        .from(chatMessages)
+        .where(eq(chatMessages.senderId, userId))
+        .groupBy(chatMessages.receiverId);
+      
+      // Combine the IDs and remove duplicates
+      const userIds = [...senderIds, ...receiverIds]
+        .map(row => row.id)
+        .filter((id, index, self) => self.indexOf(id) === index);
+      
+      if (userIds.length === 0) {
+        return [];
+      }
+      
+      // Get user objects for those IDs
+      return await db.select()
+        .from(users)
+        .where(inArray(users.id, userIds));
+    } catch (error) {
+      console.error('Error fetching users with chats:', error);
+      return [];
+    }
+  }
+  
+  async getUnreadMessageCount(userId: number): Promise<number> {
+    try {
+      const result = await db.select({ count: sql<number>`count(*)` })
+        .from(chatMessages)
+        .where(
+          and(
+            eq(chatMessages.receiverId, userId),
+            eq(chatMessages.read, false)
+          )
+        );
+      
+      return result[0]?.count || 0;
+    } catch (error) {
+      console.error('Error getting unread message count:', error);
+      return 0;
+    }
+  }
+  
+  async sendChatMessage(message: InsertChatMessage): Promise<ChatMessage> {
+    try {
+      const [chatMessage] = await db.insert(chatMessages)
+        .values({
+          ...message,
+          read: false
+        })
+        .returning();
+      
+      return chatMessage;
+    } catch (error) {
+      console.error('Error sending chat message:', error);
+      throw new Error('Failed to send message');
+    }
+  }
+  
+  async markMessagesAsRead(senderId: number, receiverId: number): Promise<void> {
+    try {
+      await db.update(chatMessages)
+        .set({ read: true })
+        .where(
+          and(
+            eq(chatMessages.senderId, senderId),
+            eq(chatMessages.receiverId, receiverId),
+            eq(chatMessages.read, false)
+          )
+        );
+    } catch (error) {
+      console.error('Error marking messages as read:', error);
     }
   }
 }
