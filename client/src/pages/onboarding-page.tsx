@@ -97,17 +97,17 @@ export default function OnboardingPage() {
     },
   });
   
-  // Update user mutation
-  const updateUserMutation = useMutation({
+  // Onboarding mutation using dedicated endpoint
+  const completeOnboardingMutation = useMutation({
     mutationFn: async (data: any) => {
-      const res = await apiRequest("PATCH", `/api/users/${user?.id}`, data);
+      const res = await apiRequest("POST", "/api/onboarding", data);
       return await res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       toast({
         title: "Onboarding completed!",
-        description: "Your profile has been updated.",
+        description: "Your profile has been set up successfully.",
         variant: "default",
       });
       navigate("/dashboard");
@@ -125,7 +125,7 @@ export default function OnboardingPage() {
   
   function onOrganizationSubmit(values: OrganizationOnboardingValues) {
     setSubmitting(true);
-    updateUserMutation.mutate({
+    completeOnboardingMutation.mutate({
       ...values,
       onboardingCompleted: true,
     });
@@ -139,7 +139,7 @@ export default function OnboardingPage() {
       certificationDetails: values.certificationDetails,
       onboardingCompleted: true
     };
-    updateUserMutation.mutate(submitData);
+    completeOnboardingMutation.mutate(submitData);
   }
   
   if (isLoading || !user) {
@@ -380,7 +380,7 @@ export default function OnboardingPage() {
     // For households, just set onboarding as completed and redirect
     useEffect(() => {
       if (user && user.role === UserRole.HOUSEHOLD && !user.onboardingCompleted) {
-        updateUserMutation.mutate({ onboardingCompleted: true });
+        completeOnboardingMutation.mutate({ onboardingCompleted: true });
       }
     }, [user]);
     
