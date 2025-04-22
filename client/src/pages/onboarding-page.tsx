@@ -23,10 +23,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { UserRole } from "@shared/schema";
+import { UserRole, WasteType } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useMutation } from "@tanstack/react-query";
@@ -364,59 +365,63 @@ export default function OnboardingPage() {
       <Card className="w-full max-w-3xl mx-auto shadow-lg">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-montserrat text-secondary">
-            {user.role === UserRole.COLLECTOR ? "Collector Certification" : "Recycler Certification"}
+            {user.role === UserRole.COLLECTOR ? "Collector Information" : "Recycler Information"}
           </CardTitle>
-          <CardDescription>Please provide additional information about your certification status</CardDescription>
+          <CardDescription>Please provide information about your {user.role === UserRole.COLLECTOR ? "waste collection" : "recycling"} business</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...collectorRecyclerForm}>
             <form onSubmit={collectorRecyclerForm.handleSubmit(onCollectorRecyclerSubmit)} className="space-y-6">
-              <FormField
-                control={collectorRecyclerForm.control}
-                name="isCertified"
-                render={({ field }) => (
-                  <FormItem className="space-y-3">
-                    <FormLabel>Are you certified by a regulatory body?</FormLabel>
-                    <FormControl>
-                      <RadioGroup
-                        onValueChange={field.onChange}
-                        defaultValue={field.value?.toString()}
-                        className="flex flex-col space-y-1"
-                      >
-                        <FormItem className="flex items-center space-x-3 space-y-0">
-                          <FormControl>
-                            <RadioGroupItem value="true" />
-                          </FormControl>
-                          <FormLabel className="font-normal">
-                            Yes, I have certification
-                          </FormLabel>
-                        </FormItem>
-                        <FormItem className="flex items-center space-x-3 space-y-0">
-                          <FormControl>
-                            <RadioGroupItem value="false" />
-                          </FormControl>
-                          <FormLabel className="font-normal">
-                            No, I don't have certification
-                          </FormLabel>
-                        </FormItem>
-                      </RadioGroup>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              {collectorRecyclerForm.watch("isCertified") === "true" && (
+              {/* Business Type Section */}
+              <div className="border-b border-border pb-6">
+                <h3 className="text-lg font-semibold mb-4">Business Information</h3>
+                
                 <FormField
                   control={collectorRecyclerForm.control}
-                  name="certificationDetails"
+                  name="businessType"
+                  render={({ field }) => (
+                    <FormItem className="mb-4">
+                      <FormLabel>Business Type</FormLabel>
+                      <FormControl>
+                        <RadioGroup
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                          className="flex flex-col space-y-1"
+                        >
+                          <FormItem className="flex items-center space-x-3 space-y-0">
+                            <FormControl>
+                              <RadioGroupItem value="individual" />
+                            </FormControl>
+                            <FormLabel className="font-normal">
+                              Individual Operator
+                            </FormLabel>
+                          </FormItem>
+                          <FormItem className="flex items-center space-x-3 space-y-0">
+                            <FormControl>
+                              <RadioGroupItem value="organization" />
+                            </FormControl>
+                            <FormLabel className="font-normal">
+                              Organization/Company
+                            </FormLabel>
+                          </FormItem>
+                        </RadioGroup>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={collectorRecyclerForm.control}
+                  name="businessName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Certification Details</FormLabel>
+                      <FormLabel>Business Name</FormLabel>
                       <FormControl>
-                        <Textarea 
-                          placeholder="Please provide details about your certification, including the issuing body, certification number, and expiry date." 
-                          className="min-h-[100px]"
+                        <Input 
+                          placeholder={collectorRecyclerForm.watch("businessType") === "individual" 
+                            ? "Your business or trading name" 
+                            : "Official company name"} 
                           {...field} 
                         />
                       </FormControl>
@@ -424,17 +429,250 @@ export default function OnboardingPage() {
                     </FormItem>
                   )}
                 />
+              </div>
+              
+              {/* Contact Information Section - Only shown for organizations */}
+              {collectorRecyclerForm.watch("businessType") === "organization" && (
+                <div className="border-b border-border pb-6">
+                  <h3 className="text-lg font-semibold mb-4">Contact Person Details</h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <FormField
+                      control={collectorRecyclerForm.control}
+                      name="contactPersonName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Contact Person Name</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Full name" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={collectorRecyclerForm.control}
+                      name="contactPersonPosition"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Position/Title</FormLabel>
+                          <FormControl>
+                            <Input placeholder="e.g. Operations Manager" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                    <FormField
+                      control={collectorRecyclerForm.control}
+                      name="contactPersonPhone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Contact Phone</FormLabel>
+                          <FormControl>
+                            <Input placeholder="+254-700123456" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={collectorRecyclerForm.control}
+                      name="contactPersonEmail"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Contact Email</FormLabel>
+                          <FormControl>
+                            <Input type="email" placeholder="contact@business.com" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
               )}
               
-              <div className="bg-secondary/5 rounded-lg p-4 mt-6">
-                <div className="flex items-start gap-3">
-                  <CheckCircle2 className="h-5 w-5 text-primary mt-0.5" />
-                  <div>
-                    <h4 className="font-medium text-secondary">Why this matters</h4>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Having certification information helps us verify that waste is being handled according to regulations. 
-                      It also builds trust with users who can see that their waste is being processed properly.
-                    </p>
+              {/* Service Details Section */}
+              <div className="border-b border-border pb-6">
+                <h3 className="text-lg font-semibold mb-4">Service Details</h3>
+                
+                <FormField
+                  control={collectorRecyclerForm.control}
+                  name="serviceLocation"
+                  render={({ field }) => (
+                    <FormItem className="mb-4">
+                      <FormLabel>Service Area/Location</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="e.g. Nyahururu, Laikipia County" 
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Specify the areas where you operate
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={collectorRecyclerForm.control}
+                  name="serviceType"
+                  render={({ field }) => (
+                    <FormItem className="mb-4">
+                      <FormLabel>Service Type</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select service type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="pickup">Pickup Only</SelectItem>
+                          <SelectItem value="drop_off">Drop-off Only</SelectItem>
+                          <SelectItem value="both">Both Pickup and Drop-off</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={collectorRecyclerForm.control}
+                  name="operatingHours"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Operating Hours</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="e.g. Mon-Fri: 8am-5pm, Sat: 9am-2pm" 
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              {/* Waste Specialization Section */}
+              <div className="border-b border-border pb-6">
+                <h3 className="text-lg font-semibold mb-4">Waste Specialization</h3>
+                
+                <FormField
+                  control={collectorRecyclerForm.control}
+                  name="wasteSpecialization"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>What types of waste do you handle?</FormLabel>
+                      <FormDescription className="mb-3">
+                        Select all that apply
+                      </FormDescription>
+                      <div className="grid grid-cols-2 gap-2">
+                        {Object.entries(WasteType).map(([key, value]) => (
+                          <FormItem 
+                            key={key} 
+                            className="flex items-start space-x-2 space-y-0 bg-secondary/5 p-3 rounded-md"
+                          >
+                            <FormControl>
+                              <Checkbox 
+                                checked={field.value?.includes(value)}
+                                onCheckedChange={(checked: boolean) => {
+                                  if (checked) {
+                                    field.onChange([...field.value, value]);
+                                  } else {
+                                    field.onChange(field.value?.filter((v: string) => v !== value));
+                                  }
+                                }}
+                              />
+                            </FormControl>
+                            <FormLabel className="font-normal cursor-pointer">{value}</FormLabel>
+                          </FormItem>
+                        ))}
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              {/* Certification Section */}
+              <div className="border-b border-border pb-6">
+                <h3 className="text-lg font-semibold mb-4">Certification Information</h3>
+                
+                <FormField
+                  control={collectorRecyclerForm.control}
+                  name="isCertified"
+                  render={({ field }) => (
+                    <FormItem className="space-y-3">
+                      <FormLabel>Are you certified by a regulatory body?</FormLabel>
+                      <FormControl>
+                        <RadioGroup
+                          onValueChange={field.onChange}
+                          defaultValue={field.value?.toString()}
+                          className="flex flex-col space-y-1"
+                        >
+                          <FormItem className="flex items-center space-x-3 space-y-0">
+                            <FormControl>
+                              <RadioGroupItem value="true" />
+                            </FormControl>
+                            <FormLabel className="font-normal">
+                              Yes, I have certification
+                            </FormLabel>
+                          </FormItem>
+                          <FormItem className="flex items-center space-x-3 space-y-0">
+                            <FormControl>
+                              <RadioGroupItem value="false" />
+                            </FormControl>
+                            <FormLabel className="font-normal">
+                              No, I don't have certification
+                            </FormLabel>
+                          </FormItem>
+                        </RadioGroup>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                {collectorRecyclerForm.watch("isCertified") === "true" && (
+                  <FormField
+                    control={collectorRecyclerForm.control}
+                    name="certificationDetails"
+                    render={({ field }) => (
+                      <FormItem className="mt-4">
+                        <FormLabel>Certification Details</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            placeholder="Please provide details about your certification, including the issuing body, certification number, and expiry date." 
+                            className="min-h-[100px]"
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+                
+                <div className="bg-secondary/5 rounded-lg p-4 mt-6">
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="h-5 w-5 text-primary mt-0.5" />
+                    <div>
+                      <h4 className="font-medium text-secondary">Why this matters</h4>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Having certification information helps us verify that waste is being handled according to regulations. 
+                        It also builds trust with users who can see that their waste is being processed properly.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
