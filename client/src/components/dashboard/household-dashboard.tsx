@@ -244,7 +244,7 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
       </div>
       
       <Tabs defaultValue="recycling" className="mt-6">
-        <TabsList className="grid w-full grid-cols-3 bg-muted/30 p-1">
+        <TabsList className="grid w-full grid-cols-4 bg-muted/30 p-1">
           <TabsTrigger value="recycling" className="data-[state=active]:bg-background data-[state=active]:shadow-sm" onClick={() => scrollToElement('recycling-tab-content', 80)}>
             <Recycle className="h-4 w-4 mr-2" />
             Recycling
@@ -256,6 +256,10 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
           <TabsTrigger value="achievements" className="data-[state=active]:bg-background data-[state=active]:shadow-sm" onClick={() => scrollToElement('achievements-tab-content', 80)}>
             <Award className="h-4 w-4 mr-2" />
             Achievements
+          </TabsTrigger>
+          <TabsTrigger value="activities" className="data-[state=active]:bg-background data-[state=active]:shadow-sm" onClick={() => scrollToElement('activities-tab-content', 80)}>
+            <Star className="h-4 w-4 mr-2" />
+            Activities
           </TabsTrigger>
         </TabsList>
         
@@ -708,6 +712,81 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+        
+        {/* Activities Tab */}
+        <TabsContent value="activities" className="space-y-6 mt-6" id="activities-tab-content">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="md:col-span-1">
+              <RecentActivity />
+            </div>
+            
+            <Card className="border-0 shadow-md overflow-hidden md:col-span-1">
+              <div className="h-2 bg-gradient-to-r from-orange-400 to-red-500"></div>
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center text-lg">
+                  <Star className="mr-2 h-5 w-5 text-orange-500" />
+                  Your Eco-Journey
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="relative pl-6 border-l border-gray-200 dark:border-gray-700 space-y-6 py-2">
+                  {/* Journey items */}
+                  <div className="relative">
+                    <div className="absolute -left-9 mt-1.5 h-4 w-4 rounded-full border-2 border-green-500 bg-white"></div>
+                    <div className="mb-1 text-sm font-medium text-green-600">
+                      Recycling Champion
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      You've maintained a recycling rate above 60% for three consecutive months!
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      April 20, 2025
+                    </p>
+                  </div>
+                  
+                  <div className="relative">
+                    <div className="absolute -left-9 mt-1.5 h-4 w-4 rounded-full border-2 border-blue-500 bg-white"></div>
+                    <div className="mb-1 text-sm font-medium text-blue-600">
+                      First Electronics Recycling
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      You scheduled your first electronics waste collection, preventing harmful materials from entering landfills.
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      March 15, 2025
+                    </p>
+                  </div>
+                  
+                  <div className="relative">
+                    <div className="absolute -left-9 mt-1.5 h-4 w-4 rounded-full border-2 border-amber-500 bg-white"></div>
+                    <div className="mb-1 text-sm font-medium text-amber-600">
+                      10th Collection Milestone
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      You've completed your 10th waste collection with PipaPal. Your consistency is making a difference!
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      February 28, 2025
+                    </p>
+                  </div>
+                  
+                  <div className="relative">
+                    <div className="absolute -left-9 mt-1.5 h-4 w-4 rounded-full border-2 border-green-500 bg-white"></div>
+                    <div className="mb-1 text-sm font-medium text-green-600">
+                      Joined PipaPal
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      You started your sustainability journey with PipaPal. Welcome to the community!
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      January 5, 2025
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
       

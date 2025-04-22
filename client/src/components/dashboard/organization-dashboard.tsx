@@ -332,10 +332,11 @@ export default function OrganizationDashboard({ user }: OrganizationDashboardPro
       </div>
       
       <Tabs defaultValue="trends">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="trends">Trends</TabsTrigger>
           <TabsTrigger value="waste">Waste Analysis</TabsTrigger>
           <TabsTrigger value="reports">CSR Reports</TabsTrigger>
+          <TabsTrigger value="activities">Activities</TabsTrigger>
         </TabsList>
         
         {/* Trends Tab */}
@@ -1634,6 +1635,81 @@ export default function OrganizationDashboard({ user }: OrganizationDashboardPro
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+        
+        {/* Activities Tab */}
+        <TabsContent value="activities" className="space-y-6 pt-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="md:col-span-1">
+              <RecentActivity />
+            </div>
+            
+            <Card className="border-0 shadow-md overflow-hidden md:col-span-1">
+              <div className="h-2 bg-gradient-to-r from-emerald-400 to-green-500"></div>
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center text-lg">
+                  <Trophy className="mr-2 h-5 w-5 text-emerald-500" />
+                  Sustainability Milestones
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="relative pl-6 border-l border-gray-200 dark:border-gray-700 space-y-6 py-2">
+                  {/* Milestone items */}
+                  <div className="relative">
+                    <div className="absolute -left-9 mt-1.5 h-4 w-4 rounded-full border-2 border-emerald-500 bg-white"></div>
+                    <div className="mb-1 text-sm font-medium text-emerald-600">
+                      10% Emissions Reduction
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Your organization achieved a 10% reduction in carbon emissions through improved waste management practices.
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      April 15, 2025
+                    </p>
+                  </div>
+                  
+                  <div className="relative">
+                    <div className="absolute -left-9 mt-1.5 h-4 w-4 rounded-full border-2 border-blue-500 bg-white"></div>
+                    <div className="mb-1 text-sm font-medium text-blue-600">
+                      500 kg Waste Diverted from Landfill
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Your organization has diverted over 500 kg of waste from landfills through recycling initiatives.
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      March 22, 2025
+                    </p>
+                  </div>
+                  
+                  <div className="relative">
+                    <div className="absolute -left-9 mt-1.5 h-4 w-4 rounded-full border-2 border-amber-500 bg-white"></div>
+                    <div className="mb-1 text-sm font-medium text-amber-600">
+                      50% Recycling Rate Achieved
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Your organization reached a 50% recycling rate for all waste generated at your facilities.
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      February 8, 2025
+                    </p>
+                  </div>
+                  
+                  <div className="relative">
+                    <div className="absolute -left-9 mt-1.5 h-4 w-4 rounded-full border-2 border-emerald-500 bg-white"></div>
+                    <div className="mb-1 text-sm font-medium text-emerald-600">
+                      Sustainability Program Launch
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Your organization officially launched its corporate sustainability program with PipaPal.
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      January 10, 2025
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
       
