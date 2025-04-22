@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { apiRequest, queryClient } from '@/lib/queryClient';
-import { Calendar, CheckCircle, Clock, Filter, MapPin, Search, Truck, Package, AlertTriangle, Trash2, ClipboardCheck, ArrowRight, CalendarClock, CheckCheck, X, Map, XCircle, Activity, Scale, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Loader2, MoreHorizontal, Route } from 'lucide-react';
+import { Calendar, CheckCircle, Clock, Filter, MapPin, Search, Truck, Package, AlertTriangle, Trash2, ClipboardCheck, ArrowRight, CalendarClock, CheckCheck, X, Map, XCircle, Activity, Scale, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Loader2, MoreHorizontal, Route, CreditCard } from 'lucide-react';
 import { formatNumber } from '@/lib/utils';
 import { wasteTypeConfig } from '@/lib/types';
 import { format } from 'date-fns';
@@ -156,6 +156,12 @@ export default function CollectorCollectionsPage() {
           break;
         case 'location':
           comparison = (a.address || '').localeCompare(b.address || '');
+          break;
+        case 'value':
+          // Calculate waste values for comparison
+          const valueA = calculateWasteValue(a.wasteType, a.wasteAmount || 10);
+          const valueB = calculateWasteValue(b.wasteType, b.wasteAmount || 10);
+          comparison = valueA - valueB;
           break;
         default:
           comparison = new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime();
@@ -857,6 +863,17 @@ export default function CollectorCollectionsPage() {
                 </div>
               )}
               
+              {/* Collection Value */}
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">Value</Label>
+                <div className="col-span-3 flex items-center">
+                  <CreditCard className="mr-2 h-4 w-4 text-green-500" />
+                  <Badge variant="outline" className="bg-green-50 text-green-800 border-green-200 font-medium">
+                    {formatNumber(calculateWasteValue(selectedCollection.wasteType, selectedCollection.wasteAmount || 10))} KSh
+                  </Badge>
+                </div>
+              </div>
+              
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label className="text-right">Address</Label>
                 <div className="col-span-3">
@@ -938,14 +955,28 @@ export default function CollectorCollectionsPage() {
                     <Label htmlFor="wasteAmount" className="text-right">
                       Waste Amount (kg)
                     </Label>
-                    <Input
-                      id="wasteAmount"
-                      className="col-span-3"
-                      type="number"
-                      value={wasteAmount}
-                      onChange={(e) => setWasteAmount(e.target.value)}
-                      placeholder="Enter amount in kg"
-                    />
+                    <div className="col-span-3">
+                      <Input
+                        id="wasteAmount"
+                        className="w-full"
+                        type="number"
+                        value={wasteAmount}
+                        onChange={(e) => setWasteAmount(e.target.value)}
+                        placeholder="Enter amount in kg"
+                      />
+                      {wasteAmount && (
+                        <div className="mt-2 flex items-center text-sm">
+                          <CreditCard className="h-4 w-4 text-green-500 mr-2" />
+                          <span className="text-muted-foreground">Calculated value: </span>
+                          <Badge className="ml-2 bg-green-50 text-green-800 border-green-200">
+                            {formatNumber(calculateWasteValue(selectedCollection.wasteType, parseFloat(wasteAmount)))} KSh
+                          </Badge>
+                          <span className="ml-2 text-xs text-muted-foreground">
+                            ({formatNumber(calculateWasteValue(selectedCollection.wasteType, 1))} KSh per kg)
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </>
               )}
