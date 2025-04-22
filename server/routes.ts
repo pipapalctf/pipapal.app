@@ -50,6 +50,12 @@ const verifyOtpSchema = z.object({
   userId: z.number(),
 });
 
+// Schema for registration OTP verification
+const verifyRegistrationOtpSchema = z.object({
+  phoneNumber: z.string().min(10),
+  otp: z.string().length(6),
+});
+
 // Simple middleware to require authentication
 const requireAuthentication = (req: Request, res: Response, next: NextFunction) => {
   if (!req.isAuthenticated || !req.isAuthenticated() || !req.user) {
@@ -82,6 +88,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  app.post('/api/otp/verify-registration', async (req, res) => {
+    try {
+      const { phoneNumber, otp } = verifyRegistrationOtpSchema.parse(req.body);
+      
+      const isValid = verifyOTP(phoneNumber, otp);
+      
+      if (isValid) {
+        res.status(200).json({ 
+          success: true, 
+          message: 'Phone number verified successfully'
+        });
+      } else {
+        res.status(400).json({ 
+          success: false, 
+          error: 'Invalid or expired verification code' 
+        });
+      }
+    } catch (error: any) {
+      console.error('Error verifying OTP for registration:', error);
+      res.status(500).json({ 
+        error: 'Failed to verify phone number',
+        details: error.message 
+      });
+    }
+  });
+
   app.post('/api/otp/verify', requireAuthentication, async (req, res) => {
     try {
       const { phoneNumber, otp, userId } = verifyOtpSchema.parse(req.body);

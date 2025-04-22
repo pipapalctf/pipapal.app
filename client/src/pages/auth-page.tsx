@@ -184,9 +184,10 @@ export default function AuthPage() {
       // If OTP is valid, submit registration
       const { confirmPassword, ...userData } = userFormData;
       
+      // Set phoneVerified to true since we've verified the phone
       registerMutation.mutate({
-        ...userData, // This includes username, password, email, etc.
-        // We don't need to pass confirmPassword to the API
+        ...userData,
+        phoneVerified: true
       }, {
         onSuccess: () => {
           setRegistrationStep("complete");
