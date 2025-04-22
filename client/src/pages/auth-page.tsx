@@ -786,91 +786,103 @@ export default function AuthPage() {
                             </div>
                           ) : (
                             <>
-                              <div className="text-center mb-6">
-                                <p className="text-sm text-gray-600 mb-1">
-                                  We've sent a verification code to
-                                </p>
-                                <p className="font-medium text-secondary">
-                                  {verificationMethod === 'phone' ? phoneNumber : email}
-                                </p>
-                              </div>
-                              
-                              <Form {...otpForm}>
-                                <form onSubmit={otpForm.handleSubmit(verifyCodeAndRegister)} className="space-y-6">
-                                  <FormField
-                                    control={otpForm.control}
-                                    name="otp"
-                                    render={({ field }) => (
-                                      <FormItem>
-                                        <FormLabel>Verification Code</FormLabel>
-                                        <FormControl>
-                                          <Input 
-                                            placeholder="Enter 6-digit code" 
-                                            maxLength={6}
-                                            className="text-center text-lg"
-                                            {...field} 
-                                          />
-                                        </FormControl>
-                                        {devOtpCode && (
-                                          <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-md">
-                                            <p className="text-yellow-800 font-medium text-xs">
-                                              Development Mode: Use code <span className="font-bold">{devOtpCode}</span>
-                                            </p>
-                                          </div>
-                                        )}
-                                        <FormMessage />
-                                      </FormItem>
-                                    )}
-                                  />
+                              {/* Phone Verification UI */}
+                              {verificationMethod === 'phone' && (
+                                <>
+                                  <div className="text-center mb-6">
+                                    <p className="text-sm text-gray-600 mb-1">
+                                      We've sent a verification code to
+                                    </p>
+                                    <p className="font-medium text-secondary">
+                                      {phoneNumber}
+                                    </p>
+                                  </div>
                                   
-                                  <div className="flex justify-between gap-4">
+                                  <Form {...otpForm}>
+                                    <form onSubmit={otpForm.handleSubmit(verifyCodeAndRegister)} className="space-y-6">
+                                      <FormField
+                                        control={otpForm.control}
+                                        name="otp"
+                                        render={({ field }) => (
+                                          <FormItem>
+                                            <FormLabel>Verification Code</FormLabel>
+                                            <FormControl>
+                                              <Input 
+                                                placeholder="Enter 6-digit code" 
+                                                maxLength={6}
+                                                className="text-center text-lg"
+                                                {...field} 
+                                              />
+                                            </FormControl>
+                                            {devOtpCode && (
+                                              <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-md">
+                                                <p className="text-yellow-800 font-medium text-xs">
+                                                  Development Mode: Use code <span className="font-bold">{devOtpCode}</span>
+                                                </p>
+                                              </div>
+                                            )}
+                                            <FormMessage />
+                                          </FormItem>
+                                        )}
+                                      />
+                                      
+                                      <div className="flex justify-between gap-4">
+                                        <Button 
+                                          type="button" 
+                                          variant="outline"
+                                          className="flex-1"
+                                          onClick={() => {
+                                            setOtpSent(false);
+                                            setDevOtpCode(null);
+                                          }}
+                                          disabled={isLoadingOtp}
+                                        >
+                                          <ArrowLeft className="mr-2 h-4 w-4" />
+                                          Back
+                                        </Button>
+                                        <Button 
+                                          type="submit" 
+                                          className="flex-1"
+                                          disabled={isLoadingOtp}
+                                        >
+                                          {isLoadingOtp ? (
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                          ) : null}
+                                          Verify & Create Account
+                                        </Button>
+                                      </div>
+                                    </form>
+                                  </Form>
+                                  
+                                  <div className="text-center mt-4">
+                                    <p className="text-sm text-gray-600 mb-2">
+                                      Didn't receive the code?
+                                    </p>
                                     <Button 
-                                      type="button" 
-                                      variant="outline"
-                                      className="flex-1"
-                                      onClick={() => {
-                                        setOtpSent(false);
-                                        setDevOtpCode(null);
-                                      }}
+                                      variant="link" 
+                                      size="sm" 
+                                      className="p-0 h-auto"
+                                      onClick={() => sendSmsVerificationCode(phoneNumber)}
                                       disabled={isLoadingOtp}
                                     >
-                                      <ArrowLeft className="mr-2 h-4 w-4" />
-                                      Back
-                                    </Button>
-                                    <Button 
-                                      type="submit" 
-                                      className="flex-1"
-                                      disabled={isLoadingOtp}
-                                    >
-                                      {isLoadingOtp ? (
-                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                      ) : null}
-                                      Verify & Create Account
+                                      Resend Code
                                     </Button>
                                   </div>
-                                </form>
-                              </Form>
+                                </>
+                              )}
                               
-                              <div className="text-center mt-4">
-                                <p className="text-sm text-gray-600 mb-2">
-                                  Didn't receive the code?
-                                </p>
-                                <Button 
-                                  variant="link" 
-                                  size="sm" 
-                                  className="p-0 h-auto"
-                                  onClick={() => {
-                                    if (verificationMethod === 'phone') {
-                                      sendSmsVerificationCode(phoneNumber);
-                                    } else {
-                                      sendEmailVerificationCode(email);
-                                    }
+                              {/* Email Verification UI using the new EmailVerification component */}
+                              {verificationMethod === 'email' && (
+                                <EmailVerification
+                                  email={email}
+                                  isLoading={isLoadingOtp}
+                                  onVerify={verifyCodeAndRegister}
+                                  onResend={async () => {
+                                    await sendEmailVerificationCode(email);
                                   }}
-                                  disabled={isLoadingOtp}
-                                >
-                                  Resend Code
-                                </Button>
-                              </div>
+                                  devOtpCode={devOtpCode}
+                                />
+                              )}
                             </>
                           )}
                         </div>
