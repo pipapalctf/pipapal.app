@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ChatMessage } from "@shared/schema";
+import { ChatMessage, UserRole } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
 import { apiRequest } from "@/lib/queryClient";
 import { useWebSocketContext } from "@/hooks/use-websocket";
@@ -27,8 +27,19 @@ import {
   Loader2, 
   MessageSquare, 
   ChevronLeft, 
-  Menu 
+  Menu, 
+  UserPlus,
+  X
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+} from "@/components/ui/dialog";
 
 type Conversation = {
   id: number;
@@ -39,6 +50,15 @@ type Conversation = {
   unreadCount: number;
 };
 
+type AvailableUser = {
+  id: number;
+  username: string;
+  fullName: string;
+  role: string;
+  phone: string | null;
+  businessName: string | null;
+};
+
 const ChatPage: React.FC = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -46,6 +66,7 @@ const ChatPage: React.FC = () => {
   const chatEndRef = useRef<HTMLDivElement>(null);
   const [selectedUser, setSelectedUser] = useState<number | null>(null);
   const [message, setMessage] = useState("");
+  const [newChatOpen, setNewChatOpen] = useState(false);
   const { socket, connected } = useWebSocketContext();
 
   // Fetch conversations
@@ -58,6 +79,13 @@ const ChatPage: React.FC = () => {
   const { data: messages, isLoading: messagesLoading } = useQuery<ChatMessage[]>({
     queryKey: [`/api/chat/messages/${selectedUser}`],
     enabled: !!selectedUser,
+    throwOnError: true,
+  });
+  
+  // Fetch available users for new chats (only when dialog is open)
+  const { data: availableUsers, isLoading: availableUsersLoading } = useQuery<AvailableUser[]>({
+    queryKey: ["/api/chat/available-users"],
+    enabled: newChatOpen,
     throwOnError: true,
   });
 
@@ -208,10 +236,72 @@ const ChatPage: React.FC = () => {
   const handleBackToList = () => {
     setSelectedUser(null);
   }
+  
+  // Function to start a new chat with a user
+  const handleStartChat = (userId: number) => {
+    setSelectedUser(userId);
+    setNewChatOpen(false);
+    queryClient.invalidateQueries({ queryKey: ["/api/chat/conversations"] });
+  }
 
   return (
     <div className="container mx-auto py-6 px-4 md:px-6">
       <h1 className="text-3xl font-bold mb-6">Messages</h1>
+      
+      {/* New Chat Dialog */}
+      <Dialog open={newChatOpen} onOpenChange={setNewChatOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Start New Chat</DialogTitle>
+            <DialogDescription>
+              Select a user to start a new conversation
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            {availableUsersLoading ? (
+              <div className="flex items-center justify-center h-20">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : availableUsers?.length === 0 ? (
+              <div className="text-center p-4 text-muted-foreground">
+                <p>No users available to chat with based on your role.</p>
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
+                {availableUsers?.map((user) => (
+                  <div
+                    key={user.id}
+                    onClick={() => handleStartChat(user.id)}
+                    className="flex items-center gap-3 p-3 rounded-md cursor-pointer transition-colors hover:bg-accent border border-border"
+                  >
+                    <Avatar className="h-10 w-10 border border-muted">
+                      <AvatarFallback className="bg-primary/10 text-primary font-medium">
+                        {getInitials(user.fullName || user.username)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium">
+                        {user.fullName || user.username}
+                        {user.businessName && <span className="ml-1 text-muted-foreground">({user.businessName})</span>}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {getRoleDisplay(user.role)}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          
+          <div className="flex justify-end">
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Desktop layout */}
       <div className="hidden md:block">
@@ -219,11 +309,21 @@ const ChatPage: React.FC = () => {
           <div className="grid grid-cols-3 min-h-[calc(100vh-180px)]">
             {/* Conversations Panel - Desktop */}
             <div className="col-span-1 border-r border-border h-full flex flex-col">
-              <CardHeader className="px-4 py-3 border-b">
-                <CardTitle className="text-lg font-bold">Conversations</CardTitle>
-                <CardDescription className="text-sm text-muted-foreground">
-                  Chat with waste collectors, recyclers, and other users
-                </CardDescription>
+              <CardHeader className="px-4 py-3 border-b flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg font-bold">Conversations</CardTitle>
+                  <CardDescription className="text-sm text-muted-foreground">
+                    Chat with waste collectors, recyclers, and other users
+                  </CardDescription>
+                </div>
+                <Button 
+                  onClick={() => setNewChatOpen(true)} 
+                  size="sm" 
+                  className="h-8 px-2"
+                >
+                  <UserPlus className="h-4 w-4 mr-1" />
+                  New Chat
+                </Button>
               </CardHeader>
               <ScrollArea className="flex-1">
                 {conversationsLoading ? (
@@ -239,6 +339,14 @@ const ChatPage: React.FC = () => {
                     <p className="text-sm text-muted-foreground">
                       Your chat conversations will appear here
                     </p>
+                    <Button 
+                      onClick={() => setNewChatOpen(true)} 
+                      className="mt-4"
+                      variant="outline"
+                    >
+                      <UserPlus className="h-4 w-4 mr-2" />
+                      Start a new conversation
+                    </Button>
                   </div>
                 ) : (
                   <div className="space-y-1 p-2">

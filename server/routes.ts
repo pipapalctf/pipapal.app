@@ -1243,6 +1243,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   );
   
+  // Get available users to start new chats with
+  app.get("/api/chat/available-users", 
+    requireAuthentication,
+    async (req, res) => {
+      if (!req.user) return res.sendStatus(401);
+      
+      try {
+        const currentUserRole = req.user.role;
+        const allUsers = await storage.getAllUsers();
+        
+        // Filter users based on the current user's role
+        let availableUsers = allUsers.filter(user => {
+          // Don't include the current user
+          if (user.id === req.user!.id) return false;
+          
+          // Collectors can chat with all users
+          if (currentUserRole === UserRole.COLLECTOR) return true;
+          
+          // Recyclers can chat with collectors
+          if (currentUserRole === UserRole.RECYCLER) {
+            return user.role === UserRole.COLLECTOR;
+          }
+          
+          // Households and organizations can chat with collectors
+          if (currentUserRole === UserRole.HOUSEHOLD || currentUserRole === UserRole.ORGANIZATION) {
+            return user.role === UserRole.COLLECTOR;
+          }
+          
+          return false;
+        });
+        
+        // Remove sensitive information
+        const sanitizedUsers = availableUsers.map(user => ({
+          id: user.id,
+          username: user.username,
+          fullName: user.fullName,
+          role: user.role,
+          phone: user.phone || null,
+          businessName: user.businessName || null
+        }));
+        
+        res.json(sanitizedUsers);
+      } catch (error) {
+        console.error("Error fetching available users:", error);
+        res.status(500).json({ error: "Failed to load available users" });
+      }
+    }
+  );
+  
   // Get chat messages between current user and another user
   app.get("/api/chat/messages/:userId", 
     requireAuthentication,
