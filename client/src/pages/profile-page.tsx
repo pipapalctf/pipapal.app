@@ -20,6 +20,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 
 // Layout Components
 import Navbar from "@/components/shared/navbar";
@@ -309,7 +310,7 @@ export default function ProfilePage() {
         </div>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full max-w-3xl mx-auto">
-          <TabsList className={`grid w-full ${isBusinessUser ? 'md:grid-cols-3 grid-cols-1' : 'md:grid-cols-2 grid-cols-1'} mb-8 gap-2`}>
+          <TabsList className={`grid w-full ${isBusinessUser ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-2 md:grid-cols-3'} mb-8 gap-2`}>
             <TabsTrigger value="profile" className="flex items-center justify-center">
               <UserIcon className="mr-2 h-4 w-4" />
               <span className="sm:inline">Profile Information</span>
@@ -326,6 +327,11 @@ export default function ProfilePage() {
               <KeyIcon className="mr-2 h-4 w-4" />
               <span className="sm:inline">Security</span>
               <span className="sm:hidden">Security</span>
+            </TabsTrigger>
+            <TabsTrigger value="preferences" className="flex items-center justify-center">
+              <Settings className="mr-2 h-4 w-4" />
+              <span className="sm:inline">Preferences</span>
+              <span className="sm:hidden">Prefs</span>
             </TabsTrigger>
           </TabsList>
           
@@ -851,6 +857,174 @@ export default function ProfilePage() {
                       Update Password
                     </>
                   )}
+                </Button>
+              </CardFooter>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="preferences">
+            <Card>
+              <CardHeader>
+                <CardTitle>App Preferences</CardTitle>
+                <CardDescription>
+                  Customize your app experience and notification settings
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Form {...preferencesForm}>
+                  <form id="preferences-form" onSubmit={preferencesForm.handleSubmit(onPreferencesSubmit)} className="space-y-8">
+                    {/* Theme Section */}
+                    <div className="border-b border-border pb-6">
+                      <h3 className="text-lg font-semibold mb-4">Appearance</h3>
+                      
+                      <FormField
+                        control={preferencesForm.control}
+                        name="theme"
+                        render={({ field }) => (
+                          <FormItem className="mb-4">
+                            <FormLabel>Theme Preference</FormLabel>
+                            <FormControl>
+                              <RadioGroup
+                                onValueChange={field.onChange}
+                                value={field.value}
+                                className="flex flex-col space-y-2"
+                              >
+                                <FormItem className="flex items-center space-x-3 space-y-0 rounded-md border p-3">
+                                  <FormControl>
+                                    <RadioGroupItem value="light" />
+                                  </FormControl>
+                                  <div className="flex items-center space-x-2">
+                                    <SunIcon className="h-5 w-5 text-amber-500" />
+                                    <FormLabel className="font-normal">
+                                      Light Mode
+                                    </FormLabel>
+                                  </div>
+                                </FormItem>
+                                <FormItem className="flex items-center space-x-3 space-y-0 rounded-md border p-3">
+                                  <FormControl>
+                                    <RadioGroupItem value="dark" />
+                                  </FormControl>
+                                  <div className="flex items-center space-x-2">
+                                    <MoonIcon className="h-5 w-5 text-indigo-500" />
+                                    <FormLabel className="font-normal">
+                                      Dark Mode
+                                    </FormLabel>
+                                  </div>
+                                </FormItem>
+                                <FormItem className="flex items-center space-x-3 space-y-0 rounded-md border p-3">
+                                  <FormControl>
+                                    <RadioGroupItem value="system" />
+                                  </FormControl>
+                                  <div className="flex items-center space-x-2">
+                                    <LaptopIcon className="h-5 w-5 text-gray-500" />
+                                    <FormLabel className="font-normal">
+                                      System Default
+                                    </FormLabel>
+                                  </div>
+                                </FormItem>
+                              </RadioGroup>
+                            </FormControl>
+                            <FormDescription>
+                              Choose how PipaPal appears on your device
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    
+                    {/* Notifications Section */}
+                    <div className="border-b border-border pb-6">
+                      <h3 className="text-lg font-semibold mb-4">Notifications</h3>
+                      
+                      <FormField
+                        control={preferencesForm.control}
+                        name="notificationsEnabled"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center justify-between rounded-md border p-4 mb-4">
+                            <div className="space-y-0.5">
+                              <div className="flex items-center">
+                                <BellIcon className="h-5 w-5 mr-2 text-primary" />
+                                <FormLabel className="font-medium">Push Notifications</FormLabel>
+                              </div>
+                              <FormDescription>
+                                Receive in-app notifications about pickups and messages
+                              </FormDescription>
+                            </div>
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={preferencesForm.control}
+                        name="emailNotifications"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center justify-between rounded-md border p-4">
+                            <div className="space-y-0.5">
+                              <div className="flex items-center">
+                                <AtSign className="h-5 w-5 mr-2 text-primary" />
+                                <FormLabel className="font-medium">Email Notifications</FormLabel>
+                              </div>
+                              <FormDescription>
+                                Receive email updates about your collections and account
+                              </FormDescription>
+                            </div>
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    
+                    {/* Language Section */}
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4">Language</h3>
+                      
+                      <FormField
+                        control={preferencesForm.control}
+                        name="language"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Display Language</FormLabel>
+                            <Select
+                              onValueChange={field.onChange}
+                              defaultValue={field.value}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select a language" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="en">English</SelectItem>
+                                <SelectItem value="sw">Swahili</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormDescription>
+                              Choose your preferred language for the app interface
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </form>
+                </Form>
+              </CardContent>
+              <CardFooter className="flex justify-end border-t p-6">
+                <Button form="preferences-form" type="submit">
+                  <Check className="mr-2 h-4 w-4" />
+                  Save Preferences
                 </Button>
               </CardFooter>
             </Card>
