@@ -27,6 +27,8 @@ import { useLocation } from "wouter";
 import { Loader2 } from "lucide-react";
 import Logo from "@/components/logo";
 import { UserRole } from "@shared/schema";
+import { FcGoogle } from "react-icons/fc";
+import { Separator } from "@/components/ui/separator";
 
 // Login form schema
 const loginFormSchema = z.object({
