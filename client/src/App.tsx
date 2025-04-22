@@ -17,7 +17,9 @@ import RecyclerMaterialsPage from "@/pages/recycler-materials-page";
 import AboutPage from "@/pages/about-page";
 import MissionPage from "@/pages/mission-page";
 import OnboardingPage from "@/pages/onboarding-page";
+import ChatPage from "@/pages/chat-page";
 import { AuthProvider } from "@/hooks/use-auth";
+import { WebSocketProvider } from "@/hooks/use-websocket";
 import { ProtectedRoute } from "@/lib/protected-route";
 import { ThemeProvider } from "next-themes";
 import { NotificationsProvider } from "@/hooks/notifications-provider";
@@ -31,6 +33,7 @@ function Router() {
       <ProtectedRoute path="/schedule-pickup" component={SchedulePickupPage} />
       <ProtectedRoute path="/ecotips" component={EcoTipsPage} />
       <ProtectedRoute path="/impact" component={ImpactPage} />
+      <ProtectedRoute path="/chat" component={ChatPage} />
       <ProtectedRoute path="/collections/:id" component={CollectionDetailsPage} />
       <ProtectedRoute path="/collections" component={CollectorCollectionsPage} roleCheck={UserRole.COLLECTOR} />
       <ProtectedRoute path="/recycler/materials" component={RecyclerMaterialsPage} roleCheck={UserRole.RECYCLER} />
@@ -50,12 +53,14 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="light">
         <AuthProvider>
-          <NotificationsProvider>
-            <TooltipProvider>
-              <Toaster />
-              <Router />
-            </TooltipProvider>
-          </NotificationsProvider>
+          <WebSocketProvider>
+            <NotificationsProvider>
+              <TooltipProvider>
+                <Toaster />
+                <Router />
+              </TooltipProvider>
+            </NotificationsProvider>
+          </WebSocketProvider>
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>

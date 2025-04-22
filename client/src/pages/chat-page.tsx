@@ -56,12 +56,6 @@ const ChatPage: React.FC = () => {
     queryKey: ["/api/chat/messages", selectedUser],
     enabled: !!selectedUser,
     throwOnError: true,
-    onSuccess: () => {
-      // Scroll to bottom when messages load
-      setTimeout(() => {
-        scrollToBottom();
-      }, 100);
-    }
   });
 
   // Mutation to send a message via REST API
@@ -84,6 +78,15 @@ const ChatPage: React.FC = () => {
       });
     },
   });
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    if (messages && messages.length > 0) {
+      setTimeout(() => {
+        scrollToBottom();
+      }, 100);
+    }
+  }, [messages]);
 
   // Socket event handler for incoming messages
   useEffect(() => {
@@ -328,10 +331,12 @@ const ChatPage: React.FC = () => {
                                       : "text-muted-foreground"
                                   }`}
                                 >
-                                  {new Date(msg.timestamp).toLocaleTimeString([], {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  })}
+                                  {msg.timestamp 
+                                    ? new Date(msg.timestamp).toLocaleTimeString([], {
+                                        hour: "2-digit",
+                                        minute: "2-digit",
+                                      }) 
+                                    : "Just now"}
                                 </p>
                               </div>
                             </div>
