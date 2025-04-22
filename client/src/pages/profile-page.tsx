@@ -22,7 +22,8 @@ import Footer from "@/components/shared/footer";
 import MobileNavigation from "@/components/shared/mobile-navigation";
 
 // Icons
-import { Check, Loader2, UserIcon, KeyIcon, MapPinIcon, PhoneIcon, AtSign, AlertCircle } from "lucide-react";
+import { Check, Loader2, UserIcon, KeyIcon, MapPinIcon, PhoneIcon, AtSign, AlertCircle, 
+  BriefcaseIcon, CheckCircleIcon, Building2Icon, Clock4Icon, MapIcon } from "lucide-react";
 
 // Profile form schema
 const profileFormSchema = z.object({
@@ -30,6 +31,22 @@ const profileFormSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
   address: z.string().optional(),
   phone: z.string().optional(),
+});
+
+// Business details form schema
+const businessFormSchema = z.object({
+  businessName: z.string().optional(),
+  businessType: z.enum(["individual", "organization"]).optional(),
+  serviceLocation: z.string().optional(),
+  serviceType: z.enum(["pickup", "drop_off", "both"]).optional(),
+  operatingHours: z.string().optional(),
+  wasteSpecialization: z.array(z.string()).optional(),
+  isCertified: z.boolean().optional(),
+  certificationDetails: z.string().optional(),
+  contactPersonName: z.string().optional(),
+  contactPersonEmail: z.string().email().optional(),
+  contactPersonPhone: z.string().optional(),
+  contactPersonPosition: z.string().optional(),
 });
 
 // Password form schema
@@ -43,12 +60,16 @@ const passwordFormSchema = z.object({
 });
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
+type BusinessFormValues = z.infer<typeof businessFormSchema>;
 type PasswordFormValues = z.infer<typeof passwordFormSchema>;
 
 export default function ProfilePage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("profile");
+  
+  // Check if user is a collector or recycler
+  const isBusinessUser = user?.role === 'collector' || user?.role === 'recycler';
 
   // Profile form
   const profileForm = useForm<ProfileFormValues>({
@@ -58,6 +79,25 @@ export default function ProfilePage() {
       email: user?.email || "",
       address: user?.address || "",
       phone: user?.phone || "",
+    },
+  });
+  
+  // Business details form (for collectors and recyclers)
+  const businessForm = useForm<BusinessFormValues>({
+    resolver: zodResolver(businessFormSchema),
+    defaultValues: {
+      businessType: (user?.businessType as "individual" | "organization") || "individual",
+      businessName: user?.businessName || "",
+      serviceLocation: user?.serviceLocation || "",
+      serviceType: (user?.serviceType as "pickup" | "drop_off" | "both") || "pickup",
+      operatingHours: user?.operatingHours || "",
+      wasteSpecialization: user?.wasteSpecialization || [],
+      isCertified: user?.isCertified || false,
+      certificationDetails: user?.certificationDetails || "",
+      contactPersonName: user?.contactPersonName || "",
+      contactPersonEmail: user?.contactPersonEmail || "",
+      contactPersonPhone: user?.contactPersonPhone || "",
+      contactPersonPosition: user?.contactPersonPosition || "",
     },
   });
 
@@ -115,6 +155,28 @@ export default function ProfilePage() {
       });
     },
   });
+  
+  // Update business information mutation
+  const updateBusinessMutation = useMutation({
+    mutationFn: async (data: BusinessFormValues) => {
+      const res = await apiRequest("PATCH", "/api/user", data);
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Business information updated",
+        description: "Your business details have been updated successfully.",
+        variant: "default",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error updating business information",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   // Submit profile form
   function onProfileSubmit(data: ProfileFormValues) {
@@ -127,6 +189,11 @@ export default function ProfilePage() {
       currentPassword: data.currentPassword,
       newPassword: data.newPassword,
     });
+  }
+  
+  // Submit business form
+  function onBusinessSubmit(data: BusinessFormValues) {
+    updateBusinessMutation.mutate(data);
   }
 
   if (!user) {
@@ -152,11 +219,17 @@ export default function ProfilePage() {
         </div>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full max-w-3xl mx-auto">
-          <TabsList className="grid w-full grid-cols-2 mb-8">
+          <TabsList className={`grid w-full ${isBusinessUser ? 'grid-cols-3' : 'grid-cols-2'} mb-8`}>
             <TabsTrigger value="profile" className="flex items-center">
               <UserIcon className="mr-2 h-4 w-4" />
               Profile Information
             </TabsTrigger>
+            {isBusinessUser && (
+              <TabsTrigger value="business" className="flex items-center">
+                <BriefcaseIcon className="mr-2 h-4 w-4" />
+                Business Details
+              </TabsTrigger>
+            )}
             <TabsTrigger value="security" className="flex items-center">
               <KeyIcon className="mr-2 h-4 w-4" />
               Security
