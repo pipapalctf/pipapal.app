@@ -28,6 +28,7 @@ import { Loader2, ArrowLeft, ArrowRight, CheckCircle } from "lucide-react";
 import Logo from "@/components/logo";
 import { UserRole } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 // Login form schema
 const loginFormSchema = z.object({
@@ -184,8 +185,8 @@ export default function AuthPage() {
       const { confirmPassword, ...userData } = userFormData;
       
       registerMutation.mutate({
-        ...userData,
-        phoneVerified: true,
+        ...userData, // This includes username, password, email, etc.
+        // We don't need to pass confirmPassword to the API
       }, {
         onSuccess: () => {
           setRegistrationStep("complete");
@@ -321,10 +322,35 @@ export default function AuthPage() {
                 <TabsContent value="register">
                   <Card>
                     <CardHeader>
-                      <CardTitle className="text-2xl font-montserrat text-secondary">Create Account</CardTitle>
-                      <CardDescription>Join PipaPal and start your sustainability journey</CardDescription>
+                      {registrationStep === "accountInfo" && (
+                        <>
+                          <CardTitle className="text-2xl font-montserrat text-secondary">Create Account</CardTitle>
+                          <CardDescription>Join PipaPal and start your sustainability journey</CardDescription>
+                        </>
+                      )}
+                      
+                      {registrationStep === "verification" && (
+                        <>
+                          <CardTitle className="text-2xl font-montserrat text-secondary">Verify Your Phone</CardTitle>
+                          <CardDescription>We've sent a verification code to your phone</CardDescription>
+                        </>
+                      )}
+                      
+                      {registrationStep === "complete" && (
+                        <>
+                          <CardTitle className="text-2xl font-montserrat text-primary text-center">
+                            <CheckCircle className="inline-block h-10 w-10 mb-2 mx-auto" />
+                            <div>Registration Complete!</div>
+                          </CardTitle>
+                          <CardDescription className="text-center">
+                            Your account has been created successfully. You can now log in.
+                          </CardDescription>
+                        </>
+                      )}
                     </CardHeader>
                     <CardContent>
+                      {/* Account Information Step */}
+                      {registrationStep === "accountInfo" && (
                       <Form {...registerForm}>
                         <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-5">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -471,15 +497,105 @@ export default function AuthPage() {
                           </Button>
                         </form>
                       </Form>
+                      )}
                       
-                      <div className="mt-6 text-center">
-                        <p className="text-sm text-gray-600">
-                          Already have an account?{" "}
-                          <Button variant="link" className="p-0" onClick={() => setActiveTab("login")}>
-                            Sign In
+                      {/* Phone Verification Step */}
+                      {registrationStep === "verification" && (
+                        <div className="space-y-6">
+                          <div className="text-center mb-6">
+                            <p className="text-sm text-gray-600 mb-2">
+                              We've sent a 6-digit verification code to
+                            </p>
+                            <p className="font-medium text-secondary">{phoneNumber}</p>
+                          </div>
+                          
+                          <Form {...otpForm}>
+                            <form onSubmit={otpForm.handleSubmit(verifyOtpAndRegister)} className="space-y-6">
+                              <FormField
+                                control={otpForm.control}
+                                name="otp"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Verification Code</FormLabel>
+                                    <FormControl>
+                                      <Input 
+                                        placeholder="Enter 6-digit code" 
+                                        maxLength={6}
+                                        className="text-center text-lg"
+                                        {...field} 
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                              
+                              <div className="flex justify-between gap-4">
+                                <Button 
+                                  type="button" 
+                                  variant="outline"
+                                  className="flex-1"
+                                  onClick={() => setRegistrationStep("accountInfo")}
+                                  disabled={isLoadingOtp}
+                                >
+                                  <ArrowLeft className="mr-2 h-4 w-4" />
+                                  Back
+                                </Button>
+                                <Button 
+                                  type="submit" 
+                                  className="flex-1"
+                                  disabled={isLoadingOtp}
+                                >
+                                  {isLoadingOtp ? (
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  ) : null}
+                                  Verify & Create Account
+                                </Button>
+                              </div>
+                            </form>
+                          </Form>
+                          
+                          <div className="text-center mt-4">
+                            <p className="text-sm text-gray-600 mb-2">
+                              Didn't receive the code?
+                            </p>
+                            <Button 
+                              variant="link" 
+                              onClick={() => sendVerificationCode(phoneNumber)}
+                              disabled={isLoadingOtp}
+                              className="p-0 h-auto"
+                            >
+                              Resend Code
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Registration Complete Step */}
+                      {registrationStep === "complete" && (
+                        <div className="text-center space-y-6">
+                          <p className="text-gray-600">
+                            You can now log in with your username and password to access your account.
+                          </p>
+                          <Button
+                            onClick={() => setActiveTab("login")}
+                            className="w-full mt-4"
+                          >
+                            Go to Login
                           </Button>
-                        </p>
-                      </div>
+                        </div>
+                      )}
+                      
+                      {registrationStep === "accountInfo" && (
+                        <div className="mt-6 text-center">
+                          <p className="text-sm text-gray-600">
+                            Already have an account?{" "}
+                            <Button variant="link" className="p-0" onClick={() => setActiveTab("login")}>
+                              Sign In
+                            </Button>
+                          </p>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 </TabsContent>
