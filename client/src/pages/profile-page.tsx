@@ -21,7 +21,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { PhoneVerification } from "@/components/auth/phone-verification";
+
 
 // Layout Components
 import Navbar from "@/components/shared/navbar";
@@ -886,34 +886,7 @@ export default function ProfilePage() {
                 </CardFooter>
               </Card>
               
-              {/* Phone Verification Card */}
-              <div className="mt-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Phone Verification</CardTitle>
-                    <CardDescription>
-                      Verify your phone number for added security and to receive important notifications
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {user?.phoneVerified ? (
-                      <div className="flex items-center p-4 bg-green-50 dark:bg-green-950/30 rounded-md">
-                        <CheckCircleIcon className="h-5 w-5 text-green-500 mr-3" />
-                        <div>
-                          <p className="text-sm font-medium text-green-800 dark:text-green-300">
-                            Phone number verified
-                          </p>
-                          <p className="text-xs text-green-600 dark:text-green-400">
-                            Your phone number {user.phone} has been verified.
-                          </p>
-                        </div>
-                      </div>
-                    ) : (
-                      <PhoneVerification />
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
+
             </div>
           </TabsContent>
           
