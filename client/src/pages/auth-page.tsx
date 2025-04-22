@@ -62,7 +62,9 @@ const otpVerificationSchema = z.object({
     .regex(/^[0-9]+$/, { message: "OTP must contain only numbers" }),
 });
 
-type RegisterFormValues = z.infer<typeof registerFormSchema>;
+// Use the same type as expected by registerMutation in use-auth.tsx
+import { RegisterData } from "@/hooks/use-auth";
+type RegisterFormValues = RegisterData;
 
 export default function AuthPage() {
   const { user, loginMutation, registerMutation, isLoading } = useAuth();
@@ -181,12 +183,13 @@ export default function AuthPage() {
         throw new Error(errorData.error || "Invalid verification code");
       }
       
-      // If OTP is valid, submit registration with all required fields
-      // Set phoneVerified to true since we've verified the phone
+      // If OTP is valid, submit registration
+      // Note: RegisterData type from use-auth.tsx requires confirmPassword
+      // The registerMutation handles removing it before API call
       registerMutation.mutate({
-        ...userFormData, // This includes confirmPassword field which is required by registerSchema
+        ...userFormData,
         phoneVerified: true,
-        phone: phoneNumber // Ensure phone number is included in registration data
+        phone: phoneNumber
       }, {
         onSuccess: () => {
           setRegistrationStep("complete");

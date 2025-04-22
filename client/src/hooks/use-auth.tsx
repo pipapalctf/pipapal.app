@@ -32,7 +32,7 @@ const registerSchema = insertUserSchema.extend({
   path: ["confirmPassword"],
 });
 
-type RegisterData = z.infer<typeof registerSchema>;
+export type RegisterData = z.infer<typeof registerSchema>;
 
 export const AuthContext = createContext<AuthContextType | null>(null);
 
