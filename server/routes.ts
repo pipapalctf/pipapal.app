@@ -1346,7 +1346,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           type: 'new_message',
           senderId: req.user.id,
           senderName: req.user.fullName || req.user.username,
-          message: content,
+          message: `New message from ${req.user.fullName || req.user.username}`,
+          content: content, // Add content field for notification handling
+          chatId: message.id, // Add chatId for reference
           timestamp: message.timestamp
         };
         
@@ -1455,20 +1457,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
               timestamp: message.timestamp
             }));
             
-            // Forward to recipient if online
-            const receiverClients = clients.get(receiverId) || [];
-            const notification = {
-              type: 'new_message',
-              messageId: message.id,
-              senderId: userId,
-              content: data.content,
-              timestamp: message.timestamp
-            };
+            // Get sender information 
+            // Only proceed if userId is not null
+            if (userId === null) {
+              console.error('Cannot get sender info: userId is null');
+              return;
+            }
             
-            receiverClients.forEach(client => {
-              if (client.readyState === WebSocket.OPEN) {
-                client.send(JSON.stringify(notification));
-              }
+            storage.getUser(userId).then(sender => {
+              const senderName = sender ? (sender.fullName || sender.username) : "Unknown user";
+              
+              // Forward to recipient if online
+              const receiverClients = clients.get(receiverId) || [];
+              const notification = {
+                type: 'new_message',
+                messageId: message.id,
+                senderId: userId,
+                senderName: senderName,
+                message: `New message from ${senderName}`,
+                content: data.content,
+                chatId: message.id,
+                timestamp: message.timestamp
+              };
+              
+              receiverClients.forEach(client => {
+                if (client.readyState === WebSocket.OPEN) {
+                  client.send(JSON.stringify(notification));
+                }
+              });
+            }).catch(error => {
+              console.error('Error getting sender info:', error);
             });
           })
           .catch(error => {
