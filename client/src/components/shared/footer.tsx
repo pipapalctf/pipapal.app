@@ -11,8 +11,11 @@ export default function Footer() {
               <Logo variant="white" size="md" />
               <span className="ml-2 text-2xl font-montserrat font-bold text-white">PipaPal</span>
             </div>
-            <p className="text-gray-400">
+            <p className="text-gray-400 mb-2">
               Your Waste Buddy - Connecting households with waste collectors for a greener future.
+            </p>
+            <p className="text-gray-400">
+              <span className="font-semibold">Location:</span> Nyahururu, Kenya
             </p>
           </div>
           
@@ -22,7 +25,24 @@ export default function Footer() {
               <li><Link href="/about" className="hover:text-primary transition-colors">About Us</Link></li>
               <li><Link href="/mission" className="hover:text-primary transition-colors">Our Mission</Link></li>
               <li><Link href="#" className="hover:text-primary transition-colors">Careers</Link></li>
-              <li><Link href="#" className="hover:text-primary transition-colors">Contact</Link></li>
+              <li>
+                <a 
+                  href="mailto:info@pipapal.app" 
+                  className="hover:text-primary transition-colors"
+                >
+                  Email: info@pipapal.app
+                </a>
+              </li>
+              <li>
+                <a 
+                  href="https://wa.me/254116407400" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="hover:text-primary transition-colors"
+                >
+                  WhatsApp: +254-116407400
+                </a>
+              </li>
             </ul>
           </div>
           
@@ -49,7 +69,7 @@ export default function Footer() {
         
         <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center">
           <p className="text-gray-500 text-sm">
-            &copy; {new Date().getFullYear()} PipaPal. All rights reserved.
+            &copy; {new Date().getFullYear()} PipaPal. All rights reserved. | <a href="https://pipapal.app" className="hover:text-primary">pipapal.app</a>
           </p>
           <div className="flex space-x-4 mt-4 md:mt-0">
             <Link href="/about" className="text-gray-500 text-sm hover:text-primary transition-colors">About Us</Link>

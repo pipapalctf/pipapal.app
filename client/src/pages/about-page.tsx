@@ -208,10 +208,12 @@ export default function AboutPage() {
                 Sign Up Now
               </a>
               <a
-                href="/contact"
+                href="https://wa.me/254116407400"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="bg-white hover:bg-gray-100 text-secondary font-semibold py-3 px-6 rounded-md transition-colors"
               >
-                Contact Us
+                Contact Us (WhatsApp)
               </a>
             </div>
           </div>
