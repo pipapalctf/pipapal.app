@@ -700,83 +700,174 @@ export default function AuthPage() {
                         <div className="space-y-6">
                           <div className="p-4 bg-primary/10 rounded-lg mb-6">
                             <p className="text-sm text-secondary">
-                              <strong>Step 2 of 3:</strong> Verify your phone number before creating your account.
+                              <strong>Step 2 of 3:</strong> Verify your contact information to continue.
                             </p>
                           </div>
                           
-                          <div className="text-center mb-6">
-                            <p className="text-sm text-gray-600 mb-2">
-                              We've sent a 6-digit verification code to
-                            </p>
-                            <p className="font-medium text-secondary">{phoneNumber}</p>
-                          </div>
-                          
-                          <Form {...otpForm}>
-                            <form onSubmit={otpForm.handleSubmit(verifyOtpAndRegister)} className="space-y-6">
-                              <FormField
-                                control={otpForm.control}
-                                name="otp"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Verification Code</FormLabel>
-                                    <FormControl>
-                                      <Input 
-                                        placeholder="Enter 6-digit code" 
-                                        maxLength={6}
-                                        className="text-center text-lg"
-                                        {...field} 
-                                      />
-                                    </FormControl>
-                                    {devOtpCode && (
-                                      <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-md">
-                                        <p className="text-yellow-800 font-medium text-xs">
-                                          Development Mode: Use code <span className="font-bold">{devOtpCode}</span>
-                                        </p>
-                                      </div>
-                                    )}
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
+                          {!otpSent ? (
+                            <div className="space-y-6">
+                              <h3 className="text-lg font-medium text-secondary text-center">
+                                Choose a verification method
+                              </h3>
                               
-                              <div className="flex justify-between gap-4">
+                              <RadioGroup 
+                                defaultValue={verificationMethod} 
+                                onValueChange={(value) => setVerificationMethod(value as "phone" | "email")}
+                                className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2"
+                              >
+                                <div className={`flex items-center space-x-2 border rounded-lg p-4 cursor-pointer transition-all ${verificationMethod === 'phone' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'}`}>
+                                  <RadioGroupItem value="phone" id="phone" />
+                                  <label htmlFor="phone" className="flex flex-1 cursor-pointer">
+                                    <div className="flex items-center space-x-3">
+                                      <Phone className="h-5 w-5 text-primary" />
+                                      <div>
+                                        <div className="font-medium">Phone Number</div>
+                                        <div className="text-sm text-muted-foreground">{userFormData?.phone}</div>
+                                      </div>
+                                    </div>
+                                  </label>
+                                </div>
+                                
+                                <div className={`flex items-center space-x-2 border rounded-lg p-4 cursor-pointer transition-all ${verificationMethod === 'email' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'}`}>
+                                  <RadioGroupItem value="email" id="email" />
+                                  <label htmlFor="email" className="flex flex-1 cursor-pointer">
+                                    <div className="flex items-center space-x-3">
+                                      <Mail className="h-5 w-5 text-primary" />
+                                      <div>
+                                        <div className="font-medium">Email</div>
+                                        <div className="text-sm text-muted-foreground">{userFormData?.email}</div>
+                                      </div>
+                                    </div>
+                                  </label>
+                                </div>
+                              </RadioGroup>
+                              
+                              <Button 
+                                onClick={() => {
+                                  if (verificationMethod === 'phone' && userFormData?.phone) {
+                                    setPhoneNumber(userFormData.phone);
+                                    sendSmsVerificationCode(userFormData.phone);
+                                  } else if (verificationMethod === 'email' && userFormData?.email) {
+                                    setEmail(userFormData.email);
+                                    sendEmailVerificationCode(userFormData.email);
+                                  } else {
+                                    toast({
+                                      title: "Error",
+                                      description: `Please provide a valid ${verificationMethod === 'phone' ? 'phone number' : 'email address'}`,
+                                      variant: "destructive",
+                                    });
+                                  }
+                                }}
+                                className="w-full mt-2"
+                                disabled={isLoadingOtp}
+                              >
+                                {isLoadingOtp ? (
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                ) : null}
+                                Send Verification Code
+                              </Button>
+                              
+                              <div className="flex justify-between">
                                 <Button 
                                   type="button" 
                                   variant="outline"
-                                  className="flex-1"
                                   onClick={() => setRegistrationStep("accountInfo")}
                                   disabled={isLoadingOtp}
                                 >
                                   <ArrowLeft className="mr-2 h-4 w-4" />
                                   Back
                                 </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="text-center mb-6">
+                                <p className="text-sm text-gray-600 mb-1">
+                                  We've sent a verification code to
+                                </p>
+                                <p className="font-medium text-secondary">
+                                  {verificationMethod === 'phone' ? phoneNumber : email}
+                                </p>
+                              </div>
+                              
+                              <Form {...otpForm}>
+                                <form onSubmit={otpForm.handleSubmit(verifyCodeAndRegister)} className="space-y-6">
+                                  <FormField
+                                    control={otpForm.control}
+                                    name="otp"
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel>Verification Code</FormLabel>
+                                        <FormControl>
+                                          <Input 
+                                            placeholder="Enter 6-digit code" 
+                                            maxLength={6}
+                                            className="text-center text-lg"
+                                            {...field} 
+                                          />
+                                        </FormControl>
+                                        {devOtpCode && (
+                                          <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-md">
+                                            <p className="text-yellow-800 font-medium text-xs">
+                                              Development Mode: Use code <span className="font-bold">{devOtpCode}</span>
+                                            </p>
+                                          </div>
+                                        )}
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                  
+                                  <div className="flex justify-between gap-4">
+                                    <Button 
+                                      type="button" 
+                                      variant="outline"
+                                      className="flex-1"
+                                      onClick={() => {
+                                        setOtpSent(false);
+                                        setDevOtpCode(null);
+                                      }}
+                                      disabled={isLoadingOtp}
+                                    >
+                                      <ArrowLeft className="mr-2 h-4 w-4" />
+                                      Back
+                                    </Button>
+                                    <Button 
+                                      type="submit" 
+                                      className="flex-1"
+                                      disabled={isLoadingOtp}
+                                    >
+                                      {isLoadingOtp ? (
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                      ) : null}
+                                      Verify & Create Account
+                                    </Button>
+                                  </div>
+                                </form>
+                              </Form>
+                              
+                              <div className="text-center mt-4">
+                                <p className="text-sm text-gray-600 mb-2">
+                                  Didn't receive the code?
+                                </p>
                                 <Button 
-                                  type="submit" 
-                                  className="flex-1"
+                                  variant="link" 
+                                  size="sm" 
+                                  className="p-0 h-auto"
+                                  onClick={() => {
+                                    if (verificationMethod === 'phone') {
+                                      sendSmsVerificationCode(phoneNumber);
+                                    } else {
+                                      sendEmailVerificationCode(email);
+                                    }
+                                  }}
                                   disabled={isLoadingOtp}
                                 >
-                                  {isLoadingOtp ? (
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                  ) : null}
-                                  Verify & Create Account
+                                  Resend Code
                                 </Button>
                               </div>
-                            </form>
-                          </Form>
-                          
-                          <div className="text-center mt-4">
-                            <p className="text-sm text-gray-600 mb-2">
-                              Didn't receive the code?
-                            </p>
-                            <Button 
-                              variant="link" 
-                              onClick={() => sendVerificationCode(phoneNumber)}
-                              disabled={isLoadingOtp}
-                              className="p-0 h-auto"
-                            >
-                              Resend Code
-                            </Button>
-                          </div>
+                            </>
+                          )}
                         </div>
                       )}
                       
