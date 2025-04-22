@@ -598,6 +598,13 @@ export default function AuthPage() {
                                         {...field} 
                                       />
                                     </FormControl>
+                                    {devOtpCode && (
+                                      <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-md">
+                                        <p className="text-yellow-800 font-medium text-xs">
+                                          Development Mode: Use code <span className="font-bold">{devOtpCode}</span>
+                                        </p>
+                                      </div>
+                                    )}
                                     <FormMessage />
                                   </FormItem>
                                 )}

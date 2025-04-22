@@ -21,8 +21,11 @@ const client = useTwilio ? twilio(accountSid, authToken) : null;
 // Key: phone number, Value: { otp: string, expires: Date }
 const otpStore = new Map<string, { otp: string, expires: Date }>();
 
-// In development mode, we'll use a fixed OTP for testing
-const DEV_TEST_OTP = '123456';
+// In development mode, we'll generate a random OTP each time instead of using a fixed one
+// This helps with testing the UI with different values
+function generateDevOTP() {
+  return isDevelopment ? generateOTP() : '123456';
+}
 
 /**
  * Generate a 6-digit OTP code
@@ -60,8 +63,8 @@ export async function sendOTP(phoneNumber: string): Promise<{ success: boolean, 
   try {
     const formattedPhoneNumber = formatPhoneNumber(phoneNumber);
     
-    // Use fixed OTP in development mode or if Twilio credentials are missing
-    const otp = isDevelopment || !useTwilio ? DEV_TEST_OTP : generateOTP();
+    // Generate OTP for development mode or production
+    const otp = isDevelopment || !useTwilio ? generateDevOTP() : generateOTP();
     
     // Store OTP with 10-minute expiration
     const expires = new Date();
@@ -105,11 +108,12 @@ export async function sendOTP(phoneNumber: string): Promise<{ success: boolean, 
   } catch (error: any) {
     console.error('Error in sendOTP:', error);
     
-    // Even if there's an error, we'll still set the OTP in development mode
+    // Even if there's an error, we'll still generate a test OTP in development mode
     if (isDevelopment) {
+      const devOtp = generateDevOTP();
       return { 
         success: true, 
-        message: 'Development mode - use test code: ' + DEV_TEST_OTP 
+        message: 'Development mode - use test code: ' + devOtp 
       };
     }
     
@@ -126,10 +130,11 @@ export async function sendOTP(phoneNumber: string): Promise<{ success: boolean, 
 export function verifyOTP(phoneNumber: string, otpToVerify: string): boolean {
   const formattedPhoneNumber = formatPhoneNumber(phoneNumber);
   
-  // In development mode, accept the dev test OTP
-  if (isDevelopment && otpToVerify === DEV_TEST_OTP) {
-    console.log('[DEV MODE] Accepting test OTP');
-    return true;
+  // In development mode, always check the OTP against stored value
+  // This allows for proper testing of the verification flow
+  if (isDevelopment) {
+    console.log('[DEV MODE] Verifying OTP code', otpToVerify);
+    // We'll let the normal validation flow handle this
   }
   
   const storedData = otpStore.get(formattedPhoneNumber);
