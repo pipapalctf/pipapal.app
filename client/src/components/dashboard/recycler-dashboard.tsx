@@ -70,8 +70,8 @@ export default function RecyclerDashboard({ user }: RecyclerDashboardProps) {
     const date = new Date(material.completedDate || material.scheduledDate);
     const monthIndex = date.getMonth();
     purchasesByMonth[monthIndex].amount += (material.wasteAmount || 10);
-    // Fictional monetary value: $0.20 per kg for recyclables
-    purchasesByMonth[monthIndex].value += (material.wasteAmount || 10) * 0.2;
+    // Fictional monetary value: KSh 20 per kg for recyclables
+    purchasesByMonth[monthIndex].value += (material.wasteAmount || 10) * 20;
   });
 
   // Top supplying collectors (fictional data based on user IDs)
@@ -178,7 +178,7 @@ export default function RecyclerDashboard({ user }: RecyclerDashboardProps) {
               <div className="p-2 rounded-full bg-amber-100 mr-3">
                 <ShoppingBag className="h-5 w-5 text-amber-600" />
               </div>
-              <span className="text-2xl font-bold">${formatNumber(totalPurchased * 0.2, 2)}</span>
+              <span className="text-2xl font-bold">KSh {formatNumber(totalPurchased * 20, 0)}</span>
             </div>
           </CardContent>
         </Card>
@@ -311,7 +311,7 @@ export default function RecyclerDashboard({ user }: RecyclerDashboardProps) {
                     <tr className="bg-muted/30 border-b">
                       <th className="text-left py-3 px-4 font-medium text-muted-foreground text-sm">Material Type</th>
                       <th className="text-center py-3 px-4 font-medium text-muted-foreground text-sm">Amount (kg)</th>
-                      <th className="text-center py-3 px-4 font-medium text-muted-foreground text-sm">Value ($)</th>
+                      <th className="text-center py-3 px-4 font-medium text-muted-foreground text-sm">Value (KSh)</th>
                       <th className="text-center py-3 px-4 font-medium text-muted-foreground text-sm">CO₂ Offset (kg)</th>
                       <th className="text-center py-3 px-4 font-medium text-muted-foreground text-sm">Quality</th>
                     </tr>
@@ -329,7 +329,7 @@ export default function RecyclerDashboard({ user }: RecyclerDashboardProps) {
                           </div>
                         </td>
                         <td className="text-center py-3 px-4 font-medium">{formatNumber(material.value)}</td>
-                        <td className="text-center py-3 px-4 text-emerald-600 font-medium">${formatNumber(material.value * 0.2, 2)}</td>
+                        <td className="text-center py-3 px-4 text-emerald-600 font-medium">KSh {formatNumber(material.value * 20, 0)}</td>
                         <td className="text-center py-3 px-4 font-medium">{formatNumber(material.value * 2)}</td>
                         <td className="text-center py-3 px-4">
                           <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
@@ -423,13 +423,13 @@ export default function RecyclerDashboard({ user }: RecyclerDashboardProps) {
                       <XAxis dataKey="name" axisLine={false} tickLine={false} />
                       <YAxis axisLine={false} tickLine={false} width={40} />
                       <Tooltip 
-                        formatter={(value) => [`$${formatNumber(value, 2)}`, 'Revenue']}
+                        formatter={(value) => [`KSh ${formatNumber(value, 0)}`, 'Revenue']}
                         labelStyle={{fontWeight: 'bold'}}
                         contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)'}}
                       />
                       <Bar 
                         dataKey="value" 
-                        name="Value ($)" 
+                        name="Value (KSh)" 
                         radius={[4, 4, 0, 0]} 
                         fill="url(#colorValue)" 
                       />
@@ -469,7 +469,7 @@ export default function RecyclerDashboard({ user }: RecyclerDashboardProps) {
                       </div>
                       <div className="text-right">
                         <p className="font-medium text-lg">{material.wasteAmount || 10} kg</p>
-                        <p className="text-sm font-medium text-emerald-600">${formatNumber((material.wasteAmount || 10) * 0.2, 2)}</p>
+                        <p className="text-sm font-medium text-emerald-600">KSh {formatNumber((material.wasteAmount || 10) * 20, 0)}</p>
                       </div>
                     </div>
                   ))}
