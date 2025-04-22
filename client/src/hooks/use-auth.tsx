@@ -4,7 +4,7 @@ import {
   useMutation,
   UseMutationResult,
 } from "@tanstack/react-query";
-import { insertUserSchema, User as SelectUser } from "@shared/schema";
+import { insertUserSchema, User as SelectUser, UserRole } from "@shared/schema";
 import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
@@ -25,7 +25,7 @@ type AuthContextType = {
   isLoading: boolean;
   error: Error | null;
   loginMutation: UseMutationResult<SelectUser, Error, LoginData>;
-  loginWithGoogleMutation: UseMutationResult<SelectUser, Error, void>;
+  loginWithGoogleMutation: UseMutationResult<SelectUser, Error, string | undefined>;
   logoutMutation: UseMutationResult<void, Error, void>;
   registerMutation: UseMutationResult<SelectUser, Error, RegisterData>;
   resendVerificationEmailMutation: UseMutationResult<void, Error, void>;
@@ -108,7 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Google login mutation
   const loginWithGoogleMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (role?: string) => {
       const googleResult = await signInWithGoogle();
       
       if (!googleResult.success || !googleResult.user) {
@@ -128,7 +128,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email: googleUser.email,
         displayName: googleUser.displayName || googleUser.email.split('@')[0],
         photoURL: googleUser.photoURL || null,
-        uid: googleUser.uid
+        uid: googleUser.uid,
+        role: role || UserRole.HOUSEHOLD // Allow specifying a role, default to HOUSEHOLD if not provided
       });
       return await res.json();
     },

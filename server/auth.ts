@@ -119,7 +119,7 @@ export function setupAuth(app: Express) {
   // Firebase Google login route
   app.post("/api/login-with-google", async (req, res, next) => {
     try {
-      const { email, uid, displayName } = req.body;
+      const { email, uid, displayName, role } = req.body;
       
       if (!email || !uid) {
         return res.status(400).json({ message: "Email and UID are required" });
@@ -145,12 +145,19 @@ export function setupAuth(app: Express) {
         // Generate a random password (they'll login with Google, not password)
         const randomPassword = randomBytes(16).toString('hex');
         
+        // Validate the role is a valid UserRole
+        const userRole = Object.values(UserRole).includes(role) 
+          ? role 
+          : UserRole.HOUSEHOLD; // Default to HOUSEHOLD if invalid
+        
+        console.log("Creating new Google user with role:", userRole);
+        
         user = await storage.createUser({
           username: email.split('@')[0] + '_' + randomBytes(3).toString('hex'), // Create unique username
           password: await hashPassword(randomPassword),
           fullName: displayName || email.split('@')[0],
           email,
-          role: UserRole.HOUSEHOLD, // Default role for Google signups
+          role: userRole, // Use the role passed from the client
           firebaseUid: uid,
           emailVerified: true, // Google login is pre-verified
           onboardingCompleted: false
