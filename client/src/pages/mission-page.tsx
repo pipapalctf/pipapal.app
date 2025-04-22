@@ -1,5 +1,5 @@
 import React from "react";
-import Navbar from "@/components/shared/navbar";
+import PublicNavbar from "@/components/shared/public-navbar";
 import Footer from "@/components/shared/footer";
 import { Recycle, Target, GanttChart, Globe, LineChart, Leaf } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
@@ -7,7 +7,7 @@ import { Separator } from "@/components/ui/separator";
 export default function MissionPage() {
   return (
     <div className="min-h-screen flex flex-col">
-      <Navbar />
+      <PublicNavbar />
       
       <main className="flex-grow">
         {/* Hero section */}

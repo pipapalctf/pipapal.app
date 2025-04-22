@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
-import { Link, useLocation } from "wouter";
-import { useAuth } from "@/hooks/use-auth";
-import Logo from "@/components/logo";
+import { Link } from "wouter";
+import Footer from "@/components/shared/footer";
+import PublicNavbar from "@/components/shared/public-navbar";
 import { Button } from "@/components/ui/button";
 import {
   ArrowRight,
@@ -22,70 +21,10 @@ import {
 import pipapalLogo from "../.././../attached_assets/pipapal-logo.png";
 
 export default function LandingPage() {
-  const [, setLocation] = useLocation();
-  const { user, isLoading } = useAuth();
-  const [scrolled, setScrolled] = useState(false);
-
-  // Handle scroll effect for navbar
-  useEffect(() => {
-    const handleScroll = () => {
-      const offset = window.scrollY;
-      if (offset > 80) {
-        setScrolled(true);
-      } else {
-        setScrolled(false);
-      }
-    };
-    
-    window.addEventListener('scroll', handleScroll);
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-    };
-  }, []);
-
-  // Redirect to dashboard if user is already logged in
-  useEffect(() => {
-    if (user && !isLoading) {
-      setLocation("/dashboard");
-    }
-  }, [user, isLoading, setLocation]);
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
-      {/* Navbar */}
-      <header className={`fixed top-0 left-0 right-0 w-full px-4 md:px-8 border-b border-gray-100 shadow-xl bg-white z-50 transition-all duration-300 ${scrolled ? 'py-3' : 'py-5'}`}>
-        <div className="container mx-auto flex items-center justify-between">
-          <div className="flex items-center">
-            <img 
-              src={pipapalLogo} 
-              alt="PipaPal Logo" 
-              className={`transition-all duration-300 ${scrolled ? 'h-10' : 'h-12'} w-auto`} 
-            />
-            <div className="ml-2">
-              <span className={`font-montserrat font-bold text-secondary transition-all duration-300 ${scrolled ? 'text-xl' : 'text-2xl'}`}>
-                PipaPal
-              </span>
-              <span className={`hidden md:inline-block ml-2 text-primary text-xs transition-all duration-300 ${scrolled ? 'opacity-0' : 'opacity-100'}`}>
-                Your Waste Buddy
-              </span>
-            </div>
-          </div>
-          <div className="flex items-center space-x-4">
-            <Link href="/auth">
-              <Button variant="outline" size={scrolled ? "sm" : "default"}>
-                Log in
-              </Button>
-            </Link>
-            <Link href="/auth">
-              <Button size={scrolled ? "sm" : "default"}>
-                Sign up
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </header>
-      {/* Spacer to prevent content from hiding under fixed header */}
-      <div className="h-28"></div>
+      <PublicNavbar />
 
       {/* Hero Section */}
       <section className="w-full py-16 md:py-24 bg-gradient-to-br from-primary/10 to-primary/5">
@@ -477,62 +416,7 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="w-full py-12 bg-gray-900 text-gray-300">
-        <div className="container mx-auto px-4 md:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-            <div>
-              <div className="flex items-center mb-4">
-                <Logo variant="white" size="md" />
-                <span className="ml-2 text-2xl font-montserrat font-bold text-white">PipaPal</span>
-              </div>
-              <p className="text-gray-400">
-                Your Waste Buddy - Connecting households with waste collectors for a greener future.
-              </p>
-            </div>
-            
-            <div>
-              <h3 className="text-lg font-bold text-white mb-4">Company</h3>
-              <ul className="space-y-2">
-                <li><a href="/about" className="hover:text-primary transition-colors">About Us</a></li>
-                <li><a href="/mission" className="hover:text-primary transition-colors">Our Mission</a></li>
-                <li><a href="#" className="hover:text-primary transition-colors">Careers</a></li>
-                <li><a href="#" className="hover:text-primary transition-colors">Contact</a></li>
-              </ul>
-            </div>
-            
-            <div>
-              <h3 className="text-lg font-bold text-white mb-4">Services</h3>
-              <ul className="space-y-2">
-                <li><a href="#" className="hover:text-primary transition-colors">Waste Collection</a></li>
-                <li><a href="#" className="hover:text-primary transition-colors">Recycling</a></li>
-                <li><a href="#" className="hover:text-primary transition-colors">Impact Tracking</a></li>
-                <li><a href="#" className="hover:text-primary transition-colors">Educational Resources</a></li>
-              </ul>
-            </div>
-            
-            <div>
-              <h3 className="text-lg font-bold text-white mb-4">Connect</h3>
-              <ul className="space-y-2">
-                <li><a href="#" className="hover:text-primary transition-colors">Twitter</a></li>
-                <li><a href="#" className="hover:text-primary transition-colors">Facebook</a></li>
-                <li><a href="#" className="hover:text-primary transition-colors">Instagram</a></li>
-                <li><a href="#" className="hover:text-primary transition-colors">LinkedIn</a></li>
-              </ul>
-            </div>
-          </div>
-          
-          <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center">
-            <p className="text-gray-500 text-sm">
-              &copy; {new Date().getFullYear()} PipaPal. All rights reserved.
-            </p>
-            <div className="flex space-x-4 mt-4 md:mt-0">
-              <a href="#" className="text-gray-500 text-sm hover:text-primary transition-colors">Privacy Policy</a>
-              <a href="#" className="text-gray-500 text-sm hover:text-primary transition-colors">Terms of Service</a>
-              <a href="#" className="text-gray-500 text-sm hover:text-primary transition-colors">Cookie Policy</a>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

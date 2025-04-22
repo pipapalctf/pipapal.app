@@ -3,80 +3,59 @@ import { Link } from "wouter";
 
 export default function Footer() {
   return (
-    <footer className="bg-secondary text-white py-10 mt-10">
-      <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+    <footer className="w-full py-12 bg-gray-900 text-gray-300">
+      <div className="container mx-auto px-4 md:px-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
           <div>
             <div className="flex items-center mb-4">
-              <Logo variant="white" />
-              <span className="ml-2 text-xl font-montserrat font-bold">PipaPal</span>
+              <Logo variant="white" size="md" />
+              <span className="ml-2 text-2xl font-montserrat font-bold text-white">PipaPal</span>
             </div>
-            <p className="text-gray-300 text-sm">Making waste management sustainable and accessible for everyone.</p>
-            <div className="mt-4 flex space-x-3">
-              <a href="#" className="text-white hover:text-accent">
-                <i className="fab fa-facebook-f"></i>
-              </a>
-              <a href="#" className="text-white hover:text-accent">
-                <i className="fab fa-twitter"></i>
-              </a>
-              <a href="#" className="text-white hover:text-accent">
-                <i className="fab fa-instagram"></i>
-              </a>
-              <a href="#" className="text-white hover:text-accent">
-                <i className="fab fa-linkedin-in"></i>
-              </a>
-            </div>
+            <p className="text-gray-400">
+              Your Waste Buddy - Connecting households with waste collectors for a greener future.
+            </p>
           </div>
           
           <div>
-            <h4 className="font-montserrat font-bold text-lg mb-4">Quick Links</h4>
+            <h3 className="text-lg font-bold text-white mb-4">Company</h3>
             <ul className="space-y-2">
-              <li><Link href="/" className="text-gray-300 hover:text-white transition-colors">Home</Link></li>
-              <li><Link href="/about" className="text-gray-300 hover:text-white transition-colors">About Us</Link></li>
-              <li><Link href="/mission" className="text-gray-300 hover:text-white transition-colors">Our Mission</Link></li>
-              <li><Link href="/schedule-pickup" className="text-gray-300 hover:text-white transition-colors">Schedule Collection</Link></li>
-              <li><Link href="/ecotips" className="text-gray-300 hover:text-white transition-colors">EcoTips</Link></li>
-              <li><Link href="/impact" className="text-gray-300 hover:text-white transition-colors">Impact Dashboard</Link></li>
-              <li><a href="#" className="text-gray-300 hover:text-white transition-colors">Community</a></li>
+              <li><Link href="/about" className="hover:text-primary transition-colors">About Us</Link></li>
+              <li><Link href="/mission" className="hover:text-primary transition-colors">Our Mission</Link></li>
+              <li><Link href="#" className="hover:text-primary transition-colors">Careers</Link></li>
+              <li><Link href="#" className="hover:text-primary transition-colors">Contact</Link></li>
             </ul>
           </div>
           
           <div>
-            <h4 className="font-montserrat font-bold text-lg mb-4">User Types</h4>
+            <h3 className="text-lg font-bold text-white mb-4">Services</h3>
             <ul className="space-y-2">
-              <li><a href="#" className="text-gray-300 hover:text-white transition-colors">Households</a></li>
-              <li><a href="#" className="text-gray-300 hover:text-white transition-colors">Waste Collectors</a></li>
-              <li><a href="#" className="text-gray-300 hover:text-white transition-colors">Recycling Centers</a></li>
-              <li><a href="#" className="text-gray-300 hover:text-white transition-colors">Organizations</a></li>
+              <li><Link href="/schedule-pickup" className="hover:text-primary transition-colors">Waste Collection</Link></li>
+              <li><Link href="#" className="hover:text-primary transition-colors">Recycling</Link></li>
+              <li><Link href="/impact" className="hover:text-primary transition-colors">Impact Tracking</Link></li>
+              <li><Link href="/ecotips" className="hover:text-primary transition-colors">Educational Resources</Link></li>
             </ul>
           </div>
           
           <div>
-            <h4 className="font-montserrat font-bold text-lg mb-4">Contact Us</h4>
-            <ul className="space-y-2 text-gray-300">
-              <li className="flex items-start">
-                <i className="fas fa-map-marker-alt mt-1 mr-3"></i>
-                <span>123 Green Street, Eco City, 10001</span>
-              </li>
-              <li className="flex items-start">
-                <i className="fas fa-envelope mt-1 mr-3"></i>
-                <span>contact@pipapal.com</span>
-              </li>
-              <li className="flex items-start">
-                <i className="fas fa-phone mt-1 mr-3"></i>
-                <span>+1 (555) 123-4567</span>
-              </li>
+            <h3 className="text-lg font-bold text-white mb-4">Connect</h3>
+            <ul className="space-y-2">
+              <li><Link href="#" className="hover:text-primary transition-colors">Twitter</Link></li>
+              <li><Link href="#" className="hover:text-primary transition-colors">Facebook</Link></li>
+              <li><Link href="#" className="hover:text-primary transition-colors">Instagram</Link></li>
+              <li><Link href="#" className="hover:text-primary transition-colors">LinkedIn</Link></li>
             </ul>
           </div>
         </div>
         
-        <div className="border-t border-gray-700 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
-          <p className="text-gray-400 text-sm">© {new Date().getFullYear()} PipaPal. All rights reserved.</p>
-          <div className="mt-4 md:mt-0">
-            <Link href="/about" className="text-gray-400 hover:text-white text-sm mx-2">About Us</Link>
-            <Link href="/mission" className="text-gray-400 hover:text-white text-sm mx-2">Our Mission</Link>
-            <a href="#" className="text-gray-400 hover:text-white text-sm mx-2">Privacy Policy</a>
-            <a href="#" className="text-gray-400 hover:text-white text-sm mx-2">Terms of Service</a>
+        <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center">
+          <p className="text-gray-500 text-sm">
+            &copy; {new Date().getFullYear()} PipaPal. All rights reserved.
+          </p>
+          <div className="flex space-x-4 mt-4 md:mt-0">
+            <Link href="/about" className="text-gray-500 text-sm hover:text-primary transition-colors">About Us</Link>
+            <Link href="/mission" className="text-gray-500 text-sm hover:text-primary transition-colors">Our Mission</Link>
+            <Link href="#" className="text-gray-500 text-sm hover:text-primary transition-colors">Privacy Policy</Link>
+            <Link href="#" className="text-gray-500 text-sm hover:text-primary transition-colors">Terms of Service</Link>
           </div>
         </div>
       </div>
