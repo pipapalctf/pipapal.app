@@ -25,7 +25,7 @@ import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { UserIcon, Send, Loader2 } from "lucide-react";
+import { UserIcon, Send, Loader2, MessageSquare } from "lucide-react";
 
 type Conversation = {
   id: number;
@@ -53,7 +53,7 @@ const ChatPage: React.FC = () => {
 
   // Fetch messages with selected user
   const { data: messages, isLoading: messagesLoading } = useQuery<ChatMessage[]>({
-    queryKey: ["/api/chat/messages", selectedUser],
+    queryKey: [`/api/chat/messages/${selectedUser}`],
     enabled: !!selectedUser,
     throwOnError: true,
   });
@@ -68,7 +68,7 @@ const ChatPage: React.FC = () => {
       // Clear message input
       setMessage("");
       // Invalidate queries to refresh messages
-      queryClient.invalidateQueries({ queryKey: ["/api/chat/messages", selectedUser] });
+      queryClient.invalidateQueries({ queryKey: [`/api/chat/messages/${selectedUser}`] });
     },
     onError: (error: any) => {
       toast({
@@ -197,13 +197,13 @@ const ChatPage: React.FC = () => {
       <h1 className="text-3xl font-bold mb-6">Messages</h1>
 
       <Card className="overflow-hidden border-none shadow-md">
-        <ResizablePanelGroup direction="horizontal" className="min-h-[600px]">
+        <ResizablePanelGroup direction="horizontal" className="min-h-[calc(100vh-180px)]">
           {/* Conversations Panel */}
-          <ResizablePanel defaultSize={25} minSize={20} maxSize={30}>
+          <ResizablePanel defaultSize={30} minSize={25} maxSize={35}>
             <div className="h-full flex flex-col">
-              <CardHeader className="px-4 py-3">
-                <CardTitle className="text-lg">Conversations</CardTitle>
-                <CardDescription>
+              <CardHeader className="px-4 py-3 border-b">
+                <CardTitle className="text-lg font-bold">Conversations</CardTitle>
+                <CardDescription className="text-sm text-muted-foreground">
                   Chat with waste collectors, recyclers, and other users
                 </CardDescription>
               </CardHeader>
@@ -213,8 +213,14 @@ const ChatPage: React.FC = () => {
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   </div>
                 ) : conversations?.length === 0 ? (
-                  <div className="text-center p-4 text-muted-foreground">
-                    No conversations yet
+                  <div className="text-center p-6 text-muted-foreground">
+                    <div className="mb-4">
+                      <UserIcon className="h-12 w-12 text-muted-foreground/25 mx-auto" />
+                    </div>
+                    <p className="font-medium mb-1">No conversations yet</p>
+                    <p className="text-sm text-muted-foreground">
+                      Your chat conversations will appear here
+                    </p>
                   </div>
                 ) : (
                   <div className="space-y-1 p-2">
@@ -222,7 +228,7 @@ const ChatPage: React.FC = () => {
                       <div
                         key={convo.id}
                         onClick={() => setSelectedUser(convo.id)}
-                        className={`flex items-center gap-3 p-2 rounded-md cursor-pointer
+                        className={`flex items-center gap-3 p-3 rounded-md cursor-pointer transition-colors
                           ${
                             selectedUser === convo.id
                               ? "bg-primary/10 hover:bg-primary/15"
@@ -230,8 +236,8 @@ const ChatPage: React.FC = () => {
                           }
                         `}
                       >
-                        <Avatar className="h-10 w-10 border">
-                          <AvatarFallback className="bg-primary/10 text-primary">
+                        <Avatar className="h-10 w-10 border border-muted">
+                          <AvatarFallback className="bg-primary/10 text-primary font-medium">
                             {getInitials(convo.fullName || convo.username)}
                           </AvatarFallback>
                         </Avatar>
@@ -241,7 +247,7 @@ const ChatPage: React.FC = () => {
                               {convo.fullName || convo.username}
                             </p>
                             {convo.unreadCount > 0 && (
-                              <Badge variant="secondary" className="ml-2">
+                              <Badge variant="secondary" className="ml-2 bg-primary text-white">
                                 {convo.unreadCount}
                               </Badge>
                             )}
@@ -261,16 +267,18 @@ const ChatPage: React.FC = () => {
           <ResizableHandle withHandle />
 
           {/* Chat Panel */}
-          <ResizablePanel defaultSize={75}>
-            <div className="h-full flex flex-col">
+          <ResizablePanel defaultSize={70}>
+            <div className="h-full flex flex-col bg-gray-50/50">
               {!selectedUser ? (
                 <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
-                  <UserIcon className="h-16 w-16 text-muted-foreground/40 mb-4" />
-                  <h3 className="text-xl font-medium mb-2">Select a conversation</h3>
-                  <p className="text-muted-foreground max-w-md">
-                    Choose a conversation from the list to start chatting.
-                    Connect with waste collectors, recyclers, and other users.
-                  </p>
+                  <div className="bg-white p-8 rounded-lg shadow-sm max-w-md mx-auto">
+                    <UserIcon className="h-16 w-16 text-muted-foreground/40 mb-4 mx-auto" />
+                    <h3 className="text-xl font-medium mb-2">Select a conversation</h3>
+                    <p className="text-muted-foreground">
+                      Choose a conversation from the list to start chatting.
+                      Connect with waste collectors, recyclers, and other users.
+                    </p>
+                  </div>
                 </div>
               ) : (
                 <>
@@ -304,11 +312,19 @@ const ChatPage: React.FC = () => {
                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
                       </div>
                     ) : messages?.length === 0 ? (
-                      <div className="text-center py-8 text-muted-foreground">
-                        No messages yet. Start a conversation!
+                      <div className="text-center py-12 text-muted-foreground">
+                        <div className="bg-white rounded-lg shadow-sm p-6 max-w-md mx-auto">
+                          <div className="text-center mb-4">
+                            <MessageSquare className="h-12 w-12 text-muted-foreground/30 mx-auto" />
+                          </div>
+                          <h3 className="text-lg font-medium mb-2">No messages yet</h3>
+                          <p className="text-sm text-muted-foreground">
+                            Start a conversation by sending a message below. Your messages will appear here.
+                          </p>
+                        </div>
                       </div>
                     ) : (
-                      <div className="space-y-4">
+                      <div className="space-y-3">
                         {messages?.map((msg) => {
                           const isMe = msg.senderId === user?.id;
                           return (
@@ -317,13 +333,15 @@ const ChatPage: React.FC = () => {
                               className={`flex ${isMe ? "justify-end" : "justify-start"}`}
                             >
                               <div
-                                className={`max-w-[75%] rounded-lg p-3 ${
+                                className={`max-w-[75%] rounded-lg p-3 shadow-sm ${
                                   isMe
                                     ? "bg-primary text-primary-foreground"
-                                    : "bg-accent"
+                                    : "bg-white border border-gray-100"
                                 }`}
                               >
-                                <p className="text-sm">{msg.content}</p>
+                                <p className="text-sm whitespace-pre-wrap break-words">
+                                  {msg.content}
+                                </p>
                                 <p
                                   className={`text-xs mt-1 ${
                                     isMe
@@ -348,19 +366,20 @@ const ChatPage: React.FC = () => {
                   </ScrollArea>
 
                   {/* Message Input */}
-                  <CardFooter className="p-4 pt-2 border-t">
+                  <CardFooter className="p-4 pt-3 border-t bg-white">
                     <div className="flex items-end w-full gap-2">
                       <Textarea
                         value={message}
                         onChange={(e) => setMessage(e.target.value)}
                         onKeyDown={handleKeyPress}
                         placeholder="Type your message..."
-                        className="flex-1 min-h-[60px] max-h-32"
+                        className="flex-1 min-h-[60px] max-h-32 rounded-lg border-gray-200 focus:border-primary"
                       />
                       <Button
                         onClick={handleSendMessage}
                         disabled={!message.trim() || sendMessageMutation.isPending}
-                        className="h-10"
+                        className="h-10 px-4"
+                        size="icon"
                       >
                         {sendMessageMutation.isPending ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
