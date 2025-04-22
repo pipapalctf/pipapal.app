@@ -29,6 +29,7 @@ import Logo from "@/components/logo";
 import { UserRole } from "@shared/schema";
 import { FcGoogle } from "react-icons/fc";
 import { Separator } from "@/components/ui/separator";
+import { RoleSelectionDialog } from "@/components/auth/role-selection-dialog";
 
 // Login form schema
 const loginFormSchema = z.object({
@@ -66,6 +67,7 @@ export default function AuthPage() {
     isLoading 
   } = useAuth();
   const [location, navigate] = useLocation();
+  const [roleDialogOpen, setRoleDialogOpen] = useState(false);
   
   // Check URL for tab parameter
   const getTabFromUrl = () => {
@@ -77,7 +79,13 @@ export default function AuthPage() {
   const [activeTab, setActiveTab] = useState<string>(getTabFromUrl());
   
   const handleGoogleSignIn = () => {
-    loginWithGoogleMutation.mutate();
+    // Open role selection dialog instead of immediately signing in
+    setRoleDialogOpen(true);
+  };
+  
+  const handleRoleSelect = (role: string) => {
+    // After role is selected, proceed with Google sign-in with the selected role
+    loginWithGoogleMutation.mutate(role);
   };
   
   // Redirect if already logged in
@@ -128,10 +136,18 @@ export default function AuthPage() {
   }
   
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <div className="flex-1 container mx-auto px-4 py-8 md:py-12 flex flex-col items-center justify-center">
-        <div className="w-full max-w-6xl mx-auto">
-          <div className="flex flex-col lg:flex-row bg-white rounded-lg shadow-lg overflow-hidden">
+    <div>
+      <RoleSelectionDialog 
+        open={roleDialogOpen} 
+        onOpenChange={setRoleDialogOpen}
+        onRoleSelect={handleRoleSelect}
+        isLoading={loginWithGoogleMutation.isPending}
+      />
+        
+      <div className="min-h-screen bg-background flex flex-col">
+        <div className="flex-1 container mx-auto px-4 py-8 md:py-12 flex flex-col items-center justify-center">
+          <div className="w-full max-w-6xl mx-auto">
+            <div className="flex flex-col lg:flex-row bg-white rounded-lg shadow-lg overflow-hidden">
             {/* Form Section */}
             <div className="lg:w-1/2 p-6 md:p-10">
               <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -507,6 +523,7 @@ export default function AuthPage() {
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 }
