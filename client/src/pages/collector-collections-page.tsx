@@ -306,6 +306,31 @@ export default function CollectorCollectionsPage() {
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
+  
+  // Calculate waste value based on waste type and estimated amount
+  const calculateWasteValue = (wasteType: string, estimatedAmount: number = 10) => {
+    // Points awarded based on waste type (per 10kg)
+    // hazardous: 20, electronic: 15, metal: 12, glass/plastic: 10, paper/organic/cardboard: 8, general: 5
+    const valuePerKg = {
+      'hazardous': 20,
+      'electronic': 15,
+      'metal': 12, 
+      'glass': 10,
+      'plastic': 10,
+      'paper': 8,
+      'organic': 8,
+      'cardboard': 8,
+      'general': 5
+    };
+
+    // Get the value per kg for this waste type (default to general if not found)
+    const valueRate = valuePerKg[wasteType as keyof typeof valuePerKg] || 5;
+    
+    // Calculate the total value based on estimated amount
+    const totalValue = valueRate * estimatedAmount;
+    
+    return totalValue;
+  };
 
   // Generate an action button based on collection status
   const getActionButton = (collection: any) => {
@@ -569,6 +594,15 @@ export default function CollectorCollectionsPage() {
                             {getSortIcon('location')}
                           </button>
                         </TableHead>
+                        <TableHead>
+                          <button 
+                            onClick={() => handleSort('value')} 
+                            className="flex items-center hover:text-primary"
+                          >
+                            Value (KSh)
+                            {getSortIcon('value')}
+                          </button>
+                        </TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -623,6 +657,17 @@ export default function CollectorCollectionsPage() {
                             <div className="flex items-center">
                               <MapPin className="mr-2 h-4 w-4 text-muted-foreground" />
                               {formatAddress(collection.address)}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center">
+                              <CreditCard className="mr-2 h-4 w-4 text-green-500" />
+                              <Badge 
+                                variant="outline" 
+                                className="bg-green-50 text-green-800 border-green-200 font-medium"
+                              >
+                                {formatNumber(calculateWasteValue(collection.wasteType, collection.wasteAmount || 10))} KSh
+                              </Badge>
                             </div>
                           </TableCell>
                           <TableCell className="text-right">
