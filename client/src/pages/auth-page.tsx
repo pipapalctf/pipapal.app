@@ -172,10 +172,21 @@ export default function AuthPage() {
       if (responseData.developmentMode && responseData.otp) {
         // Use the OTP directly from the response if available
         setDevOtpCode(responseData.otp);
-        toast({
-          title: "Development Mode",
-          description: "A test verification code has been generated",
-        });
+        
+        // If message contains Twilio verification instructions, show that in a special toast
+        if (responseData.message.includes('verify your number in Twilio')) {
+          toast({
+            title: "Twilio Account Notice",
+            description: "Phone number needs to be verified in your Twilio account first. Using test code for now.",
+            duration: 8000,
+            variant: "warning"
+          });
+        } else {
+          toast({
+            title: "Test Mode",
+            description: "A verification code has been generated for testing",
+          });
+        }
       } else if (responseData.message && 
                 (responseData.message.includes('Development mode') || 
                  responseData.message.includes('Use code') || 
@@ -185,8 +196,8 @@ export default function AuthPage() {
         if (match && match[1]) {
           setDevOtpCode(match[1]);
           toast({
-            title: "Development Mode",
-            description: "A test verification code has been generated",
+            title: "Test Mode",
+            description: "A verification code has been generated for testing",
           });
         } else {
           toast({

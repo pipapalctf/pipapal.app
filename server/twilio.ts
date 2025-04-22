@@ -105,14 +105,20 @@ export async function sendOTP(phoneNumber: string): Promise<OtpResponse> {
         console.error('Twilio error sending OTP:', twilioError);
         
         // Handle common Twilio trial account limitations
-        if (twilioError.code === 20003 || twilioError.message?.includes('not a verified')) {
+        if (twilioError.code === 20003 || 
+            twilioError.code === 21612 || 
+            twilioError.message?.includes('not a verified') ||
+            twilioError.message?.includes('current combination')) {
           // In trial accounts, you can only send to verified numbers
           // Fall back to showing the code in the response for testing
-          console.log(`Number not verified in Twilio trial account, showing code in UI`);
+          console.log(`Twilio restriction encountered: ${twilioError.code} - ${twilioError.message}`);
+          console.log(`For Twilio trial accounts: You need to verify your phone number in the Twilio console first`);
+          console.log(`Falling back to development mode, showing code in UI: ${otp}`);
+          
           return { 
             success: true,
             developmentMode: true,
-            message: 'Number not verified in Twilio trial account. Use code: ' + otp,
+            message: 'Phone not verified in Twilio. For trial accounts, verify your number in Twilio first. Use code: ' + otp,
             otp: otp
           };
         }

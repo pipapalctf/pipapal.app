@@ -75,12 +75,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const result = await sendOTP(phoneNumber);
       
       if (result.success) {
-        // Ensure we pass the message from the Twilio module
-        // This will include the test OTP code in development mode
-        res.status(200).json({ 
-          success: true,
-          message: result.message 
-        });
+        // If we're in development mode or using a fallback with a visible code
+        if (result.developmentMode && result.otp) {
+          res.status(200).json({ 
+            success: true,
+            message: result.message,
+            developmentMode: true,
+            otp: result.otp 
+          });
+        } else {
+          // Normal success response for production
+          res.status(200).json({ 
+            success: true,
+            message: result.message 
+          });
+        }
       } else {
         res.status(400).json({ 
           success: false, 
