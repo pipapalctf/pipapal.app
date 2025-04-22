@@ -889,35 +889,35 @@ export default function ProfilePage() {
                                 value={field.value}
                                 className="flex flex-col space-y-2"
                               >
-                                <FormItem className="flex items-center space-x-3 space-y-0 rounded-md border p-3">
+                                <FormItem className="flex items-center space-x-3 space-y-0 rounded-md border p-3 dark:border-gray-700 dark:bg-gray-800">
                                   <FormControl>
                                     <RadioGroupItem value="light" />
                                   </FormControl>
                                   <div className="flex items-center space-x-2">
                                     <SunIcon className="h-5 w-5 text-amber-500" />
-                                    <FormLabel className="font-normal">
+                                    <FormLabel className="font-normal dark:text-white">
                                       Light Mode
                                     </FormLabel>
                                   </div>
                                 </FormItem>
-                                <FormItem className="flex items-center space-x-3 space-y-0 rounded-md border p-3">
+                                <FormItem className="flex items-center space-x-3 space-y-0 rounded-md border p-3 dark:border-gray-700 dark:bg-gray-800">
                                   <FormControl>
                                     <RadioGroupItem value="dark" />
                                   </FormControl>
                                   <div className="flex items-center space-x-2">
                                     <MoonIcon className="h-5 w-5 text-indigo-500" />
-                                    <FormLabel className="font-normal">
+                                    <FormLabel className="font-normal dark:text-white">
                                       Dark Mode
                                     </FormLabel>
                                   </div>
                                 </FormItem>
-                                <FormItem className="flex items-center space-x-3 space-y-0 rounded-md border p-3">
+                                <FormItem className="flex items-center space-x-3 space-y-0 rounded-md border p-3 dark:border-gray-700 dark:bg-gray-800">
                                   <FormControl>
                                     <RadioGroupItem value="system" />
                                   </FormControl>
                                   <div className="flex items-center space-x-2">
-                                    <LaptopIcon className="h-5 w-5 text-gray-500" />
-                                    <FormLabel className="font-normal">
+                                    <LaptopIcon className="h-5 w-5 text-gray-500 dark:text-gray-300" />
+                                    <FormLabel className="font-normal dark:text-white">
                                       System Default
                                     </FormLabel>
                                   </div>
@@ -941,13 +941,13 @@ export default function ProfilePage() {
                         control={preferencesForm.control}
                         name="notificationsEnabled"
                         render={({ field }) => (
-                          <FormItem className="flex flex-row items-center justify-between rounded-md border p-4 mb-4">
+                          <FormItem className="flex flex-row items-center justify-between rounded-md border p-4 mb-4 dark:border-gray-700 dark:bg-gray-800">
                             <div className="space-y-0.5">
                               <div className="flex items-center">
                                 <BellIcon className="h-5 w-5 mr-2 text-primary" />
-                                <FormLabel className="font-medium">Push Notifications</FormLabel>
+                                <FormLabel className="font-medium dark:text-white">Push Notifications</FormLabel>
                               </div>
-                              <FormDescription>
+                              <FormDescription className="dark:text-gray-300">
                                 Receive in-app notifications about pickups and messages
                               </FormDescription>
                             </div>
@@ -965,13 +965,13 @@ export default function ProfilePage() {
                         control={preferencesForm.control}
                         name="emailNotifications"
                         render={({ field }) => (
-                          <FormItem className="flex flex-row items-center justify-between rounded-md border p-4">
+                          <FormItem className="flex flex-row items-center justify-between rounded-md border p-4 dark:border-gray-700 dark:bg-gray-800">
                             <div className="space-y-0.5">
                               <div className="flex items-center">
                                 <AtSign className="h-5 w-5 mr-2 text-primary" />
-                                <FormLabel className="font-medium">Email Notifications</FormLabel>
+                                <FormLabel className="font-medium dark:text-white">Email Notifications</FormLabel>
                               </div>
-                              <FormDescription>
+                              <FormDescription className="dark:text-gray-300">
                                 Receive email updates about your collections and account
                               </FormDescription>
                             </div>
@@ -988,29 +988,29 @@ export default function ProfilePage() {
                     
                     {/* Language Section */}
                     <div>
-                      <h3 className="text-lg font-semibold mb-4">Language</h3>
+                      <h3 className="text-lg font-semibold mb-4 dark:text-white">Language</h3>
                       
                       <FormField
                         control={preferencesForm.control}
                         name="language"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Display Language</FormLabel>
+                            <FormLabel className="dark:text-white">Display Language</FormLabel>
                             <Select
                               onValueChange={field.onChange}
                               defaultValue={field.value}
                             >
                               <FormControl>
-                                <SelectTrigger>
+                                <SelectTrigger className="dark:bg-gray-800 dark:border-gray-700 dark:text-white">
                                   <SelectValue placeholder="Select a language" />
                                 </SelectTrigger>
                               </FormControl>
-                              <SelectContent>
-                                <SelectItem value="en">English</SelectItem>
-                                <SelectItem value="sw">Swahili</SelectItem>
+                              <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
+                                <SelectItem value="en" className="dark:text-white dark:focus:bg-gray-700 dark:hover:bg-gray-700">English</SelectItem>
+                                <SelectItem value="sw" className="dark:text-white dark:focus:bg-gray-700 dark:hover:bg-gray-700">Swahili</SelectItem>
                               </SelectContent>
                             </Select>
-                            <FormDescription>
+                            <FormDescription className="dark:text-gray-300">
                               Choose your preferred language for the app interface
                             </FormDescription>
                             <FormMessage />

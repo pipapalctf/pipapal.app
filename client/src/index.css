@@ -10,4 +10,48 @@
   body {
     @apply font-sans antialiased bg-background text-foreground;
   }
+  
+  /* Dark mode enhancements */
+  .dark {
+    --card: 222.2 47.4% 11.2%;
+    --card-foreground: 210 40% 98%;
+    --primary: 142 70% 50%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --border: 217.2 32.6% 25%;
+    --input: 217.2 32.6% 25%;
+    --ring: 142 70% 50%;
+    
+    /* Improved form elements in dark mode */
+    --input-background: 222.2 47.4% 15%;
+    --input-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 75.1%;
+  }
+  
+  /* Enhanced dark mode form elements */
+  .dark .border {
+    @apply border-gray-700;
+  }
+  
+  .dark input, .dark textarea, .dark select {
+    @apply bg-gray-800 text-gray-100 border-gray-700;
+  }
+  
+  .dark .bg-background {
+    @apply bg-gray-900;
+  }
+  
+  .dark .text-gray-600, .dark .text-gray-500 {
+    @apply text-gray-300;
+  }
+  
+  /* Improved form descriptions */
+  .dark [data-description], .dark .form-description {
+    @apply text-gray-300;
+  }
+  
+  /* Better card contrast in dark mode */
+  .dark .card {
+    @apply bg-gray-800 border-gray-700;
+  }
 }
