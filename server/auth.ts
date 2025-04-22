@@ -116,15 +116,100 @@ export function setupAuth(app: Express) {
     res.json(req.user);
   });
   
+  // Dedicated endpoint for completing onboarding
+  app.post("/api/onboarding", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const user = req.user;
+      const userData = req.body;
+      const updates: Record<string, any> = { onboardingCompleted: true };
+      
+      // Process role-specific fields based on user role
+      if (user.role === UserRole.ORGANIZATION) {
+        // Organization role requires these fields
+        const requiredFields = ['organizationType', 'organizationName', 'contactPersonName'];
+        for (const field of requiredFields) {
+          if (!userData[field]) {
+            return res.status(400).json({ 
+              message: `Missing required field: ${field}` 
+            });
+          }
+          updates[field] = userData[field];
+        }
+        
+        // Optional fields for organizations
+        const optionalFields = ['contactPersonPosition', 'contactPersonPhone', 'contactPersonEmail'];
+        optionalFields.forEach(field => {
+          if (userData[field]) {
+            updates[field] = userData[field];
+          }
+        });
+      } 
+      else if (user.role === UserRole.COLLECTOR || user.role === UserRole.RECYCLER) {
+        // For collectors and recyclers, we need certification info
+        if (userData.isCertified !== undefined) {
+          updates.isCertified = userData.isCertified;
+          
+          // If certified, details should be provided
+          if (userData.isCertified && userData.certificationDetails) {
+            updates.certificationDetails = userData.certificationDetails;
+          }
+        }
+      }
+      
+      // Update user in database
+      const updatedUser = await storage.updateUser(user.id, updates);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Create activity for completing onboarding
+      await storage.createActivity({
+        userId: user.id,
+        activityType: 'onboarding',
+        description: 'Completed profile setup',
+        points: 5
+      });
+      
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error completing onboarding:", error);
+      res.status(500).json({ message: "Failed to complete onboarding" });
+    }
+  });
+  
   app.patch("/api/user", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
     try {
-      // Only allow certain fields to be updated
+      // Allow regular profile fields
       const allowedFields = ['fullName', 'email', 'address', 'phone'];
+      // Also allow onboarding-related fields
+      const onboardingFields = [
+        'organizationType', 
+        'organizationName', 
+        'contactPersonName', 
+        'contactPersonPosition', 
+        'contactPersonPhone', 
+        'contactPersonEmail', 
+        'isCertified', 
+        'certificationDetails', 
+        'onboardingCompleted'
+      ];
+      
       const updates: Record<string, any> = {};
       
+      // Process regular fields
       allowedFields.forEach(field => {
+        if (req.body[field] !== undefined) {
+          updates[field] = req.body[field];
+        }
+      });
+      
+      // Process onboarding fields
+      onboardingFields.forEach(field => {
         if (req.body[field] !== undefined) {
           updates[field] = req.body[field];
         }
