@@ -28,7 +28,8 @@ import MobileNavigation from "@/components/shared/mobile-navigation";
 
 // Icons
 import { Check, Loader2, UserIcon, KeyIcon, MapPinIcon, PhoneIcon, AtSign, AlertCircle, 
-  BriefcaseIcon, CheckCircleIcon, Building2Icon, Clock4Icon, MapIcon } from "lucide-react";
+  BriefcaseIcon, CheckCircleIcon, Building2Icon, Clock4Icon, MapIcon, Settings, BellIcon,
+  SunIcon, MoonIcon, LaptopIcon, BellOffIcon } from "lucide-react";
 
 // Profile form schema
 const profileFormSchema = z.object({
@@ -64,9 +65,18 @@ const passwordFormSchema = z.object({
   path: ["confirmPassword"],
 });
 
+// Preferences form schema
+const preferencesFormSchema = z.object({
+  theme: z.enum(["light", "dark", "system"]).default("system"),
+  notificationsEnabled: z.boolean().default(true),
+  emailNotifications: z.boolean().default(true),
+  language: z.enum(["en", "sw"]).default("en"), // English and Swahili
+});
+
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
 type BusinessFormValues = z.infer<typeof businessFormSchema>;
 type PasswordFormValues = z.infer<typeof passwordFormSchema>;
+type PreferencesFormValues = z.infer<typeof preferencesFormSchema>;
 
 export default function ProfilePage() {
   const { user } = useAuth();
@@ -75,6 +85,26 @@ export default function ProfilePage() {
   
   // Check if user is a collector or recycler
   const isBusinessUser = user?.role === 'collector' || user?.role === 'recycler';
+  
+  // Get stored preferences from local storage or use defaults
+  const getStoredPreferences = (): PreferencesFormValues => {
+    try {
+      const storedPrefs = localStorage.getItem('userPreferences');
+      if (storedPrefs) {
+        return JSON.parse(storedPrefs);
+      }
+    } catch (error) {
+      console.error("Error loading preferences:", error);
+    }
+    
+    // Default preferences
+    return {
+      theme: "system",
+      notificationsEnabled: true,
+      emailNotifications: true,
+      language: "en",
+    };
+  };
 
   // Profile form
   const profileForm = useForm<ProfileFormValues>({
@@ -114,6 +144,12 @@ export default function ProfilePage() {
       newPassword: "",
       confirmPassword: "",
     },
+  });
+  
+  // Preferences form
+  const preferencesForm = useForm<PreferencesFormValues>({
+    resolver: zodResolver(preferencesFormSchema),
+    defaultValues: getStoredPreferences(),
   });
 
   // Update profile mutation
@@ -212,6 +248,42 @@ export default function ProfilePage() {
   // Submit business form
   function onBusinessSubmit(data: BusinessFormValues) {
     updateBusinessMutation.mutate(data);
+  }
+  
+  // Submit preferences form
+  function onPreferencesSubmit(data: PreferencesFormValues) {
+    try {
+      // Save preferences to local storage
+      localStorage.setItem('userPreferences', JSON.stringify(data));
+      
+      // Apply theme preference immediately
+      const theme = data.theme;
+      if (theme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else if (theme === 'light') {
+        document.documentElement.classList.remove('dark');
+      } else {
+        // System preference
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      }
+      
+      toast({
+        title: "Preferences saved",
+        description: "Your preferences have been updated successfully.",
+        variant: "default",
+      });
+    } catch (error) {
+      console.error("Error saving preferences:", error);
+      toast({
+        title: "Error saving preferences",
+        description: "An error occurred while saving your preferences",
+        variant: "destructive",
+      });
+    }
   }
 
   if (!user) {
