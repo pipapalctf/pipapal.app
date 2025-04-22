@@ -7,11 +7,14 @@ const authToken = process.env.TWILIO_AUTH_TOKEN;
 const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
 const isDevelopment = process.env.NODE_ENV === 'development';
 
-// Flag to determine if we should use Twilio or development mode
-let useTwilio = !isDevelopment && accountSid && authToken && twilioPhoneNumber;
+// Flag to determine if we should use Twilio
+// Now that we have credentials, we'll try to use Twilio in all environments
+let useTwilio = accountSid && authToken && twilioPhoneNumber;
 
 if (!accountSid || !authToken || !twilioPhoneNumber) {
-  console.warn('Missing Twilio environment variables - using development mode with fixed OTP');
+  console.error('Missing Twilio environment variables - SMS verification will not work');
+} else {
+  console.log('Twilio credentials found - SMS verification is active');
 }
 
 // Only initialize client if we're using Twilio
@@ -73,69 +76,66 @@ export async function sendOTP(phoneNumber: string): Promise<OtpResponse> {
   try {
     const formattedPhoneNumber = formatPhoneNumber(phoneNumber);
     
-    // Generate OTP for development mode or production
-    const otp = isDevelopment || !useTwilio ? generateDevOTP() : generateOTP();
+    // Generate a consistent OTP (always use one function for reliable codes)
+    const otp = generateOTP();
     
     // Store OTP with 10-minute expiration
     const expires = new Date();
     expires.setMinutes(expires.getMinutes() + 10);
     otpStore.set(formattedPhoneNumber, { otp, expires });
     
-    // If we're in development mode or missing Twilio credentials, don't attempt to send SMS
-    if (isDevelopment || !useTwilio) {
-      console.log(`[DEV MODE] Would send OTP ${otp} to ${formattedPhoneNumber}`);
+    // Log for debugging, without revealing the actual OTP
+    console.log(`Sending verification code to ${formattedPhoneNumber} (last 4 digits: ${formattedPhoneNumber.slice(-4)})`);
+    
+    // If we have proper Twilio credentials, attempt to send SMS
+    if (useTwilio && client) {
+      try {
+        // This is the main production path - use Twilio for real SMS
+        const message = await client.messages.create({
+          body: `Your PipaPal verification code is: ${otp}. Valid for 10 minutes.`,
+          from: twilioPhoneNumber,
+          to: formattedPhoneNumber
+        });
+        
+        // Log the Twilio message SID for debugging, not the actual content
+        console.log(`Twilio SMS sent, SID: ${message.sid}`);
+        
+        return { success: true, message: 'OTP sent successfully' };
+      } catch (twilioError: any) {
+        console.error('Twilio error sending OTP:', twilioError);
+        
+        // Handle common Twilio trial account limitations
+        if (twilioError.code === 20003 || twilioError.message?.includes('not a verified')) {
+          // In trial accounts, you can only send to verified numbers
+          // Fall back to showing the code in the response for testing
+          console.log(`Number not verified in Twilio trial account, showing code in UI`);
+          return { 
+            success: true,
+            developmentMode: true,
+            message: 'Number not verified in Twilio trial account. Use code: ' + otp,
+            otp: otp
+          };
+        }
+        
+        throw twilioError;
+      }
+    } else {
+      // Fallback for development or when Twilio credentials are missing
+      console.log(`OTP fallback mode activated - showing code in UI`);
       return { 
         success: true,
         developmentMode: true,
-        message: 'Development mode - OTP generated but not sent. Use code: ' + otp,
-        otp: otp // Only included in development mode
+        message: 'Verification code generated. Use code: ' + otp,
+        otp: otp
       };
-    }
-    
-    // Send SMS with OTP using Twilio
-    try {
-      await client?.messages.create({
-        body: `Your PipaPal verification code is: ${otp}. Valid for 10 minutes.`,
-        from: twilioPhoneNumber,
-        to: formattedPhoneNumber
-      });
-      
-      return { success: true, message: 'OTP sent successfully' };
-    } catch (twilioError: any) {
-      console.error('Twilio error sending OTP:', twilioError);
-      
-      // Handle common Twilio trial account limitations
-      if (twilioError.code === 20003 || twilioError.message?.includes('not a verified')) {
-        // In trial accounts, you can only send to verified numbers
-        // Fall back to development mode
-        console.log(`Falling back to dev mode. OTP: ${otp}`);
-        return { 
-          success: true,
-          developmentMode: true,
-          message: 'Number not verified in Twilio trial account. Use code: ' + otp,
-          otp: otp
-        };
-      }
-      
-      throw twilioError;
     }
   } catch (error: any) {
     console.error('Error in sendOTP:', error);
     
-    // Even if there's an error, we'll still generate a test OTP in development mode
-    if (isDevelopment) {
-      const devOtp = generateDevOTP();
-      return { 
-        success: true,
-        developmentMode: true,
-        message: 'Development mode - use test code: ' + devOtp,
-        otp: devOtp
-      };
-    }
-    
+    // Provide a more detailed error message
     return { 
       success: false, 
-      message: error.message || 'Failed to send verification code' 
+      message: `Failed to send verification code: ${error.message || 'Unknown error'}`
     };
   }
 }
