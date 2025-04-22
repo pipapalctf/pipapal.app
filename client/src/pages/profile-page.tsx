@@ -337,11 +337,22 @@ export default function ProfilePage() {
           
           <TabsContent value="profile">
             <Card>
-              <CardHeader>
-                <CardTitle>Personal Information</CardTitle>
-                <CardDescription>
-                  Update your personal details and contact information
-                </CardDescription>
+              <CardHeader className="relative">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle>Personal Information</CardTitle>
+                    <CardDescription>
+                      Update your personal details and contact information
+                    </CardDescription>
+                  </div>
+                  <div className="flex items-center text-sm text-muted-foreground">
+                    <Clock4Icon className="h-4 w-4 mr-1.5" />
+                    <span>Active since {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { 
+                      month: 'long', 
+                      year: 'numeric' 
+                    }) : 'Unknown'}</span>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 <Form {...profileForm}>
@@ -443,11 +454,22 @@ export default function ProfilePage() {
           {isBusinessUser && (
             <TabsContent value="business">
               <Card>
-                <CardHeader>
-                  <CardTitle>{user?.role === 'collector' ? 'Collector' : 'Recycler'} Business Information</CardTitle>
-                  <CardDescription>
-                    Update your business details and certification information
-                  </CardDescription>
+                <CardHeader className="relative">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle>{user?.role === 'collector' ? 'Collector' : 'Recycler'} Business Information</CardTitle>
+                      <CardDescription>
+                        Update your business details and certification information
+                      </CardDescription>
+                    </div>
+                    <div className="flex items-center text-sm text-muted-foreground">
+                      <Clock4Icon className="h-4 w-4 mr-1.5" />
+                      <span>Active since {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { 
+                        month: 'long', 
+                        year: 'numeric' 
+                      }) : 'Unknown'}</span>
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <Form {...businessForm}>
