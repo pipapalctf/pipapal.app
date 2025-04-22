@@ -73,10 +73,9 @@ export default function LandingPage() {
                 <div className="relative bg-white rounded-xl shadow-2xl p-2 md:p-3 z-10 md:w-[100%] border border-gray-100">
                   <div className="overflow-hidden rounded-lg">
                     <img 
-                      src="/dashboard-preview.png" 
+                      src="/images/dashboard-preview-new.png" 
                       alt="PipaPal Dashboard Preview" 
-                      className="rounded-lg w-full h-auto object-contain shadow-sm hover:scale-[1.02] transition-transform duration-300"
-                      style={{ maxHeight: "340px" }}
+                      className="rounded-lg w-full h-auto object-cover shadow-sm hover:scale-[1.02] transition-transform duration-300"
                     />
                   </div>
                   <div className="absolute -bottom-3 -right-3 w-20 h-20 bg-primary/10 rounded-full blur-xl"></div>
