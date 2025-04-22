@@ -1580,5 +1580,117 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // We no longer need to modify the route handlers after registration
   // since we've integrated the notification logic directly into our PATCH handler
 
+  // Admin API routes
+  // These routes are protected by requireRole middleware to ensure only admins can access them
+  
+  // Get all users (for admin dashboard)
+  app.get("/api/admin/users",
+    requireRole(UserRole.ADMIN),
+    async (req, res) => {
+      try {
+        const allUsers = await storage.getAllUsers();
+        res.json(allUsers);
+      } catch (error) {
+        console.error("Error fetching all users:", error);
+        res.status(500).json({ error: "Failed to fetch users" });
+      }
+    }
+  );
+  
+  // Get all collections (for admin dashboard)
+  app.get("/api/admin/collections",
+    requireRole(UserRole.ADMIN),
+    async (req, res) => {
+      try {
+        const allCollections = await storage.getAllCollections();
+        res.json(allCollections);
+      } catch (error) {
+        console.error("Error fetching all collections:", error);
+        res.status(500).json({ error: "Failed to fetch collections" });
+      }
+    }
+  );
+  
+  // Get system stats (for admin dashboard)
+  app.get("/api/admin/stats",
+    requireRole(UserRole.ADMIN),
+    async (req, res) => {
+      try {
+        // Get total users count
+        const allUsers = await storage.getAllUsers();
+        const totalUsers = allUsers.length;
+        
+        // Get collections
+        const allCollections = await storage.getAllCollections();
+        const totalCollections = allCollections.length;
+        
+        // Calculate total waste
+        const totalWaste = allCollections.reduce((sum, collection) => {
+          return sum + (collection.wasteAmount || 0);
+        }, 0);
+        
+        // Get active users (users with activity in the last month)
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        
+        // Get unique user IDs from recent activities
+        const userActivityMap = new Map();
+        for (const user of allUsers) {
+          const activities = await storage.getActivitiesByUser(user.id);
+          const recentActivities = activities.filter(activity => 
+            activity.createdAt && new Date(activity.createdAt) >= thirtyDaysAgo
+          );
+          
+          if (recentActivities.length > 0) {
+            userActivityMap.set(user.id, true);
+          }
+        }
+        const activeUsers = userActivityMap.size;
+        
+        res.json({
+          totalUsers,
+          totalCollections,
+          totalWaste,
+          activeUsers
+        });
+      } catch (error) {
+        console.error("Error fetching system stats:", error);
+        res.status(500).json({ error: "Failed to fetch system stats" });
+      }
+    }
+  );
+  
+  // API to make a user an admin (can only be performed by an existing admin)
+  app.post("/api/admin/promote/:id",
+    requireRole(UserRole.ADMIN),
+    async (req, res) => {
+      try {
+        const userId = parseInt(req.params.id);
+        if (isNaN(userId)) {
+          return res.status(400).json({ error: "Invalid user ID" });
+        }
+        
+        const user = await storage.getUser(userId);
+        if (!user) {
+          return res.status(404).json({ error: "User not found" });
+        }
+        
+        // Update the user's role to admin
+        const updatedUser = await storage.updateUser(userId, { role: UserRole.ADMIN });
+        if (!updatedUser) {
+          return res.status(500).json({ error: "Failed to update user role" });
+        }
+        
+        res.json({ 
+          message: "User promoted to admin successfully", 
+          user: updatedUser 
+        });
+      } catch (error) {
+        console.error("Error promoting user to admin:", error);
+        res.status(500).json({ error: "Failed to promote user to admin" });
+      }
+    }
+  );
+
   return httpServer;
 }

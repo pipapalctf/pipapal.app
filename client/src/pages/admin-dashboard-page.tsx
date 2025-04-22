@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { UserRole, UserRoleType } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
-import AuthenticatedLayout from "@/components/layouts/authenticated-layout";
+import { AuthenticatedLayout } from "@/components/layouts/authenticated-layout";
 import { Eye, Search, Download, RefreshCw, UserCog, Ban } from "lucide-react";
 import { 
   Dialog, 
@@ -83,11 +83,24 @@ const userColumns = [
       const user = row.original;
       return (
         <div className="flex space-x-2">
-          <Button variant="outline" size="sm" onClick={() => {}}>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => {
+              setSelectedUser(user);
+              setViewUserDialogOpen(true);
+            }}
+          >
             <Eye className="h-4 w-4 mr-1" />
             View
           </Button>
-          <Button variant="outline" size="sm" onClick={() => {}}>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => {
+              // Handle edit functionality
+            }}
+          >
             <UserCog className="h-4 w-4 mr-1" />
             Edit
           </Button>
@@ -154,7 +167,15 @@ const collectionColumns = [
     cell: ({ row }: any) => {
       const collection = row.original;
       return (
-        <Button variant="outline" size="sm" onClick={() => {}}>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => {
+            // This could link to a collection details view or show a dialog
+            // For now let's just console.log the collection details
+            console.log('Collection details:', collection);
+          }}
+        >
           <Eye className="h-4 w-4 mr-1" />
           View
         </Button>
@@ -169,6 +190,44 @@ export default function AdminDashboardPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [viewUserDialogOpen, setViewUserDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [isPromotingUser, setIsPromotingUser] = useState(false);
+  
+  // Function to promote a user to admin role
+  const promoteToAdmin = async (userId: number) => {
+    if (!confirm("Are you sure you want to promote this user to admin? This action grants them full system access.")) {
+      return;
+    }
+    
+    setIsPromotingUser(true);
+    
+    try {
+      const res = await apiRequest("POST", `/api/admin/promote/${userId}`);
+      const data = await res.json();
+      
+      toast({
+        title: "User promoted successfully",
+        description: "The user has been given admin permissions",
+        variant: "default",
+      });
+      
+      // Refresh the users list
+      refetchUsers();
+      
+      // If the user being viewed was promoted, update the selected user
+      if (selectedUser && selectedUser.id === userId) {
+        setSelectedUser({ ...selectedUser, role: UserRole.ADMIN });
+      }
+    } catch (error) {
+      console.error("Error promoting user:", error);
+      toast({
+        title: "Failed to promote user",
+        description: "There was an error giving admin permissions to the user",
+        variant: "destructive",
+      });
+    } finally {
+      setIsPromotingUser(false);
+    }
+  };
 
   // Fetch all users
   const { data: users = [], isLoading: isLoadingUsers, refetch: refetchUsers } = useQuery({
@@ -436,10 +495,27 @@ export default function AdminDashboardPage() {
                   </div>
                   <div>
                     <Label className="text-muted-foreground">Role</Label>
-                    <Badge>
-                      {selectedUser.role.charAt(0).toUpperCase() +
-                        selectedUser.role.slice(1)}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge>
+                        {selectedUser.role.charAt(0).toUpperCase() +
+                          selectedUser.role.slice(1)}
+                      </Badge>
+                      {selectedUser.role !== UserRole.ADMIN && (
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => promoteToAdmin(selectedUser.id)}
+                          disabled={isPromotingUser}
+                        >
+                          {isPromotingUser ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <UserCog className="h-4 w-4 mr-2" />
+                          )}
+                          Promote to Admin
+                        </Button>
+                      )}
+                    </div>
                   </div>
                   <div>
                     <Label className="text-muted-foreground">Created</Label>
