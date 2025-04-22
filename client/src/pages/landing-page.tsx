@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 // Import directly using relative path to attached_assets
 import pipapalLogo from "../.././../attached_assets/pipapal-logo.png";
+import dashboardImage from "../.././../attached_assets/image_1745314618027.png";
 
 export default function LandingPage() {
 
@@ -73,7 +74,7 @@ export default function LandingPage() {
                 <div className="relative bg-white rounded-xl shadow-2xl p-2 md:p-3 z-10 md:w-[100%] border border-gray-100">
                   <div className="overflow-hidden rounded-lg">
                     <img 
-                      src="/image_1745314618027.png" 
+                      src={dashboardImage} 
                       alt="PipaPal Dashboard Preview" 
                       className="rounded-lg w-full h-auto object-cover shadow-sm hover:scale-[1.02] transition-transform duration-300"
                     />
