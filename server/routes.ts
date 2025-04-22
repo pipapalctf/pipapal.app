@@ -50,36 +50,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication
   setupAuth(app);
   
-  // DEVELOPMENT ONLY: Direct login for existing users in the database
+  // DISABLED FOR PRODUCTION: Development login endpoint has been disabled
   app.post("/api/dev-login", async (req, res) => {
-    if (process.env.NODE_ENV !== 'development') {
-      return res.status(404).send('Not found');
-    }
-    
-    try {
-      const { email, password } = req.body;
-      
-      if (!email || !password) {
-        return res.status(400).json({ error: 'Email and password are required' });
-      }
-      
-      // Find user by email
-      const user = await storage.getUserByEmail(email);
-      if (!user) {
-        return res.status(401).json({ error: 'Invalid email or password' });
-      }
-      
-      // Manually login the user (skipping password check for development)
-      req.login(user, (err) => {
-        if (err) {
-          return res.status(500).json({ error: 'Login failed' });
-        }
-        return res.status(200).json(user);
-      });
-    } catch (error) {
-      console.error('Development login error:', error);
-      return res.status(500).json({ error: 'Server error during development login' });
-    }
+    // Always return 404 for production safety
+    return res.status(404).send('Not found');
   });
   
   // User routes
