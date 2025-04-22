@@ -73,7 +73,7 @@ export default function LandingPage() {
                 <div className="relative bg-white rounded-xl shadow-2xl p-2 md:p-3 z-10 md:w-[100%] border border-gray-100">
                   <div className="overflow-hidden rounded-lg">
                     <img 
-                      src="/dashboard-preview-new.png" 
+                      src="/image_1745314618027.png" 
                       alt="PipaPal Dashboard Preview" 
                       className="rounded-lg w-full h-auto object-cover shadow-sm hover:scale-[1.02] transition-transform duration-300"
                     />
