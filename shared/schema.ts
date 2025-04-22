@@ -64,6 +64,16 @@ export const users = pgTable("users", {
   phone: text("phone"),
   sustainabilityScore: integer("sustainability_score").default(0),
   createdAt: timestamp("created_at").defaultNow(),
+  // Role-specific fields
+  organizationType: text("organization_type"), // "business", "non-profit", "community_group", etc.
+  organizationName: text("organization_name"), // For organizations 
+  contactPersonName: text("contact_person_name"), // For organizations
+  contactPersonPosition: text("contact_person_position"), // For organizations
+  contactPersonPhone: text("contact_person_phone"), // For organizations
+  contactPersonEmail: text("contact_person_email"), // For organizations
+  isCertified: boolean("is_certified"), // For collectors and recyclers
+  certificationDetails: text("certification_details"), // For collectors and recyclers
+  onboardingCompleted: boolean("onboarding_completed").default(false),
 });
 
 // Waste collections table
@@ -145,6 +155,15 @@ export const insertUserSchema = createInsertSchema(users)
     role: true,
     address: true,
     phone: true,
+    organizationType: true,
+    organizationName: true, 
+    contactPersonName: true,
+    contactPersonPosition: true,
+    contactPersonPhone: true,
+    contactPersonEmail: true,
+    isCertified: true,
+    certificationDetails: true,
+    onboardingCompleted: true,
   });
 
 export const insertCollectionSchema = createInsertSchema(collections, {
