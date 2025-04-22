@@ -3,11 +3,23 @@
  */
 
 /**
+ * Scrolls to the top of the page with smooth scrolling
+ * @param smooth - Whether to use smooth scrolling animation (default: true)
+ */
+export function scrollToTop(smooth: boolean = true): void {
+  window.scrollTo({
+    top: 0,
+    behavior: smooth ? 'smooth' : 'auto'
+  });
+}
+
+/**
  * Scrolls to a specific element with an offset from the top
  * @param elementId - The ID of the element to scroll to
  * @param offset - Optional offset from the top in pixels (default: 0)
+ * @param smooth - Whether to use smooth scrolling animation (default: true)
  */
-export function scrollToElement(elementId: string, offset: number = 0): void {
+export function scrollToElement(elementId: string, offset: number = 0, smooth: boolean = true): void {
   // Find the element by ID
   const element = document.getElementById(elementId);
   if (!element) return;
@@ -21,7 +33,7 @@ export function scrollToElement(elementId: string, offset: number = 0): void {
   // Perform the scroll
   window.scrollTo({
     top: targetPosition,
-    behavior: 'smooth'
+    behavior: smooth ? 'smooth' : 'auto'
   });
 }
 
