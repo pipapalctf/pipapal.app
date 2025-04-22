@@ -16,6 +16,7 @@ import { z } from "zod";
 import { setupAuth } from "./auth";
 import { generateEcoTip } from "./openai";
 import { WebSocketServer, WebSocket } from 'ws';
+import { sendOTP, verifyOTP } from './twilio';
 import { 
   Permissions, 
   requirePermission, 
@@ -38,6 +39,17 @@ const chatMessageSchema = z.object({
   content: z.string().min(1).max(1000),
 });
 
+// Schema for OTP verification
+const sendOtpSchema = z.object({
+  phoneNumber: z.string().min(10),
+});
+
+const verifyOtpSchema = z.object({
+  phoneNumber: z.string().min(10),
+  otp: z.string().length(6),
+  userId: z.number(),
+});
+
 // Simple middleware to require authentication
 const requireAuthentication = (req: Request, res: Response, next: NextFunction) => {
   if (!req.isAuthenticated || !req.isAuthenticated() || !req.user) {
@@ -49,6 +61,73 @@ const requireAuthentication = (req: Request, res: Response, next: NextFunction) 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication
   setupAuth(app);
+  
+  // OTP verification routes
+  app.post('/api/otp/send', async (req, res) => {
+    try {
+      const { phoneNumber } = sendOtpSchema.parse(req.body);
+      const result = await sendOTP(phoneNumber);
+      
+      if (result.success) {
+        res.status(200).json({ message: result.message });
+      } else {
+        res.status(400).json({ error: result.message });
+      }
+    } catch (error: any) {
+      console.error('Error sending OTP:', error);
+      res.status(500).json({ 
+        error: 'Failed to send verification code',
+        details: error.message
+      });
+    }
+  });
+  
+  app.post('/api/otp/verify', requireAuthentication, async (req, res) => {
+    try {
+      const { phoneNumber, otp, userId } = verifyOtpSchema.parse(req.body);
+      
+      // Ensure the user can only verify their own phone
+      if (req.user?.id !== userId) {
+        return res.status(403).json({ error: 'You can only verify your own phone number' });
+      }
+      
+      const isValid = verifyOTP(phoneNumber, otp);
+      
+      if (isValid) {
+        // Update user record to set phoneVerified to true
+        const updatedUser = await storage.updateUser(userId, {
+          phone: phoneNumber,
+          phoneVerified: true
+        });
+        
+        // Create activity for verified phone
+        await storage.createActivity({
+          userId,
+          activityType: 'account_security',
+          description: 'Verified phone number',
+          points: 5,
+          timestamp: new Date()
+        });
+        
+        res.status(200).json({ 
+          success: true, 
+          message: 'Phone number verified successfully',
+          user: updatedUser
+        });
+      } else {
+        res.status(400).json({ 
+          success: false, 
+          error: 'Invalid or expired verification code' 
+        });
+      }
+    } catch (error: any) {
+      console.error('Error verifying OTP:', error);
+      res.status(500).json({ 
+        error: 'Failed to verify phone number',
+        details: error.message 
+      });
+    }
+  });
   
   // User routes
   app.patch('/api/users/:id', requireAuthentication, async (req, res) => {
