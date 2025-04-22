@@ -189,6 +189,8 @@ export default function OnboardingPage() {
   
   function onCollectorRecyclerSubmit(values: CollectorRecyclerOnboardingValues) {
     setSubmitting(true);
+    console.log("Form values:", values);
+    
     // Transform string to boolean for the API
     const submitData: CollectorRecyclerSubmitValues = {
       // Business information
@@ -218,6 +220,8 @@ export default function OnboardingPage() {
       // Common
       onboardingCompleted: true
     };
+    
+    console.log("Submitting data to API:", submitData);
     completeOnboardingMutation.mutate(submitData);
   }
   
