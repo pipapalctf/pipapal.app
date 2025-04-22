@@ -23,6 +23,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { User, CollectionStatus } from '@shared/schema';
 import RoleBasedCTA from './role-based-cta';
+import RecentActivity from './recent-activity';
 import { formatNumber } from '@/lib/utils';
 import {
   Dialog,

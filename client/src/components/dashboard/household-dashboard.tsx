@@ -9,6 +9,7 @@ import { formatNumber, scrollToElement } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Link, useLocation } from 'wouter';
 import RoleBasedCTA from './role-based-cta';
+import RecentActivity from './recent-activity';
 
 interface HouseholdDashboardProps {
   user: User;
