@@ -72,7 +72,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     mutationFn: async (userData: RegisterData) => {
       // Remove confirmPassword before sending to API
       const { confirmPassword, ...userDataWithoutConfirm } = userData;
-      const res = await apiRequest("POST", "/api/register", userDataWithoutConfirm);
+      // Set onboardingCompleted to false explicitly for new users
+      const dataToSend = {
+        ...userDataWithoutConfirm,
+        onboardingCompleted: false
+      };
+      const res = await apiRequest("POST", "/api/register", dataToSend);
       return await res.json();
     },
     onSuccess: (user: SelectUser) => {
@@ -81,6 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         title: "Registration successful",
         description: "Welcome to PipaPal! You've earned free compostable bags!",
       });
+      // User will be redirected to onboarding by ProtectedRoute
     },
     onError: (error: Error) => {
       toast({

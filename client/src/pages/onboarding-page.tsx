@@ -133,10 +133,13 @@ export default function OnboardingPage() {
   
   function onCollectorRecyclerSubmit(values: CollectorRecyclerOnboardingValues) {
     setSubmitting(true);
-    updateUserMutation.mutate({
-      ...values,
-      onboardingCompleted: true,
-    });
+    // Transform string to boolean for the API
+    const submitData: CollectorRecyclerSubmitValues = {
+      isCertified: values.isCertified === "true",
+      certificationDetails: values.certificationDetails,
+      onboardingCompleted: true
+    };
+    updateUserMutation.mutate(submitData);
   }
   
   if (isLoading || !user) {

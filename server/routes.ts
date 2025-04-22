@@ -40,6 +40,42 @@ const requireAuthentication = (req: Request, res: Response, next: NextFunction) 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication
   setupAuth(app);
+  
+  // User routes
+  app.patch('/api/users/:id', requireAuthentication, async (req, res) => {
+    try {
+      // Only allow users to update their own profile
+      if (req.user?.id !== parseInt(req.params.id)) {
+        return res.status(403).json({ error: 'Forbidden: You can only update your own profile' });
+      }
+      
+      const userId = parseInt(req.params.id);
+      const updates = req.body;
+      
+      // Update user in database
+      const updatedUser = await storage.updateUser(userId, updates);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      
+      // Create activity for completing onboarding if applicable
+      if (updates.onboardingCompleted) {
+        await storage.createActivity({
+          userId,
+          activityType: 'profile_update',
+          description: 'Completed account setup',
+          points: 10,
+          timestamp: new Date()
+        });
+      }
+      
+      res.json(updatedUser);
+    } catch (error) {
+      console.error('Error updating user:', error);
+      res.status(500).json({ error: 'Failed to update user' });
+    }
+  });
 
   // Collections
   app.get("/api/collections", 

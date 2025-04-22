@@ -36,7 +36,7 @@ function Router() {
       <ProtectedRoute path="/recycler/materials" component={RecyclerMaterialsPage} roleCheck={UserRole.RECYCLER} />
       <ProtectedRoute path="/materials" component={RecyclerMaterialsPage} roleCheck={UserRole.RECYCLER} />
       <ProtectedRoute path="/profile" component={ProfilePage} />
-      <ProtectedRoute path="/onboarding" component={OnboardingPage} />
+      <ProtectedRoute path="/onboarding" component={OnboardingPage} skipOnboardingCheck={true} />
       <Route path="/auth" component={AuthPage} />
       <Route path="/about" component={AboutPage} />
       <Route path="/mission" component={MissionPage} />
