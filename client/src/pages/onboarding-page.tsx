@@ -125,7 +125,7 @@ export default function OnboardingPage() {
   const organizationForm = useForm<OrganizationOnboardingValues>({
     resolver: zodResolver(organizationOnboardingSchema),
     defaultValues: {
-      organizationType: "",
+      organizationType: "business",
       organizationName: "",
       contactPersonName: "",
       contactPersonPosition: "",
@@ -168,13 +168,29 @@ export default function OnboardingPage() {
       });
       navigate("/dashboard");
     },
-    onError: (error) => {
+    onError: (error: any) => {
+      console.error("Onboarding error:", error);
+      
+      let errorMessage = "Failed to complete onboarding. Please try again.";
+      
+      // Try to extract error message from the response
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (error.response) {
+        try {
+          const errorData = JSON.parse(error.response);
+          errorMessage = errorData.message || errorMessage;
+        } catch (e) {
+          // If parsing fails, use the default message
+        }
+      }
+      
       toast({
         title: "Error",
-        description: "Failed to complete onboarding. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
-      console.error(error);
+      
       setSubmitting(false);
     },
   });
