@@ -40,7 +40,7 @@ export default function LandingPage() {
                 track your environmental impact in real-time.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
-                <Link href="/auth">
+                <Link href="/auth?tab=register">
                   <Button size="lg" className="w-full sm:w-auto">
                     Get Started
                     <ChevronRight className="ml-2 h-4 w-4" />
@@ -251,7 +251,7 @@ export default function LandingPage() {
                   <span>Learn from personalized eco-tips</span>
                 </li>
               </ul>
-              <Link href="/auth">
+              <Link href="/auth?tab=register">
                 <Button className="w-full" variant="outline">
                   Register as a Household
                   <ArrowRight className="ml-2 h-5 w-5" />

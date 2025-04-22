@@ -66,7 +66,15 @@ export default function AuthPage() {
     isLoading 
   } = useAuth();
   const [location, navigate] = useLocation();
-  const [activeTab, setActiveTab] = useState<string>("login");
+  
+  // Check URL for tab parameter
+  const getTabFromUrl = () => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const tab = searchParams.get('tab');
+    return tab === 'register' ? 'register' : 'login';
+  };
+  
+  const [activeTab, setActiveTab] = useState<string>(getTabFromUrl());
   
   const handleGoogleSignIn = () => {
     loginWithGoogleMutation.mutate();
