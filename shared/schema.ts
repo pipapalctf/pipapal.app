@@ -64,15 +64,25 @@ export const users = pgTable("users", {
   phone: text("phone"),
   sustainabilityScore: integer("sustainability_score").default(0),
   createdAt: timestamp("created_at").defaultNow(),
-  // Role-specific fields
+  // Role-specific fields - Organizations
   organizationType: text("organization_type"), // "business", "non-profit", "community_group", etc.
-  organizationName: text("organization_name"), // For organizations 
-  contactPersonName: text("contact_person_name"), // For organizations
-  contactPersonPosition: text("contact_person_position"), // For organizations
-  contactPersonPhone: text("contact_person_phone"), // For organizations
-  contactPersonEmail: text("contact_person_email"), // For organizations
-  isCertified: boolean("is_certified"), // For collectors and recyclers
-  certificationDetails: text("certification_details"), // For collectors and recyclers
+  organizationName: text("organization_name"), 
+  contactPersonName: text("contact_person_name"), 
+  contactPersonPosition: text("contact_person_position"), 
+  contactPersonPhone: text("contact_person_phone"), 
+  contactPersonEmail: text("contact_person_email"),
+  
+  // Role-specific fields - Collectors & Recyclers
+  isCertified: boolean("is_certified"),
+  certificationDetails: text("certification_details"),
+  businessType: text("business_type"), // "individual" or "organization"
+  businessName: text("business_name"), // Name of recycling/collection business
+  wasteSpecialization: text("waste_specialization").array(), // Types of waste they specialize in
+  serviceLocation: text("service_location"), // Where they operate
+  serviceType: text("service_type"), // "pickup", "drop_off", or "both"
+  operatingHours: text("operating_hours"), // Operating hours information
+  
+  // Common
   onboardingCompleted: boolean("onboarding_completed").default(false),
 });
 
@@ -155,14 +165,23 @@ export const insertUserSchema = createInsertSchema(users)
     role: true,
     address: true,
     phone: true,
+    // Organization fields
     organizationType: true,
     organizationName: true, 
     contactPersonName: true,
     contactPersonPosition: true,
     contactPersonPhone: true,
     contactPersonEmail: true,
+    // Collector/Recycler fields
     isCertified: true,
     certificationDetails: true,
+    businessType: true,
+    businessName: true,
+    wasteSpecialization: true,
+    serviceLocation: true,
+    serviceType: true,
+    operatingHours: true,
+    // Common fields
     onboardingCompleted: true,
   });
 

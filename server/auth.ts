@@ -147,7 +147,18 @@ export function setupAuth(app: Express) {
         });
       } 
       else if (user.role === UserRole.COLLECTOR || user.role === UserRole.RECYCLER) {
-        // For collectors and recyclers, we need certification info
+        // Required fields for collectors and recyclers
+        const requiredFields = ['businessType', 'businessName', 'serviceLocation', 'serviceType'];
+        for (const field of requiredFields) {
+          if (!userData[field]) {
+            return res.status(400).json({ 
+              message: `Missing required field for ${user.role}: ${field}` 
+            });
+          }
+          updates[field] = userData[field];
+        }
+        
+        // Process certification info
         if (userData.isCertified !== undefined) {
           updates.isCertified = userData.isCertified;
           
@@ -155,6 +166,30 @@ export function setupAuth(app: Express) {
           if (userData.isCertified && userData.certificationDetails) {
             updates.certificationDetails = userData.certificationDetails;
           }
+        }
+        
+        // Process organization-specific fields if business type is 'organization'
+        if (userData.businessType === 'organization') {
+          const orgFields = ['contactPersonName', 'contactPersonEmail', 'contactPersonPhone'];
+          for (const field of orgFields) {
+            if (userData[field]) {
+              updates[field] = userData[field];
+            }
+          }
+          
+          if (userData.contactPersonPosition) {
+            updates.contactPersonPosition = userData.contactPersonPosition;
+          }
+        }
+        
+        // Process waste specialization (array of waste types)
+        if (userData.wasteSpecialization && Array.isArray(userData.wasteSpecialization)) {
+          updates.wasteSpecialization = userData.wasteSpecialization;
+        }
+        
+        // Process operating hours
+        if (userData.operatingHours) {
+          updates.operatingHours = userData.operatingHours;
         }
       }
       
@@ -188,14 +223,23 @@ export function setupAuth(app: Express) {
       const allowedFields = ['fullName', 'email', 'address', 'phone'];
       // Also allow onboarding-related fields
       const onboardingFields = [
+        // Organization fields
         'organizationType', 
         'organizationName', 
         'contactPersonName', 
         'contactPersonPosition', 
         'contactPersonPhone', 
         'contactPersonEmail', 
+        // Collector/Recycler fields
         'isCertified', 
-        'certificationDetails', 
+        'certificationDetails',
+        'businessType',
+        'businessName',
+        'wasteSpecialization',
+        'serviceLocation',
+        'serviceType',
+        'operatingHours',
+        // Common
         'onboardingCompleted'
       ];
       

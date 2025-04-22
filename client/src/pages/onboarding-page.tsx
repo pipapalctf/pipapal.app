@@ -47,6 +47,41 @@ type OrganizationOnboardingValues = z.infer<typeof organizationOnboardingSchema>
 
 // Define the collector/recycler onboarding schema
 const collectorRecyclerOnboardingSchema = z.object({
+  // Business information
+  businessType: z.enum(["individual", "organization"], {
+    required_error: "Please select business type",
+  }),
+  businessName: z.string().min(2, "Business name must be at least 2 characters"),
+  
+  // Contact information (required for organizations)
+  contactPersonName: z.string().min(2, "Name must be at least 2 characters").optional()
+    .refine(val => val !== undefined && val !== "", {
+      message: "Contact person name is required for organizations",
+      path: ["contactPersonName"],
+    }),
+  contactPersonPosition: z.string().optional(),
+  contactPersonPhone: z.string().optional()
+    .refine(val => val !== undefined && val !== "", {
+      message: "Contact phone is required for organizations",
+      path: ["contactPersonPhone"],
+    }),
+  contactPersonEmail: z.string().email("Please enter a valid email").optional()
+    .refine(val => val !== undefined && val !== "", {
+      message: "Contact email is required for organizations",
+      path: ["contactPersonEmail"],
+    }),
+  
+  // Service details
+  serviceLocation: z.string().min(2, "Service location is required"),
+  serviceType: z.enum(["pickup", "drop_off", "both"], {
+    required_error: "Please select service type",
+  }),
+  operatingHours: z.string().optional(),
+  
+  // Waste specialization - Multi-select
+  wasteSpecialization: z.array(z.string()).min(1, "Select at least one waste type"),
+  
+  // Certification
   isCertified: z.enum(["true", "false"]),
   certificationDetails: z.string().optional(),
 });
@@ -55,6 +90,16 @@ type CollectorRecyclerOnboardingValues = z.infer<typeof collectorRecyclerOnboard
 
 // For submission, transform the string to boolean
 type CollectorRecyclerSubmitValues = {
+  businessType: string;
+  businessName: string;
+  contactPersonName?: string;
+  contactPersonPosition?: string;
+  contactPersonPhone?: string;
+  contactPersonEmail?: string;
+  serviceLocation: string;
+  serviceType: string;
+  operatingHours?: string;
+  wasteSpecialization: string[];
   isCertified: boolean;
   certificationDetails?: string;
   onboardingCompleted: boolean;
@@ -92,6 +137,16 @@ export default function OnboardingPage() {
   const collectorRecyclerForm = useForm<CollectorRecyclerOnboardingValues>({
     resolver: zodResolver(collectorRecyclerOnboardingSchema),
     defaultValues: {
+      businessType: undefined,
+      businessName: "",
+      contactPersonName: "",
+      contactPersonPosition: "",
+      contactPersonPhone: "",
+      contactPersonEmail: "",
+      serviceLocation: "",
+      serviceType: undefined,
+      operatingHours: "",
+      wasteSpecialization: [],
       isCertified: "false",
       certificationDetails: "",
     },
@@ -135,8 +190,31 @@ export default function OnboardingPage() {
     setSubmitting(true);
     // Transform string to boolean for the API
     const submitData: CollectorRecyclerSubmitValues = {
+      // Business information
+      businessType: values.businessType,
+      businessName: values.businessName,
+      
+      // Contact information (required for organizations)
+      ...(values.businessType === "organization" && {
+        contactPersonName: values.contactPersonName,
+        contactPersonPosition: values.contactPersonPosition,
+        contactPersonPhone: values.contactPersonPhone,
+        contactPersonEmail: values.contactPersonEmail,
+      }),
+      
+      // Service details
+      serviceLocation: values.serviceLocation,
+      serviceType: values.serviceType,
+      operatingHours: values.operatingHours,
+      
+      // Waste specialization
+      wasteSpecialization: values.wasteSpecialization,
+      
+      // Certification
       isCertified: values.isCertified === "true",
       certificationDetails: values.certificationDetails,
+      
+      // Common
       onboardingCompleted: true
     };
     completeOnboardingMutation.mutate(submitData);
