@@ -186,6 +186,32 @@ export default function AuthPage() {
                       <CardDescription>Sign in to your PipaPal account</CardDescription>
                     </CardHeader>
                     <CardContent>
+                      <Button 
+                        variant="outline" 
+                        type="button" 
+                        className="w-full mb-6" 
+                        onClick={handleGoogleSignIn}
+                        disabled={loginWithGoogleMutation.isPending}
+                      >
+                        {loginWithGoogleMutation.isPending ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <FcGoogle className="mr-2 h-5 w-5" />
+                        )}
+                        Sign in with Google
+                      </Button>
+                        
+                      <div className="relative mb-6">
+                        <div className="absolute inset-0 flex items-center">
+                          <span className="w-full border-t" />
+                        </div>
+                        <div className="relative flex justify-center text-xs uppercase">
+                          <span className="bg-background px-2 text-muted-foreground">
+                            Or sign in with email
+                          </span>
+                        </div>
+                      </div>
+                      
                       <Form {...loginForm}>
                         <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-6">
                           <FormField
@@ -229,43 +255,13 @@ export default function AuthPage() {
                         </form>
                       </Form>
                       
-                      <div className="mt-6">
-                        <div className="relative">
-                          <div className="absolute inset-0 flex items-center">
-                            <span className="w-full border-t" />
-                          </div>
-                          <div className="relative flex justify-center text-xs uppercase">
-                            <span className="bg-background px-2 text-muted-foreground">
-                              Or continue with
-                            </span>
-                          </div>
-                        </div>
-                        
-                        <div className="mt-4">
-                          <Button 
-                            variant="outline" 
-                            type="button" 
-                            className="w-full" 
-                            onClick={handleGoogleSignIn}
-                            disabled={loginWithGoogleMutation.isPending}
-                          >
-                            {loginWithGoogleMutation.isPending ? (
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            ) : (
-                              <FcGoogle className="mr-2 h-5 w-5" />
-                            )}
-                            Sign in with Google
+                      <div className="mt-6 text-center">
+                        <p className="text-sm text-gray-600">
+                          Don't have an account?{" "}
+                          <Button variant="link" className="p-0" onClick={() => setActiveTab("register")}>
+                            Register
                           </Button>
-                        </div>
-                        
-                        <div className="mt-4 text-center">
-                          <p className="text-sm text-gray-600">
-                            Don't have an account?{" "}
-                            <Button variant="link" className="p-0" onClick={() => setActiveTab("register")}>
-                              Register
-                            </Button>
-                          </p>
-                        </div>
+                        </p>
                       </div>
                     </CardContent>
                   </Card>
@@ -279,6 +275,32 @@ export default function AuthPage() {
                       <CardDescription>Join PipaPal and start your sustainability journey</CardDescription>
                     </CardHeader>
                     <CardContent>
+                      <Button 
+                        variant="outline" 
+                        type="button" 
+                        className="w-full mb-6" 
+                        onClick={handleGoogleSignIn}
+                        disabled={loginWithGoogleMutation.isPending}
+                      >
+                        {loginWithGoogleMutation.isPending ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <FcGoogle className="mr-2 h-5 w-5" />
+                        )}
+                        Continue with Google
+                      </Button>
+                        
+                      <div className="relative mb-6">
+                        <div className="absolute inset-0 flex items-center">
+                          <span className="w-full border-t" />
+                        </div>
+                        <div className="relative flex justify-center text-xs uppercase">
+                          <span className="bg-background px-2 text-muted-foreground">
+                            Or register with email
+                          </span>
+                        </div>
+                      </div>
+                      
                       <Form {...registerForm}>
                         <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-5">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -423,43 +445,13 @@ export default function AuthPage() {
                         </form>
                       </Form>
                       
-                      <div className="mt-6">
-                        <div className="relative">
-                          <div className="absolute inset-0 flex items-center">
-                            <span className="w-full border-t" />
-                          </div>
-                          <div className="relative flex justify-center text-xs uppercase">
-                            <span className="bg-background px-2 text-muted-foreground">
-                              Or register with
-                            </span>
-                          </div>
-                        </div>
-                        
-                        <div className="mt-4">
-                          <Button 
-                            variant="outline" 
-                            type="button" 
-                            className="w-full" 
-                            onClick={handleGoogleSignIn}
-                            disabled={loginWithGoogleMutation.isPending}
-                          >
-                            {loginWithGoogleMutation.isPending ? (
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            ) : (
-                              <FcGoogle className="mr-2 h-5 w-5" />
-                            )}
-                            Continue with Google
+                      <div className="mt-6 text-center">
+                        <p className="text-sm text-gray-600">
+                          Already have an account?{" "}
+                          <Button variant="link" className="p-0" onClick={() => setActiveTab("login")}>
+                            Sign In
                           </Button>
-                        </div>
-                        
-                        <div className="mt-4 text-center">
-                          <p className="text-sm text-gray-600">
-                            Already have an account?{" "}
-                            <Button variant="link" className="p-0" onClick={() => setActiveTab("login")}>
-                              Sign In
-                            </Button>
-                          </p>
-                        </div>
+                        </p>
                       </div>
                     </CardContent>
                   </Card>
