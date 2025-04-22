@@ -131,10 +131,14 @@ export function setupAuth(app: Express) {
       if (user) {
         // User exists, update Firebase UID if needed
         if (!user.firebaseUid) {
-          user = await storage.updateUser(user.id, { 
+          const updatedUser = await storage.updateUser(user.id, { 
             firebaseUid: uid,
             emailVerified: true // Google login is pre-verified
           });
+          
+          if (updatedUser) {
+            user = updatedUser;
+          }
         }
       } else {
         // Create new user with Google info
@@ -151,6 +155,11 @@ export function setupAuth(app: Express) {
           emailVerified: true, // Google login is pre-verified
           onboardingCompleted: false
         });
+      }
+      
+      // Make sure user exists before login
+      if (!user) {
+        return res.status(500).json({ message: "Failed to create or retrieve user" });
       }
       
       // Login the user

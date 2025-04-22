@@ -58,9 +58,19 @@ const registerFormSchema = z.object({
 type RegisterFormValues = z.infer<typeof registerFormSchema>;
 
 export default function AuthPage() {
-  const { user, loginMutation, registerMutation, isLoading } = useAuth();
+  const { 
+    user, 
+    loginMutation, 
+    registerMutation, 
+    loginWithGoogleMutation,
+    isLoading 
+  } = useAuth();
   const [location, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState<string>("login");
+  
+  const handleGoogleSignIn = () => {
+    loginWithGoogleMutation.mutate();
+  };
   
   // Redirect if already logged in
   useEffect(() => {
@@ -195,13 +205,43 @@ export default function AuthPage() {
                         </form>
                       </Form>
                       
-                      <div className="mt-6 text-center">
-                        <p className="text-sm text-gray-600">
-                          Don't have an account?{" "}
-                          <Button variant="link" className="p-0" onClick={() => setActiveTab("register")}>
-                            Register
+                      <div className="mt-6">
+                        <div className="relative">
+                          <div className="absolute inset-0 flex items-center">
+                            <span className="w-full border-t" />
+                          </div>
+                          <div className="relative flex justify-center text-xs uppercase">
+                            <span className="bg-background px-2 text-muted-foreground">
+                              Or continue with
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div className="mt-4">
+                          <Button 
+                            variant="outline" 
+                            type="button" 
+                            className="w-full" 
+                            onClick={handleGoogleSignIn}
+                            disabled={loginWithGoogleMutation.isPending}
+                          >
+                            {loginWithGoogleMutation.isPending ? (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                              <FcGoogle className="mr-2 h-5 w-5" />
+                            )}
+                            Sign in with Google
                           </Button>
-                        </p>
+                        </div>
+                        
+                        <div className="mt-4 text-center">
+                          <p className="text-sm text-gray-600">
+                            Don't have an account?{" "}
+                            <Button variant="link" className="p-0" onClick={() => setActiveTab("register")}>
+                              Register
+                            </Button>
+                          </p>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -359,13 +399,43 @@ export default function AuthPage() {
                         </form>
                       </Form>
                       
-                      <div className="mt-6 text-center">
-                        <p className="text-sm text-gray-600">
-                          Already have an account?{" "}
-                          <Button variant="link" className="p-0" onClick={() => setActiveTab("login")}>
-                            Sign In
+                      <div className="mt-6">
+                        <div className="relative">
+                          <div className="absolute inset-0 flex items-center">
+                            <span className="w-full border-t" />
+                          </div>
+                          <div className="relative flex justify-center text-xs uppercase">
+                            <span className="bg-background px-2 text-muted-foreground">
+                              Or register with
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div className="mt-4">
+                          <Button 
+                            variant="outline" 
+                            type="button" 
+                            className="w-full" 
+                            onClick={handleGoogleSignIn}
+                            disabled={loginWithGoogleMutation.isPending}
+                          >
+                            {loginWithGoogleMutation.isPending ? (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                              <FcGoogle className="mr-2 h-5 w-5" />
+                            )}
+                            Continue with Google
                           </Button>
-                        </p>
+                        </div>
+                        
+                        <div className="mt-4 text-center">
+                          <p className="text-sm text-gray-600">
+                            Already have an account?{" "}
+                            <Button variant="link" className="p-0" onClick={() => setActiveTab("login")}>
+                              Sign In
+                            </Button>
+                          </p>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
