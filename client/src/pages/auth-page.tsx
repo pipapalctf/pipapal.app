@@ -114,7 +114,7 @@ export default function AuthPage() {
           <div className="flex flex-col lg:flex-row bg-white rounded-lg shadow-lg overflow-hidden">
             {/* Form Section */}
             <div className="lg:w-1/2 p-6 md:p-10">
-              <div className="mb-8 flex justify-between items-center">
+              <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div className="flex flex-col">
                   <div className="flex items-center">
                     <Logo size="md" />
@@ -125,7 +125,8 @@ export default function AuthPage() {
                 <Button 
                   variant="ghost" 
                   onClick={() => navigate("/")}
-                  className="hidden sm:flex items-center text-secondary hover:text-primary transition-colors"
+                  className="flex items-center text-secondary hover:text-primary transition-colors text-sm p-2"
+                  size="sm"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
                     <path d="m11 17-5-5 5-5"/>
