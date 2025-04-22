@@ -64,6 +64,11 @@ export const users = pgTable("users", {
   phone: text("phone"),
   sustainabilityScore: integer("sustainability_score").default(0),
   createdAt: timestamp("created_at").defaultNow(),
+  
+  // Firebase authentication fields
+  firebaseUid: text("firebase_uid").unique(), // Firebase User ID for authentication
+  emailVerified: boolean("email_verified").default(false), // Whether the email has been verified
+  
   // Role-specific fields - Organizations
   organizationType: text("organization_type"), // "business", "non-profit", "community_group", etc.
   organizationName: text("organization_name"), 
@@ -165,6 +170,9 @@ export const insertUserSchema = createInsertSchema(users)
     role: true,
     address: true,
     phone: true,
+    // Firebase fields
+    firebaseUid: true,
+    emailVerified: true,
     // Organization fields
     organizationType: true,
     organizationName: true, 
