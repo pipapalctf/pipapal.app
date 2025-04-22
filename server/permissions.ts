@@ -48,24 +48,6 @@ export const Permissions = {
     roles: [UserRole.RECYCLER]
   },
   
-  // Admin Permissions
-  VIEW_ALL_USERS: {
-    name: 'view_all_users',
-    roles: [UserRole.ADMIN]
-  },
-  MANAGE_USERS: {
-    name: 'manage_users',
-    roles: [UserRole.ADMIN]
-  },
-  VIEW_ALL_COLLECTIONS: {
-    name: 'view_all_collections',
-    roles: [UserRole.ADMIN]
-  },
-  VIEW_SYSTEM_STATS: {
-    name: 'view_system_stats',
-    roles: [UserRole.ADMIN]
-  },
-  
   // Analytics Permissions
   ACCESS_ANALYTICS: {
     name: 'access_analytics',
