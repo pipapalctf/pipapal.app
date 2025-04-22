@@ -51,9 +51,12 @@ export function PhoneVerification() {
     },
   });
 
+  const [devOtpCode, setDevOtpCode] = useState<string | null>(null);
+  
   const sendVerificationCode = async (data: PhoneVerificationSchemaType) => {
     setLoading(true);
     setPhoneNumber(data.phoneNumber);
+    setDevOtpCode(null); // Reset any previous dev code
     
     try {
       const response = await apiRequest("POST", "/api/otp/send", {
@@ -65,10 +68,35 @@ export function PhoneVerification() {
         throw new Error(errorData.error || "Failed to send verification code");
       }
       
-      toast({
-        title: "Verification code sent",
-        description: "Please check your phone for a 6-digit verification code",
-      });
+      // Get the response data
+      const responseData = await response.json();
+      
+      // Check if we're in development mode and a code was provided
+      if (responseData.message && 
+          (responseData.message.includes('Development mode') || 
+           responseData.message.includes('Use code') || 
+           responseData.message.includes('trial account'))) {
+        // Extract the OTP code from the message
+        const match = responseData.message.match(/code:? ([0-9]{6})/i);
+        if (match && match[1]) {
+          setDevOtpCode(match[1]);
+          toast({
+            title: "Development Mode",
+            description: "A test verification code has been generated",
+          });
+        } else {
+          toast({
+            title: "Verification Code",
+            description: responseData.message,
+          });
+        }
+      } else {
+        // Standard notification for production mode
+        toast({
+          title: "Verification code sent",
+          description: "Please check your phone for a 6-digit verification code",
+        });
+      }
       
       setStep("otp");
     } catch (error: any) {
@@ -195,6 +223,13 @@ export function PhoneVerification() {
                     </FormControl>
                     <FormDescription>
                       Enter the 6-digit code sent to {phoneNumber}
+                      {devOtpCode && (
+                        <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-md">
+                          <p className="text-yellow-800 font-medium text-xs">
+                            Development Mode: Use code <span className="font-bold">{devOtpCode}</span>
+                          </p>
+                        </div>
+                      )}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

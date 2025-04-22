@@ -5,16 +5,24 @@ import crypto from 'crypto';
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
 const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
+const isDevelopment = process.env.NODE_ENV === 'development';
+
+// Flag to determine if we should use Twilio or development mode
+let useTwilio = !isDevelopment && accountSid && authToken && twilioPhoneNumber;
 
 if (!accountSid || !authToken || !twilioPhoneNumber) {
-  console.error('Missing required Twilio environment variables');
+  console.warn('Missing Twilio environment variables - using development mode with fixed OTP');
 }
 
-const client = twilio(accountSid, authToken);
+// Only initialize client if we're using Twilio
+const client = useTwilio ? twilio(accountSid, authToken) : null;
 
 // Store OTP codes temporarily (in a real production app, this would be in a database)
 // Key: phone number, Value: { otp: string, expires: Date }
 const otpStore = new Map<string, { otp: string, expires: Date }>();
+
+// In development mode, we'll use a fixed OTP for testing
+const DEV_TEST_OTP = '123456';
 
 /**
  * Generate a 6-digit OTP code
@@ -28,16 +36,17 @@ export function generateOTP(): string {
  * Expected input format: +254XXXXXXXXX or 254XXXXXXXXX or 0XXXXXXXXX (for Kenya)
  */
 export function formatPhoneNumber(phoneNumber: string): string {
-  // Remove any non-numeric characters
-  let cleaned = phoneNumber.replace(/\D/g, '');
+  // Remove any non-numeric characters except the plus sign
+  let cleaned = phoneNumber.replace(/[^\d+]/g, '');
   
   // Handle Kenyan phone numbers
   if (cleaned.startsWith('0')) {
     cleaned = '254' + cleaned.substring(1);
-  }
-  
-  // Ensure the number starts with +
-  if (!cleaned.startsWith('+')) {
+  } else if (cleaned.startsWith('254') && !cleaned.startsWith('+')) {
+    // If it starts with 254 but no +, add the +
+    cleaned = '+' + cleaned;
+  } else if (!cleaned.startsWith('+')) {
+    // Ensure the number starts with + if it doesn't already
     cleaned = '+' + cleaned;
   }
   
@@ -50,23 +59,60 @@ export function formatPhoneNumber(phoneNumber: string): string {
 export async function sendOTP(phoneNumber: string): Promise<{ success: boolean, message: string }> {
   try {
     const formattedPhoneNumber = formatPhoneNumber(phoneNumber);
-    const otp = generateOTP();
+    
+    // Use fixed OTP in development mode or if Twilio credentials are missing
+    const otp = isDevelopment || !useTwilio ? DEV_TEST_OTP : generateOTP();
     
     // Store OTP with 10-minute expiration
     const expires = new Date();
     expires.setMinutes(expires.getMinutes() + 10);
     otpStore.set(formattedPhoneNumber, { otp, expires });
     
-    // Send SMS with OTP
-    await client.messages.create({
-      body: `Your PipaPal verification code is: ${otp}. Valid for 10 minutes.`,
-      from: twilioPhoneNumber,
-      to: formattedPhoneNumber
-    });
+    // If we're in development mode or missing Twilio credentials, don't attempt to send SMS
+    if (isDevelopment || !useTwilio) {
+      console.log(`[DEV MODE] Would send OTP ${otp} to ${formattedPhoneNumber}`);
+      return { 
+        success: true, 
+        message: 'Development mode - OTP generated but not sent. Use code: ' + otp 
+      };
+    }
     
-    return { success: true, message: 'OTP sent successfully' };
+    // Send SMS with OTP using Twilio
+    try {
+      await client?.messages.create({
+        body: `Your PipaPal verification code is: ${otp}. Valid for 10 minutes.`,
+        from: twilioPhoneNumber,
+        to: formattedPhoneNumber
+      });
+      
+      return { success: true, message: 'OTP sent successfully' };
+    } catch (twilioError: any) {
+      console.error('Twilio error sending OTP:', twilioError);
+      
+      // Handle common Twilio trial account limitations
+      if (twilioError.code === 20003 || twilioError.message?.includes('not a verified')) {
+        // In trial accounts, you can only send to verified numbers
+        // Fall back to development mode
+        console.log(`Falling back to dev mode. OTP: ${otp}`);
+        return { 
+          success: true, 
+          message: 'Number not verified in Twilio trial account. Use code: ' + otp 
+        };
+      }
+      
+      throw twilioError;
+    }
   } catch (error: any) {
-    console.error('Error sending OTP:', error);
+    console.error('Error in sendOTP:', error);
+    
+    // Even if there's an error, we'll still set the OTP in development mode
+    if (isDevelopment) {
+      return { 
+        success: true, 
+        message: 'Development mode - use test code: ' + DEV_TEST_OTP 
+      };
+    }
+    
     return { 
       success: false, 
       message: error.message || 'Failed to send verification code' 
@@ -79,6 +125,13 @@ export async function sendOTP(phoneNumber: string): Promise<{ success: boolean, 
  */
 export function verifyOTP(phoneNumber: string, otpToVerify: string): boolean {
   const formattedPhoneNumber = formatPhoneNumber(phoneNumber);
+  
+  // In development mode, accept the dev test OTP
+  if (isDevelopment && otpToVerify === DEV_TEST_OTP) {
+    console.log('[DEV MODE] Accepting test OTP');
+    return true;
+  }
+  
   const storedData = otpStore.get(formattedPhoneNumber);
   
   if (!storedData) {

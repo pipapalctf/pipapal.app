@@ -75,19 +75,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const result = await sendOTP(phoneNumber);
       
       if (result.success) {
-        res.status(200).json({ message: result.message });
+        // Ensure we pass the message from the Twilio module
+        // This will include the test OTP code in development mode
+        res.status(200).json({ 
+          success: true,
+          message: result.message 
+        });
       } else {
-        res.status(400).json({ error: result.message });
+        res.status(400).json({ 
+          success: false, 
+          error: result.message 
+        });
       }
     } catch (error: any) {
       console.error('Error sending OTP:', error);
       res.status(500).json({ 
+        success: false,
         error: 'Failed to send verification code',
         details: error.message
       });
     }
   });
   
+  // OTP verification for registration process (pre-registration)
   app.post('/api/otp/verify-registration', async (req, res) => {
     try {
       const { phoneNumber, otp } = verifyRegistrationOtpSchema.parse(req.body);
@@ -106,14 +116,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
     } catch (error: any) {
-      console.error('Error verifying OTP for registration:', error);
+      console.error('Error verifying registration OTP:', error);
       res.status(500).json({ 
+        success: false,
         error: 'Failed to verify phone number',
         details: error.message 
       });
     }
   });
 
+  // OTP verification for existing user profile
   app.post('/api/otp/verify', requireAuthentication, async (req, res) => {
     try {
       const { phoneNumber, otp, userId } = verifyOtpSchema.parse(req.body);
@@ -155,33 +167,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error('Error verifying OTP:', error);
       res.status(500).json({ 
-        error: 'Failed to verify phone number',
-        details: error.message 
-      });
-    }
-  });
-  
-  // OTP verification for registration process (pre-registration)
-  app.post('/api/otp/verify-registration', async (req, res) => {
-    try {
-      const { phoneNumber, otp } = verifyRegistrationOtpSchema.parse(req.body);
-      
-      const isValid = verifyOTP(phoneNumber, otp);
-      
-      if (isValid) {
-        res.status(200).json({ 
-          success: true, 
-          message: 'Phone number verified successfully'
-        });
-      } else {
-        res.status(400).json({ 
-          success: false, 
-          error: 'Invalid or expired verification code' 
-        });
-      }
-    } catch (error: any) {
-      console.error('Error verifying registration OTP:', error);
-      res.status(500).json({ 
+        success: false,
         error: 'Failed to verify phone number',
         details: error.message 
       });
