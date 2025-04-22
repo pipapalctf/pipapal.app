@@ -18,20 +18,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useAuth } from "@/hooks/use-auth";
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { Loader2, ArrowLeft, ArrowRight, CheckCircle, Phone, Mail } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import Logo from "@/components/logo";
 import { UserRole } from "@shared/schema";
-import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
-import EmailVerification from "@/components/auth/email-verification";
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 
 // Login form schema
 const loginFormSchema = z.object({
@@ -52,41 +47,18 @@ const registerFormSchema = z.object({
     required_error: "Please select a role",
   }),
   address: z.string().min(5, "Address must be at least 5 characters"),
-  phone: z.string().min(10, "Phone number must be at least 10 digits").regex(/^\+?[0-9]+$/, "Please enter a valid phone number"),
+  phone: z.string().optional(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords do not match",
   path: ["confirmPassword"],
 });
 
-// OTP verification schema
-const otpVerificationSchema = z.object({
-  otp: z.string()
-    .length(6, { message: "OTP must be 6 digits" })
-    .regex(/^[0-9]+$/, { message: "OTP must contain only numbers" }),
-});
-
-// Use the same type as expected by registerMutation in use-auth.tsx
-import { RegisterData } from "@/hooks/use-auth";
-type RegisterFormValues = RegisterData;
+type RegisterFormValues = z.infer<typeof registerFormSchema>;
 
 export default function AuthPage() {
   const { user, loginMutation, registerMutation, isLoading } = useAuth();
   const [location, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState<string>("login");
-  const [registrationStep, setRegistrationStep] = useState<"accountInfo" | "verification" | "complete">("accountInfo");
-  const [userFormData, setUserFormData] = useState<RegisterFormValues | null>(null);
-  const [email, setEmail] = useState<string>("");
-  const [isLoadingOtp, setIsLoadingOtp] = useState<boolean>(false);
-  const [devOtpCode, setDevOtpCode] = useState<string | null>(null);
-  const { toast } = useToast();
-
-  // OTP form
-  const otpForm = useForm({
-    resolver: zodResolver(otpVerificationSchema),
-    defaultValues: {
-      otp: "",
-    },
-  });
   
   // Redirect if already logged in
   useEffect(() => {
@@ -119,146 +91,13 @@ export default function AuthPage() {
     },
   });
   
-  // Login form submission
   function onLoginSubmit(values: LoginFormValues) {
     loginMutation.mutate(values);
   }
   
-  // Registration first step submission - collect user data and send email verification
   function onRegisterSubmit(values: RegisterFormValues) {
-    setUserFormData(values);
-    
-    // Always use email for verification
-    if (values.email) {
-      setEmail(values.email);
-      
-      // Immediately send verification code to email
-      setRegistrationStep("verification");
-      sendEmailVerificationCode(values.email);
-    } else {
-      toast({
-        title: "Error",
-        description: "Please provide a valid email address",
-        variant: "destructive",
-      });
-    }
+    registerMutation.mutate(values);
   }
-  
-  // SMS verification has been removed in favor of email verification only
-  
-  // Send email verification using Firebase
-  const sendEmailVerificationCode = async (emailAddress: string) => {
-    if (!emailAddress || emailAddress.trim() === '') {
-      toast({
-        title: "Error",
-        description: "Please provide a valid email address",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    setIsLoadingOtp(true);
-    setDevOtpCode(null); // Reset any previous dev code
-    
-    try {
-      // Using Firebase for email verification
-      const response = await apiRequest("POST", "/api/firebase/send-verification-email", {
-        email: emailAddress,
-        password: userFormData?.password || "", // Temporary password for Firebase auth
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to send verification email");
-      }
-      
-      // Get the response data
-      const responseData = await response.json();
-      
-      // For development and testing
-      if (responseData.developmentMode && responseData.verificationCode) {
-        setDevOtpCode(responseData.verificationCode);
-        toast({
-          title: "Test Mode",
-          description: "A verification code has been generated for testing",
-        });
-      } else {
-        // Standard notification for production mode
-        toast({
-          title: "Verification email sent",
-          description: "Please check your email for a verification link",
-        });
-      }
-      
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to send verification email. Please try again.",
-        variant: "destructive",
-      });
-      
-      // Go back to account info step if email sending fails
-      setRegistrationStep("accountInfo");
-    } finally {
-      setIsLoadingOtp(false);
-    }
-  };
-  
-  // Phone verification has been removed in favor of email verification only
-  
-  // Verify email code and complete registration using Firebase
-  const verifyEmailAndRegister = async (otpData: { otp: string }) => {
-    if (!userFormData || !email) return;
-    
-    setIsLoadingOtp(true);
-    
-    try {
-      // With Firebase, we verify the code and create the user in a single step
-      const verifyResponse = await apiRequest("POST", "/api/firebase/verify-email", {
-        email: email,
-        code: otpData.otp,
-        temporaryPassword: userFormData.password
-      });
-      
-      if (!verifyResponse.ok) {
-        const errorData = await verifyResponse.json();
-        throw new Error(errorData.error || "Invalid verification code");
-      }
-      
-      // If Firebase verification is successful, create the user in our system
-      registerMutation.mutate({
-        ...userFormData,
-        emailVerified: true,
-        email: email
-      }, {
-        onSuccess: () => {
-          setRegistrationStep("complete");
-        },
-        onError: (error) => {
-          toast({
-            title: "Registration failed",
-            description: error.message || "Failed to create account. Please try again.",
-            variant: "destructive",
-          });
-          // Go back to account info step if registration fails
-          setRegistrationStep("accountInfo");
-        }
-      });
-    } catch (error: any) {
-      toast({
-        title: "Verification failed",
-        description: error.message || "Invalid verification code. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoadingOtp(false);
-    }
-  };
-  
-  // Handle verification code submission - always use email verification
-  const verifyCodeAndRegister = async (otpData: { otp: string }) => {
-    await verifyEmailAndRegister(otpData);
-  };
   
   if (isLoading) {
     return (
@@ -370,41 +209,11 @@ export default function AuthPage() {
                 <TabsContent value="register">
                   <Card>
                     <CardHeader>
-                      {registrationStep === "accountInfo" && (
-                        <>
-                          <CardTitle className="text-2xl font-montserrat text-secondary">Create Account</CardTitle>
-                          <CardDescription>Join PipaPal and start your sustainability journey</CardDescription>
-                        </>
-                      )}
-                      
-                      {registrationStep === "verification" && (
-                        <>
-                          <CardTitle className="text-2xl font-montserrat text-secondary">Verify Your Email</CardTitle>
-                          <CardDescription>We've sent a verification code to your email address</CardDescription>
-                        </>
-                      )}
-                      
-                      {registrationStep === "complete" && (
-                        <>
-                          <CardTitle className="text-2xl font-montserrat text-primary text-center">
-                            <CheckCircle className="inline-block h-10 w-10 mb-2 mx-auto" />
-                            <div>Registration Complete!</div>
-                          </CardTitle>
-                          <CardDescription className="text-center">
-                            Your account has been created successfully. You can now log in.
-                          </CardDescription>
-                        </>
-                      )}
+                      <CardTitle className="text-2xl font-montserrat text-secondary">Create Account</CardTitle>
+                      <CardDescription>Join PipaPal and start your sustainability journey</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      {/* Account Information Step */}
-                      {registrationStep === "accountInfo" && (
                       <Form {...registerForm}>
-                        <div className="p-4 bg-primary/10 rounded-lg mb-6">
-                          <p className="text-sm text-secondary">
-                            <strong>Step 1 of 3:</strong> Enter your account details to get started.
-                          </p>
-                        </div>
                         <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-5">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                             <FormField
@@ -514,14 +323,7 @@ export default function AuthPage() {
                               <FormItem>
                                 <FormLabel>Address</FormLabel>
                                 <FormControl>
-                                  <Input 
-                                    placeholder="123 Green Street, Eco City" 
-                                    value={field.value || ''} 
-                                    onChange={field.onChange}
-                                    onBlur={field.onBlur}
-                                    ref={field.ref}
-                                    name={field.name}
-                                  />
+                                  <Input placeholder="123 Green Street, Eco City" {...field} />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -533,20 +335,10 @@ export default function AuthPage() {
                             name="phone"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Phone Number</FormLabel>
+                                <FormLabel>Phone Number (Optional)</FormLabel>
                                 <FormControl>
-                                  <Input 
-                                    placeholder="+254 7XX XXX XXX" 
-                                    value={field.value || ''} 
-                                    onChange={field.onChange}
-                                    onBlur={field.onBlur}
-                                    ref={field.ref}
-                                    name={field.name}
-                                  />
+                                  <Input placeholder="+1 (555) 123-4567" {...field} />
                                 </FormControl>
-                                <FormDescription>
-                                  Enter your phone number with country code (e.g., +254 for Kenya)
-                                </FormDescription>
                                 <FormMessage />
                               </FormItem>
                             )}
@@ -560,64 +352,19 @@ export default function AuthPage() {
                             {registerMutation.isPending ? (
                               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                             ) : null}
-                            Continue to Verification
+                            Create Account
                           </Button>
                         </form>
                       </Form>
-                      )}
                       
-                      {/* Email Verification Step */}
-                      {registrationStep === "verification" && (
-                        <div className="space-y-6">
-                          <div className="p-4 bg-primary/10 rounded-lg mb-6">
-                            <p className="text-sm text-secondary">
-                              <strong>Step 2 of 3:</strong> Verify your email address before creating your account.
-                            </p>
-                          </div>
-                          
-                          {/* Email Verification UI */}
-                          <EmailVerification
-                            email={email}
-                            isLoading={isLoadingOtp}
-                            onVerify={verifyCodeAndRegister}
-                            onResend={async () => {
-                              await sendEmailVerificationCode(email);
-                            }}
-                            devOtpCode={devOtpCode}
-                          />
-                        </div>
-                      )}
-                      
-                      {/* Registration Complete Step */}
-                      {registrationStep === "complete" && (
-                        <div className="text-center space-y-6">
-                          <div className="p-4 bg-primary/10 rounded-lg mb-6">
-                            <p className="text-sm text-secondary">
-                              <strong>Step 3 of 3:</strong> Registration complete! You can now log in to your account.
-                            </p>
-                          </div>
-                          <p className="text-gray-600">
-                            You can now log in with your username and password to access your account.
-                          </p>
-                          <Button
-                            onClick={() => setActiveTab("login")}
-                            className="w-full mt-4"
-                          >
-                            Go to Login
+                      <div className="mt-6 text-center">
+                        <p className="text-sm text-gray-600">
+                          Already have an account?{" "}
+                          <Button variant="link" className="p-0" onClick={() => setActiveTab("login")}>
+                            Sign In
                           </Button>
-                        </div>
-                      )}
-                      
-                      {registrationStep === "accountInfo" && (
-                        <div className="mt-6 text-center">
-                          <p className="text-sm text-gray-600">
-                            Already have an account?{" "}
-                            <Button variant="link" className="p-0" onClick={() => setActiveTab("login")}>
-                              Sign In
-                            </Button>
-                          </p>
-                        </div>
-                      )}
+                        </p>
+                      </div>
                     </CardContent>
                   </Card>
                 </TabsContent>

@@ -22,7 +22,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 
-
 // Layout Components
 import Navbar from "@/components/shared/navbar";
 import Footer from "@/components/shared/footer";
@@ -805,89 +804,84 @@ export default function ProfilePage() {
           )}
           
           <TabsContent value="security">
-            <div className="space-y-6">
-              {/* Password Change Card */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Change Password</CardTitle>
-                  <CardDescription>
-                    Update your password to keep your account secure
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Form {...passwordForm}>
-                    <form id="password-form" onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-6">
-                      <Alert className="bg-muted/50">
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertTitle>Password requirements</AlertTitle>
-                        <AlertDescription>
-                          Your password must be at least 8 characters long
-                        </AlertDescription>
-                      </Alert>
+            <Card>
+              <CardHeader>
+                <CardTitle>Change Password</CardTitle>
+                <CardDescription>
+                  Update your password to keep your account secure
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Form {...passwordForm}>
+                  <form id="password-form" onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-6">
+                    <Alert className="bg-muted/50">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>Password requirements</AlertTitle>
+                      <AlertDescription>
+                        Your password must be at least 8 characters long
+                      </AlertDescription>
+                    </Alert>
+                  
+                    <FormField
+                      control={passwordForm.control}
+                      name="currentPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Current Password</FormLabel>
+                          <FormControl>
+                            <Input type="password" placeholder="Enter your current password" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                     
-                      <FormField
-                        control={passwordForm.control}
-                        name="currentPassword"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Current Password</FormLabel>
-                            <FormControl>
-                              <Input type="password" placeholder="Enter your current password" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={passwordForm.control}
-                        name="newPassword"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>New Password</FormLabel>
-                            <FormControl>
-                              <Input type="password" placeholder="Enter your new password" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={passwordForm.control}
-                        name="confirmPassword"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Confirm New Password</FormLabel>
-                            <FormControl>
-                              <Input type="password" placeholder="Confirm your new password" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </form>
-                  </Form>
-                </CardContent>
-                <CardFooter className="flex justify-end border-t p-6">
-                  <Button form="password-form" type="submit" disabled={updatePasswordMutation.isPending}>
-                    {updatePasswordMutation.isPending ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Updating...
-                      </>
-                    ) : (
-                      <>
-                        <Check className="mr-2 h-4 w-4" />
-                        Update Password
-                      </>
-                    )}
-                  </Button>
-                </CardFooter>
-              </Card>
-              
-
-            </div>
+                    <FormField
+                      control={passwordForm.control}
+                      name="newPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>New Password</FormLabel>
+                          <FormControl>
+                            <Input type="password" placeholder="Enter your new password" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={passwordForm.control}
+                      name="confirmPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Confirm New Password</FormLabel>
+                          <FormControl>
+                            <Input type="password" placeholder="Confirm your new password" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </form>
+                </Form>
+              </CardContent>
+              <CardFooter className="flex justify-end border-t p-6">
+                <Button form="password-form" type="submit" disabled={updatePasswordMutation.isPending}>
+                  {updatePasswordMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Updating...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="mr-2 h-4 w-4" />
+                      Update Password
+                    </>
+                  )}
+                </Button>
+              </CardFooter>
+            </Card>
           </TabsContent>
           
           <TabsContent value="preferences">
