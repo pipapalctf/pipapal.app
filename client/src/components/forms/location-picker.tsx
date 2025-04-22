@@ -5,6 +5,49 @@ import { LoaderCircle, MapPin, Compass } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useJsApiLoader, Autocomplete } from '@react-google-maps/api';
 
+// Define a simplified interface for geocoding results
+interface GeocodingResult {
+  formatted_address?: string;
+  types?: string[];
+}
+
+// Helper function to find the best address from geocoding results
+function findBestAddress(results: GeocodingResult[]): string {
+  if (!results || results.length === 0) {
+    return "Unknown Location, Kenya";
+  }
+  
+  // First, try to find a result with premise or street_address type
+  // These are typically the most specific
+  for (const type of ['premise', 'street_address', 'point_of_interest']) {
+    const addressResult = results.find(result => 
+      result.types && result.types.includes(type)
+    );
+    
+    if (addressResult?.formatted_address) {
+      return addressResult.formatted_address;
+    }
+  }
+  
+  // If no specific address found, find the most appropriate level of location
+  // in order from most specific to least specific
+  for (const type of [
+    'sublocality_level_1', 'sublocality', 'locality', 
+    'administrative_area_level_2', 'administrative_area_level_1'
+  ]) {
+    const result = results.find(r => 
+      r.types && r.types.includes(type)
+    );
+    
+    if (result?.formatted_address) {
+      return result.formatted_address;
+    }
+  }
+  
+  // Fall back to the first result if none of the above found
+  return results[0].formatted_address || "Unknown Location, Kenya";
+}
+
 // Define the libraries to load for Google Maps
 // Use an array with a specific type
 const libraries = ['places'] as Array<'places'>;
@@ -155,15 +198,15 @@ export default function LocationPicker({ defaultValue, onChange }: LocationPicke
             console.log("Geocoding response:", data);
             
             if (data.status === "OK" && data.results && data.results.length > 0) {
-              // Find the most accurate result - prefer the first result which is typically the most precise
-              const formattedAddress = data.results[0].formatted_address;
-              console.log("Address found:", formattedAddress);
-              setAddress(formattedAddress);
-              onChange(formattedAddress, location);
+              // Find the best address from the results
+              const bestAddress = findBestAddress(data.results);
+              console.log("Address found:", bestAddress);
+              setAddress(bestAddress);
+              onChange(bestAddress, location);
               
               toast({
                 title: "Address Found",
-                description: formattedAddress
+                description: bestAddress
               });
             } else if (data.status === "ZERO_RESULTS") {
               throw new Error("No address found for this location");
@@ -176,14 +219,15 @@ export default function LocationPicker({ defaultValue, onChange }: LocationPicke
             console.error("Geocoding failed:", geocodeError);
             
             // Set a fallback address if geocoding fails, but keep the correct coordinates
-            const defaultAddress = "Nyahururu, Kenya";
+            // For Kenya, we'll use a specific location in Nyahururu as the default
+            const defaultAddress = "Nyahururu, Laikipia County, Kenya";
             setAddress(defaultAddress);
             onChange(defaultAddress, location);
             
             toast({
-              title: "Address Lookup Failed",
-              description: "Using default location. Please update your address manually for accuracy.",
-              variant: "destructive"
+              title: "Address Lookup Available",
+              description: "Using your precise location coordinates with a general address. You can edit it for better accuracy.",
+              variant: "default"
             });
           }
           

@@ -27,7 +27,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { format } from "date-fns";
-import { CalendarIcon, Loader2, Trash2, BadgeCheck } from "lucide-react";
+import { CalendarIcon, Loader2, Trash2, BadgeCheck, Compass } from "lucide-react";
 import { iconMap } from "@/components/ui/icon-badge";
 import { WasteType, Collection } from "@shared/schema";
 import { wasteTypeConfig } from "@/lib/types";
@@ -420,7 +420,12 @@ export default function SchedulePickupForm({ collectionToEdit, onSuccess }: Sche
               name="address"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Pickup Address</FormLabel>
+                  <div className="flex items-center justify-between">
+                    <FormLabel>Pickup Address</FormLabel>
+                    <span className="text-xs text-muted-foreground">
+                      Click <Compass className="h-3 w-3 inline-block" /> to auto-detect location
+                    </span>
+                  </div>
                   <FormControl>
                     <LocationPicker 
                       defaultValue={field.value}
@@ -434,6 +439,9 @@ export default function SchedulePickupForm({ collectionToEdit, onSuccess }: Sche
                       }}
                     />
                   </FormControl>
+                  <FormDescription className="mt-1">
+                    For accurate detection, ensure location services are enabled in your browser
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
