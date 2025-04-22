@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { apiRequest, queryClient } from '@/lib/queryClient';
-import { Calendar, CheckCircle, Clock, Filter, MapPin, Search, Truck, Package, AlertTriangle, Trash2, ClipboardCheck, ArrowRight, CalendarClock, CheckCheck, X, Map, XCircle, Activity, Scale, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { Calendar, CheckCircle, Clock, Filter, MapPin, Search, Truck, Package, AlertTriangle, Trash2, ClipboardCheck, ArrowRight, CalendarClock, CheckCheck, X, Map, XCircle, Activity, Scale, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Loader2, MoreHorizontal, Route } from 'lucide-react';
 import { formatNumber } from '@/lib/utils';
 import { wasteTypeConfig } from '@/lib/types';
 import { format } from 'date-fns';
@@ -37,6 +37,10 @@ export default function CollectorCollectionsPage() {
   const [statusUpdateModal, setStatusUpdateModal] = useState(false);
   const [cancelDialog, setCancelDialog] = useState(false);
   const [notesInput, setNotesInput] = useState('');
+  
+  // Sorting state
+  const [sortField, setSortField] = useState<string>('date');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   
   // Check URL parameters for tab selection
   useEffect(() => {
@@ -82,6 +86,31 @@ export default function CollectorCollectionsPage() {
     enabled: !!user.id
   });
 
+  // Handle sort operation
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      // If already sorting by this field, toggle direction
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      // Otherwise, set new sort field and default to ascending
+      setSortField(field);
+      setSortOrder('asc');
+    }
+  };
+  
+  // Helper function to get sort icon based on current sort state
+  const getSortIcon = (field: string) => {
+    if (sortField !== field) return null;
+    
+    return (
+      <span className="ml-1">
+        {sortOrder === 'asc' ? 
+          <ChevronUp className="h-4 w-4" /> : 
+          <ChevronDown className="h-4 w-4" />}
+      </span>
+    );
+  };
+
   // Filter collections by collector and status
   const filteredCollections = collections
     .filter((collection: any) => {
@@ -109,8 +138,31 @@ export default function CollectorCollectionsPage() {
       return isRelevantToCollector && matchesStatus && matchesSearch;
     })
     .sort((a: any, b: any) => {
-      // Sort by scheduled date, newest first
-      return new Date(b.scheduledDate).getTime() - new Date(a.scheduledDate).getTime();
+      let comparison = 0;
+      
+      // Apply sorting based on selected field
+      switch (sortField) {
+        case 'id':
+          comparison = a.id - b.id;
+          break;
+        case 'status':
+          comparison = a.status.localeCompare(b.status);
+          break;
+        case 'date':
+          comparison = new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime();
+          break;
+        case 'wasteType':
+          comparison = (a.wasteType || '').localeCompare(b.wasteType || '');
+          break;
+        case 'location':
+          comparison = (a.address || '').localeCompare(b.address || '');
+          break;
+        default:
+          comparison = new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime();
+      }
+      
+      // Apply sort direction
+      return sortOrder === 'asc' ? comparison : -comparison;
     });
 
   // Pagination state
@@ -472,11 +524,51 @@ export default function CollectorCollectionsPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="w-[100px]">ID</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Waste Type</TableHead>
-                        <TableHead>Location</TableHead>
+                        <TableHead className="w-[100px]">
+                          <button 
+                            onClick={() => handleSort('id')} 
+                            className="flex items-center hover:text-primary"
+                          >
+                            ID
+                            {getSortIcon('id')}
+                          </button>
+                        </TableHead>
+                        <TableHead>
+                          <button 
+                            onClick={() => handleSort('status')} 
+                            className="flex items-center hover:text-primary"
+                          >
+                            Status
+                            {getSortIcon('status')}
+                          </button>
+                        </TableHead>
+                        <TableHead>
+                          <button 
+                            onClick={() => handleSort('date')} 
+                            className="flex items-center hover:text-primary"
+                          >
+                            Date
+                            {getSortIcon('date')}
+                          </button>
+                        </TableHead>
+                        <TableHead>
+                          <button 
+                            onClick={() => handleSort('wasteType')} 
+                            className="flex items-center hover:text-primary"
+                          >
+                            Waste Type
+                            {getSortIcon('wasteType')}
+                          </button>
+                        </TableHead>
+                        <TableHead>
+                          <button 
+                            onClick={() => handleSort('location')} 
+                            className="flex items-center hover:text-primary"
+                          >
+                            Location
+                            {getSortIcon('location')}
+                          </button>
+                        </TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
