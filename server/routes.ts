@@ -5,9 +5,11 @@ import {
   insertCollectionSchema, 
   insertEcoTipSchema, 
   insertMaterialInterestSchema,
+  insertChatMessageSchema,
   CollectionStatus,
   Collection,
-  UserRole
+  UserRole,
+  ChatMessage
 } from "@shared/schema";
 import { z } from "zod";
 import { setupAuth } from "./auth";
@@ -27,6 +29,12 @@ const materialInterestSchema = z.object({
   amountRequested: z.number().min(0.1).optional(),
   pricePerKg: z.number().min(0).optional(),
   message: z.string().optional(),
+});
+
+// Schema for chat messages
+const chatMessageSchema = z.object({
+  receiverId: z.number(),
+  content: z.string().min(1).max(1000),
 });
 
 // Simple middleware to require authentication
