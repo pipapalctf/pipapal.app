@@ -1,6 +1,6 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import { Express } from "express";
+import { Express, Request, Response, NextFunction } from "express";
 import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
@@ -114,6 +114,82 @@ export function setupAuth(app: Express) {
   app.get("/api/user", (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     res.json(req.user);
+  });
+  
+  // Firebase Google login route
+  app.post("/api/login-with-google", async (req, res, next) => {
+    try {
+      const { email, uid, displayName } = req.body;
+      
+      if (!email || !uid) {
+        return res.status(400).json({ message: "Email and UID are required" });
+      }
+      
+      // Check if user exists by email
+      let user = await storage.getUserByEmail(email);
+      
+      if (user) {
+        // User exists, update Firebase UID if needed
+        if (!user.firebaseUid) {
+          user = await storage.updateUser(user.id, { 
+            firebaseUid: uid,
+            emailVerified: true // Google login is pre-verified
+          });
+        }
+      } else {
+        // Create new user with Google info
+        // Generate a random password (they'll login with Google, not password)
+        const randomPassword = randomBytes(16).toString('hex');
+        
+        user = await storage.createUser({
+          username: email.split('@')[0] + '_' + randomBytes(3).toString('hex'), // Create unique username
+          password: await hashPassword(randomPassword),
+          fullName: displayName || email.split('@')[0],
+          email,
+          role: UserRole.HOUSEHOLD, // Default role for Google signups
+          firebaseUid: uid,
+          emailVerified: true, // Google login is pre-verified
+          onboardingCompleted: false
+        });
+      }
+      
+      // Login the user
+      req.login(user, (err) => {
+        if (err) return next(err);
+        res.status(200).json(user);
+      });
+    } catch (error) {
+      console.error("Google login error:", error);
+      res.status(500).json({ message: "Failed to login with Google" });
+    }
+  });
+  
+  // Update email verification status endpoint
+  app.post("/api/user/verify-email", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.sendStatus(401);
+    }
+    
+    try {
+      const { verified } = req.body;
+      
+      if (verified === undefined) {
+        return res.status(400).json({ message: "Verification status is required" });
+      }
+      
+      const updatedUser = await storage.updateUser(req.user.id, { 
+        emailVerified: !!verified 
+      });
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating email verification status:", error);
+      res.status(500).json({ message: "Failed to update email verification status" });
+    }
   });
   
   // Dedicated endpoint for completing onboarding

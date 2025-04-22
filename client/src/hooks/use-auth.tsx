@@ -111,8 +111,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     mutationFn: async () => {
       const googleResult = await signInWithGoogle();
       
-      if (!googleResult.success) {
-        throw new Error(googleResult.error);
+      if (!googleResult.success || !googleResult.user) {
+        throw new Error(googleResult.error || "Failed to sign in with Google");
       }
       
       // We'd need to handle this on the backend to either find or create a user
@@ -120,17 +120,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const googleUser = googleResult.user;
       
       // For now, we'll just use the email to log in if it exists in our system
-      if (googleUser.email) {
-        const res = await apiRequest("POST", "/api/login-with-google", {
-          email: googleUser.email,
-          displayName: googleUser.displayName,
-          photoURL: googleUser.photoURL,
-          uid: googleUser.uid
-        });
-        return await res.json();
+      if (!googleUser.email) {
+        throw new Error("Failed to get email from Google account");
       }
       
-      throw new Error("Failed to get email from Google account");
+      const res = await apiRequest("POST", "/api/login-with-google", {
+        email: googleUser.email,
+        displayName: googleUser.displayName || googleUser.email.split('@')[0],
+        photoURL: googleUser.photoURL || null,
+        uid: googleUser.uid
+      });
+      return await res.json();
     },
     onSuccess: (user: SelectUser) => {
       queryClient.setQueryData(["/api/user"], user);
@@ -157,8 +157,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         userData.password
       );
       
-      if (!firebaseResult.success) {
-        throw new Error(firebaseResult.error);
+      if (!firebaseResult.success || !firebaseResult.user) {
+        throw new Error(firebaseResult.error || "Failed to create Firebase user");
       }
       
       // Then register with our backend
@@ -167,6 +167,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ...userDataWithoutConfirm,
         // Add Firebase UID to link accounts
         firebaseUid: firebaseResult.user.uid,
+        emailVerified: false, // Initially false until they verify email
         onboardingCompleted: false
       };
       
