@@ -8,14 +8,9 @@ const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
 const isDevelopment = process.env.NODE_ENV === 'development';
 
 // Flag to determine if we should use Twilio
-// Now that we have credentials, we'll try to use Twilio in all environments
-let useTwilio = accountSid && authToken && twilioPhoneNumber;
-
-if (!accountSid || !authToken || !twilioPhoneNumber) {
-  console.error('Missing Twilio environment variables - SMS verification will not work');
-} else {
-  console.log('Twilio credentials found - SMS verification is active');
-}
+// Twilio is no longer used for verification as we've moved to email-only verification
+// This code is kept for backward compatibility
+let useTwilio = false; // Disabled
 
 // Only initialize client if we're using Twilio
 const client = useTwilio ? twilio(accountSid, authToken) : null;
