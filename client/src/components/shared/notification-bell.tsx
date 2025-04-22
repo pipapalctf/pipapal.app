@@ -26,11 +26,15 @@ export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [_, navigate] = useLocation();
   
-  const handleViewCollection = (collectionId: number) => {
+  const handleViewCollection = (collectionId: number, interestId?: number) => {
     markAllAsRead();
     setOpen(false);
-    // Navigate to the collection details
-    navigate(`/collections/${collectionId}`);
+    // Navigate to the collection details with interestId if available
+    if (interestId) {
+      navigate(`/collections/${collectionId}?interestId=${interestId}`);
+    } else {
+      navigate(`/collections/${collectionId}`);
+    }
   };
   
   const handleViewChat = (senderId: number) => {
@@ -97,7 +101,9 @@ export function NotificationBell() {
                         ? 'New Message'
                         : notification.type === 'new_collection'
                           ? 'New Collection'
-                          : 'Notification'
+                          : notification.message.includes('interest')
+                            ? 'Material Interest'
+                            : 'Notification'
                     }
                   </span>
                   <Button 
@@ -119,7 +125,7 @@ export function NotificationBell() {
                       variant="link" 
                       size="sm" 
                       className="p-0 h-auto text-xs"
-                      onClick={() => handleViewCollection(notification.collectionId!)}
+                      onClick={() => handleViewCollection(notification.collectionId!, notification.interestId)}
                     >
                       View details
                     </Button>

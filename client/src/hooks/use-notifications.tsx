@@ -18,6 +18,7 @@ type Notification = {
   read: boolean;
   timestamp: Date;
   collectionId?: number;
+  interestId?: number;
   status?: string;
   // Chat message specific fields
   senderId?: number;

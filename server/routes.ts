@@ -905,7 +905,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         
         // Create the material interest record
-        await storage.createMaterialInterest({
+        const interest = await storage.createMaterialInterest({
           userId: req.user.id,
           collectionId: collection.id,
           status: 'pending',
@@ -920,7 +920,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const ownerNotification = {
           type: 'notification',
           message: `${recyclerName} (Recycler) has expressed interest in your ${collection.wasteType} materials (${collection.wasteAmount || 0}kg)`,
-          collectionId: collection.id
+          collectionId: collection.id,
+          interestId: interest.id
         };
         
         ownerClients.forEach(client => {
@@ -935,7 +936,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const collectorNotification = {
             type: 'notification',
             message: `${recyclerName} (Recycler) wants to purchase ${collection.wasteType} materials (${collection.wasteAmount || 0}kg) that you collected from ${collection.address}`,
-            collectionId: collection.id
+            collectionId: collection.id,
+            interestId: interest.id
           };
           
           collectorClients.forEach(client => {
