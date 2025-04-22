@@ -16,6 +16,7 @@ import CollectorCollectionsPage from "@/pages/collector-collections-page";
 import RecyclerMaterialsPage from "@/pages/recycler-materials-page";
 import AboutPage from "@/pages/about-page";
 import MissionPage from "@/pages/mission-page";
+import OnboardingPage from "@/pages/onboarding-page";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 import { ThemeProvider } from "next-themes";
@@ -35,6 +36,7 @@ function Router() {
       <ProtectedRoute path="/recycler/materials" component={RecyclerMaterialsPage} roleCheck={UserRole.RECYCLER} />
       <ProtectedRoute path="/materials" component={RecyclerMaterialsPage} roleCheck={UserRole.RECYCLER} />
       <ProtectedRoute path="/profile" component={ProfilePage} />
+      <ProtectedRoute path="/onboarding" component={OnboardingPage} />
       <Route path="/auth" component={AuthPage} />
       <Route path="/about" component={AboutPage} />
       <Route path="/mission" component={MissionPage} />
