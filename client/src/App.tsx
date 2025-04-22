@@ -33,7 +33,9 @@ function Router() {
       <ProtectedRoute path="/schedule-pickup" component={SchedulePickupPage} />
       <ProtectedRoute path="/ecotips" component={EcoTipsPage} />
       <ProtectedRoute path="/impact" component={ImpactPage} />
-      <ProtectedRoute path="/chat" component={ChatPage} />
+      <Route path="/chat">
+        {() => <ChatPage />}
+      </Route>
       <ProtectedRoute path="/collections/:id" component={CollectionDetailsPage} />
       <ProtectedRoute path="/collections" component={CollectorCollectionsPage} roleCheck={UserRole.COLLECTOR} />
       <ProtectedRoute path="/recycler/materials" component={RecyclerMaterialsPage} roleCheck={UserRole.RECYCLER} />

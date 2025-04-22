@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Menu, Truck, Recycle, Calendar } from "lucide-react";
+import { Menu, Truck, Recycle, Calendar, MessageSquare } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { NotificationBell } from "@/components/shared/notification-bell";
 import { UserRole } from "@shared/schema";
@@ -98,7 +98,15 @@ export default function Navbar() {
         </div>
         
         <div className="flex items-center space-x-3">
-          <div className="hidden md:block">
+          <div className="hidden md:flex items-center space-x-3">
+            <Link 
+              href="/chat" 
+              className={`transition-colors ${
+                location === "/chat" ? "text-primary" : "text-secondary hover:text-primary"
+              }`}
+            >
+              <MessageSquare className="h-5 w-5" />
+            </Link>
             <NotificationBell />
           </div>
           
@@ -154,6 +162,16 @@ export default function Navbar() {
                 {link.label}
               </Link>
             ))}
+            <Link
+              href="/chat"
+              className={`transition-colors font-medium flex items-center ${
+                location === "/chat" ? "text-primary" : "text-secondary hover:text-primary"
+              }`}
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              <MessageSquare className="w-4 h-4 mr-1" />
+              Messages
+            </Link>
             <div className="flex items-center justify-between mt-2 border-t border-gray-100 pt-2">
               <div className="py-2">
                 <NotificationBell />
