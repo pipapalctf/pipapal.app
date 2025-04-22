@@ -6,6 +6,7 @@ import {
   insertEcoTipSchema, 
   insertMaterialInterestSchema,
   insertChatMessageSchema,
+  insertActivitySchema,
   CollectionStatus,
   Collection,
   UserRole,
@@ -706,6 +707,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
       const activities = await storage.getActivitiesByUser(req.user!.id, limit);
       res.json(activities);
+    }
+  );
+  
+  // Create activity endpoint (only for development/testing)
+  app.post("/api/activities/create", 
+    async (req, res) => {
+      try {
+        const activityData = insertActivitySchema.parse(req.body);
+        const activity = await storage.createActivity(activityData);
+        res.status(201).json(activity);
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          return res.status(400).json({ errors: error.format() });
+        }
+        console.error("Error creating activity:", error);
+        res.status(500).send("Failed to create activity");
+      }
     }
   );
   
