@@ -24,9 +24,10 @@ import { z } from "zod";
 import { useAuth } from "@/hooks/use-auth";
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { Loader2 } from "lucide-react";
+import { Loader2, ArrowLeft, ArrowRight, CheckCircle } from "lucide-react";
 import Logo from "@/components/logo";
 import { UserRole } from "@shared/schema";
+import { apiRequest } from "@/lib/queryClient";
 
 // Login form schema
 const loginFormSchema = z.object({
@@ -47,10 +48,17 @@ const registerFormSchema = z.object({
     required_error: "Please select a role",
   }),
   address: z.string().min(5, "Address must be at least 5 characters"),
-  phone: z.string().optional(),
+  phone: z.string().min(10, "Phone number must be at least 10 digits").regex(/^\+?[0-9]+$/, "Please enter a valid phone number"),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords do not match",
   path: ["confirmPassword"],
+});
+
+// OTP verification schema
+const otpVerificationSchema = z.object({
+  otp: z.string()
+    .length(6, { message: "OTP must be 6 digits" })
+    .regex(/^[0-9]+$/, { message: "OTP must contain only numbers" }),
 });
 
 type RegisterFormValues = z.infer<typeof registerFormSchema>;
@@ -59,6 +67,20 @@ export default function AuthPage() {
   const { user, loginMutation, registerMutation, isLoading } = useAuth();
   const [location, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState<string>("login");
+  const [registrationStep, setRegistrationStep] = useState<"accountInfo" | "verification" | "complete">("accountInfo");
+  const [userFormData, setUserFormData] = useState<RegisterFormValues | null>(null);
+  const [phoneNumber, setPhoneNumber] = useState<string>("");
+  const [isLoadingOtp, setIsLoadingOtp] = useState<boolean>(false);
+  const [otpSent, setOtpSent] = useState<boolean>(false);
+  const { toast } = useToast();
+
+  // OTP form
+  const otpForm = useForm({
+    resolver: zodResolver(otpVerificationSchema),
+    defaultValues: {
+      otp: "",
+    },
+  });
   
   // Redirect if already logged in
   useEffect(() => {
@@ -91,13 +113,103 @@ export default function AuthPage() {
     },
   });
   
+  // Login form submission
   function onLoginSubmit(values: LoginFormValues) {
     loginMutation.mutate(values);
   }
   
+  // Registration first step submission - collect user data
   function onRegisterSubmit(values: RegisterFormValues) {
-    registerMutation.mutate(values);
+    setUserFormData(values);
+    setPhoneNumber(values.phone);
+    setRegistrationStep("verification");
+    
+    // Send OTP to the provided phone number
+    sendVerificationCode(values.phone);
   }
+  
+  // Send OTP verification code
+  const sendVerificationCode = async (phone: string) => {
+    setIsLoadingOtp(true);
+    
+    try {
+      const response = await apiRequest("POST", "/api/otp/send", {
+        phoneNumber: phone,
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to send verification code");
+      }
+      
+      toast({
+        title: "Verification code sent",
+        description: "Please check your phone for a 6-digit verification code",
+      });
+      
+      setOtpSent(true);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send verification code. Please try again.",
+        variant: "destructive",
+      });
+      
+      // Go back to account info step if OTP sending fails
+      setRegistrationStep("accountInfo");
+    } finally {
+      setIsLoadingOtp(false);
+    }
+  };
+  
+  // Verify OTP and complete registration
+  const verifyOtpAndRegister = async (otpData: { otp: string }) => {
+    if (!userFormData) return;
+    
+    setIsLoadingOtp(true);
+    
+    try {
+      // Verify OTP first
+      const verifyResponse = await apiRequest("POST", "/api/otp/verify-registration", {
+        phoneNumber: phoneNumber,
+        otp: otpData.otp
+      });
+      
+      if (!verifyResponse.ok) {
+        const errorData = await verifyResponse.json();
+        throw new Error(errorData.error || "Invalid verification code");
+      }
+      
+      // If OTP is valid, submit registration
+      const { confirmPassword, ...userData } = userFormData;
+      
+      registerMutation.mutate({
+        ...userData,
+        phoneVerified: true,
+      }, {
+        onSuccess: () => {
+          setRegistrationStep("complete");
+        },
+        onError: (error) => {
+          toast({
+            title: "Registration failed",
+            description: error.message || "Failed to create account. Please try again.",
+            variant: "destructive",
+          });
+          // Go back to account info step if registration fails
+          setRegistrationStep("accountInfo");
+        }
+      });
+    } catch (error: any) {
+      toast({
+        title: "Verification failed",
+        description: error.message || "Invalid verification code. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingOtp(false);
+    }
+  };
   
   if (isLoading) {
     return (
@@ -335,10 +447,13 @@ export default function AuthPage() {
                             name="phone"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Phone Number (Optional)</FormLabel>
+                                <FormLabel>Phone Number</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="+1 (555) 123-4567" {...field} />
+                                  <Input placeholder="+254 7XX XXX XXX" {...field} />
                                 </FormControl>
+                                <FormDescription>
+                                  Enter your phone number with country code (e.g., +254 for Kenya)
+                                </FormDescription>
                                 <FormMessage />
                               </FormItem>
                             )}
