@@ -44,7 +44,7 @@ export default function PublicNavbar() {
               <div className="flex items-center cursor-pointer">
                 <Logo size={scrolled ? "sm" : "md"} />
                 <div className="ml-2">
-                  <span className={`font-montserrat font-bold text-secondary transition-all duration-300 ${scrolled ? 'text-xl' : 'text-2xl'}`}>
+                  <span className={`font-montserrat font-bold bg-gradient-to-r from-primary to-blue-500 bg-clip-text text-transparent transition-all duration-300 ${scrolled ? 'text-xl' : 'text-2xl'}`}>
                     PipaPal
                   </span>
                   <span className={`hidden md:inline-block ml-2 text-primary text-xs transition-all duration-300 ${scrolled ? 'opacity-0' : 'opacity-100'}`}>

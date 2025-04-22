@@ -79,7 +79,7 @@ export default function Navbar() {
       <nav className="container mx-auto px-4 py-4 flex items-center justify-between">
         <div className="flex items-center">
           <Logo size="md" />
-          <span className="ml-2 text-2xl font-montserrat font-bold text-secondary">PipaPal</span>
+          <span className="ml-2 text-2xl font-montserrat font-bold bg-gradient-to-r from-primary to-blue-500 bg-clip-text text-transparent">PipaPal</span>
         </div>
         
         <div className="hidden md:flex items-center space-x-6">
