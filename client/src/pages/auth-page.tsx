@@ -75,6 +75,7 @@ export default function AuthPage() {
   const [phoneNumber, setPhoneNumber] = useState<string>("");
   const [isLoadingOtp, setIsLoadingOtp] = useState<boolean>(false);
   const [otpSent, setOtpSent] = useState<boolean>(false);
+  const [devOtpCode, setDevOtpCode] = useState<string | null>(null);
   const { toast } = useToast();
 
   // OTP form
@@ -152,6 +153,7 @@ export default function AuthPage() {
     }
     
     setIsLoadingOtp(true);
+    setDevOtpCode(null); // Reset any previous dev code
     
     try {
       const response = await apiRequest("POST", "/api/otp/send", {
@@ -163,10 +165,35 @@ export default function AuthPage() {
         throw new Error(errorData.error || "Failed to send verification code");
       }
       
-      toast({
-        title: "Verification code sent",
-        description: "Please check your phone for a 6-digit verification code",
-      });
+      // Get the response data
+      const responseData = await response.json();
+      
+      // Check if we're in development mode and a code was provided
+      if (responseData.message && 
+          (responseData.message.includes('Development mode') || 
+           responseData.message.includes('Use code') || 
+           responseData.message.includes('trial account'))) {
+        // Extract the OTP code from the message
+        const match = responseData.message.match(/code:? ([0-9]{6})/i);
+        if (match && match[1]) {
+          setDevOtpCode(match[1]);
+          toast({
+            title: "Development Mode",
+            description: "A test verification code has been generated",
+          });
+        } else {
+          toast({
+            title: "Verification Code",
+            description: responseData.message,
+          });
+        }
+      } else {
+        // Standard notification for production mode
+        toast({
+          title: "Verification code sent",
+          description: "Please check your phone for a 6-digit verification code",
+        });
+      }
       
       setOtpSent(true);
     } catch (error: any) {
