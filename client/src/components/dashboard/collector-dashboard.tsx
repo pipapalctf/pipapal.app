@@ -647,6 +647,40 @@ export default function CollectorDashboard({ user }: CollectorDashboardProps) {
         </TabsContent>
       </Tabs>
       
+      {/* Achievement Badges */}
+      <Card className="mb-6">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center text-base">
+            <Award className="mr-2 h-5 w-5" />
+            Achievement Badges
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+            {[
+              { name: 'Collection Pro', achieved: completedCollections.length >= 10, icon: '🚚' },
+              { name: 'On-Time Hero', achieved: onTimeRate >= 90, icon: '⏱️' },
+              { name: 'Diversity Master', achieved: wasteTypesCount.size >= 5, icon: '🔄' },
+              { name: 'Volume Leader', achieved: totalWasteCollected >= 500, icon: '📦' },
+              { name: 'Carbon Saver', achieved: impact?.co2Reduced > 100, icon: '🌿' },
+              { name: 'Community Pillar', achieved: userRating >= 4.5, icon: '🏆' }
+            ].map((badge, index) => (
+              <div 
+                key={index} 
+                className={`flex flex-col items-center justify-center p-2 rounded-lg text-center ${
+                  badge.achieved 
+                    ? 'bg-blue-100 dark:bg-blue-900/20 text-blue-900 dark:text-blue-100' 
+                    : 'bg-gray-100 dark:bg-gray-800/30 text-gray-400 dark:text-gray-500'
+                }`}
+              >
+                <div className="text-xl mb-1">{badge.icon}</div>
+                <span className="text-xs font-medium">{badge.name}</span>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+      
       {/* Upcoming Jobs */}
       <Card>
         <CardHeader>

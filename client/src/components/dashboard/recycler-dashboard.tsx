@@ -700,6 +700,40 @@ export default function RecyclerDashboard({ user }: RecyclerDashboardProps) {
           </div>
         </TabsContent>
       </Tabs>
+      
+      {/* Achievement Badges */}
+      <Card className="mt-6">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center text-base">
+            <Award className="mr-2 h-5 w-5" />
+            Achievement Badges
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+            {[
+              { name: 'Materials Master', achieved: wasteTypesCount.size >= 6, icon: '🔄' },
+              { name: 'Volume Leader', achieved: totalWasteRecycled >= 1000, icon: '📦' },
+              { name: 'Processing Pro', achieved: completedCollections.length >= 15, icon: '⚙️' },
+              { name: 'Carbon Hero', achieved: impact?.co2Reduced > 200, icon: '🌿' },
+              { name: 'Water Protector', achieved: impact?.waterSaved > 2000, icon: '💧' },
+              { name: 'Forest Guardian', achieved: impact?.treesEquivalent > 10, icon: '🌳' }
+            ].map((badge, index) => (
+              <div 
+                key={index} 
+                className={`flex flex-col items-center justify-center p-2 rounded-lg text-center ${
+                  badge.achieved 
+                    ? 'bg-teal-100 dark:bg-teal-900/20 text-teal-900 dark:text-teal-100' 
+                    : 'bg-gray-100 dark:bg-gray-800/30 text-gray-400 dark:text-gray-500'
+                }`}
+              >
+                <div className="text-xl mb-1">{badge.icon}</div>
+                <span className="text-xs font-medium">{badge.name}</span>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
