@@ -85,6 +85,8 @@ const formSchema = z.object({
   address: z.string().min(5, "Address must be at least 5 characters"),
   location: z.custom<LocationType>().optional(),
   notes: z.string().optional(),
+  // This field is only used for UI interaction, not stored in the database
+  citySelection: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -386,6 +388,12 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
       case FormStep.WASTE_DETAILS:
         return !form.getValues().wasteType || !form.getValues().wasteAmount;
       case FormStep.LOCATION:
+        // When maps aren't loaded, we should still allow proceeding if an address is entered
+        if (!isMapsLoaded) {
+          // If using the city dropdown, make sure location is set too
+          return !form.getValues().address;
+        }
+        // Normal flow with maps loaded
         return !form.getValues().address;
       case FormStep.SCHEDULE:
         return !form.getValues().scheduledDate;
@@ -555,47 +563,109 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
         )}
       />
       
-      {/* Map view - only show if Google Maps is loaded and location is available */}
-      {isMapsLoaded ? (
-        watchedValues.location ? (
-          <div className="mt-4 rounded-md overflow-hidden border">
-            <GoogleMap
-              mapContainerStyle={{
-                width: '100%',
-                height: '300px'
-              }}
-              center={mapCenter}
-              zoom={14}
-              options={{
-                disableDefaultUI: true,
-                zoomControl: true,
-                streetViewControl: true,
-              }}
-            >
-              <MarkerF
-                position={mapCenter}
-                title={watchedValues.address}
-              />
-            </GoogleMap>
-          </div>
-        ) : (
-          <div className="mt-4 p-4 border rounded-md bg-muted/30 text-center space-y-2">
-            <div className="flex justify-center">
-              <MapPin className="h-10 w-10 text-muted-foreground" />
+      {/* Map view section with fallback UI */}
+      <div className="mt-4">
+        {isMapsLoaded ? (
+          watchedValues.location ? (
+            // Map with location pin
+            <div className="rounded-md overflow-hidden border">
+              <GoogleMap
+                mapContainerStyle={{
+                  width: '100%',
+                  height: '300px'
+                }}
+                center={mapCenter}
+                zoom={14}
+                options={{
+                  disableDefaultUI: true,
+                  zoomControl: true,
+                  streetViewControl: true,
+                }}
+              >
+                <MarkerF
+                  position={mapCenter}
+                  title={watchedValues.address}
+                />
+              </GoogleMap>
             </div>
-            <p className="text-sm text-muted-foreground">Enter an address or use the detect location button to see a map</p>
+          ) : (
+            // No location selected yet
+            <div className="p-4 border rounded-md bg-muted/30 text-center space-y-2">
+              <div className="flex justify-center">
+                <MapPin className="h-10 w-10 text-muted-foreground" />
+              </div>
+              <p className="text-sm text-muted-foreground">Enter an address or use the detect location button to see a map</p>
+            </div>
+          )
+        ) : (
+          // Map unavailable - show alternative location picker
+          <div className="border rounded-md overflow-hidden">
+            <div className="p-4 bg-muted/30 text-center">
+              <p className="text-sm text-muted-foreground">
+                Maps are currently unavailable. Please select a city from the list below or enter your address manually.
+              </p>
+            </div>
+            
+            <div className="p-4 space-y-4">
+              {/* Select a city when maps don't load - using regular state instead of form field */}
+              <div className="space-y-2">
+                <Label>Select nearest city</Label>
+                <Select
+                  onValueChange={(value) => {
+                    // Split the value "lat,lng,name"
+                    const [lat, lng, ...nameParts] = value.split(',');
+                    const name = nameParts.join(',');
+                    
+                    // Update form with location and address
+                    form.setValue('location', {
+                      lat: parseFloat(lat),
+                      lng: parseFloat(lng)
+                    });
+                    form.setValue('address', name);
+                    setMapCenter({
+                      lat: parseFloat(lat),
+                      lng: parseFloat(lng)
+                    });
+                  }}
+                  defaultValue=""
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose a nearby city" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="-1.2921,36.8219,Nairobi, Kenya">Nairobi</SelectItem>
+                    <SelectItem value="-4.0435,39.6682,Mombasa, Kenya">Mombasa</SelectItem>
+                    <SelectItem value="-0.3031,36.0800,Nakuru, Kenya">Nakuru</SelectItem>
+                    <SelectItem value="0.5143,35.2698,Eldoret, Kenya">Eldoret</SelectItem>
+                    <SelectItem value="0.0395,36.3636,Nyahururu, Kenya">Nyahururu</SelectItem>
+                    <SelectItem value="-0.1022,34.7617,Kisumu, Kenya">Kisumu</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground">
+                  Select the city closest to your location
+                </p>
+              </div>
+              
+              {/* Show selected location in card format when maps aren't available */}
+              {watchedValues.address && watchedValues.location && (
+                <div className="bg-primary/5 border border-primary/20 rounded-md p-3">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 rounded-full bg-primary/10">
+                      <MapPin className="h-4 w-4 text-primary" />
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-sm">Selected Location</h4>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {watchedValues.address}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-        )
-      ) : (
-        <div className="mt-4 p-4 border rounded-md bg-muted/30 text-center space-y-2">
-          <p className="text-sm text-muted-foreground">
-            Map loading is unavailable at the moment. You can still continue by entering your address manually.
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Don't worry, your pickup can still be scheduled without a map.
-          </p>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
   
