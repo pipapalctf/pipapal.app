@@ -578,7 +578,7 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
             onClick={() => setIsManualEntry(false)}
           >
             <MapPin className="h-4 w-4 mr-2" />
-            From City List
+            Detect Location
           </Button>
           <Button
             type="button"
@@ -599,7 +599,7 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
               name="citySelection"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Select Your City</FormLabel>
+                  <FormLabel>Select Your Location</FormLabel>
                   <Select
                     onValueChange={(value) => {
                       field.onChange(value);
@@ -642,7 +642,7 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
                     </SelectContent>
                   </Select>
                   <FormDescription>
-                    Choose the closest city to your location
+                    Select your nearest city for accurate waste collection
                   </FormDescription>
                 </FormItem>
               )}
