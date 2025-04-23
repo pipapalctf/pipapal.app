@@ -242,7 +242,7 @@ export default function LocationPicker({ defaultValue, onChange }: LocationPicke
   // If Google Maps API is loading or has an error, provide a basic input
   if (!isLoaded || loadError) {
     return (
-      <div className="space-y-2">
+      <div className="space-y-3">
         <div className="flex w-full items-center gap-2">
           <Input 
             placeholder="Enter your Kenya address manually" 
@@ -264,22 +264,35 @@ export default function LocationPicker({ defaultValue, onChange }: LocationPicke
             )}
           </Button>
         </div>
-        {loadError && (
-          <p className="text-xs text-destructive">
-            Google Maps not available. Please enter your Kenya address manually.
-          </p>
-        )}
+        
+        <div className="flex items-start gap-2 p-2 bg-amber-50 border border-amber-200 rounded-md">
+          <MapPin className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
+          <div className="space-y-1">
+            <p className="text-xs text-amber-700 font-medium">
+              {loadError ? "Google Maps unavailable" : "Location Services"}
+            </p>
+            <p className="text-xs text-amber-700">
+              {loadError 
+                ? "Please enter a precise Kenya address manually or use the 'Detect my location' button." 
+                : "Please provide a specific address in Kenya, including street name or landmark if possible."}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Examples: "27 Kenyatta Ave, Nairobi" or "Junction Mall, Ngong Road"
+            </p>
+          </div>
+        </div>
       </div>
     );
   }
   
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       <div className="flex w-full items-center gap-2">
         <div className="relative flex-1">
           <Autocomplete
             onLoad={(autocomplete) => {
               autocompleteRef.current = autocomplete;
+              console.log("Google Maps Autocomplete loaded successfully");
             }}
             onPlaceChanged={onPlaceSelected}
             options={{
@@ -311,6 +324,14 @@ export default function LocationPicker({ defaultValue, onChange }: LocationPicke
             <Compass className="h-4 w-4" />
           )}
         </Button>
+      </div>
+      
+      {/* Informational tooltip */}
+      <div className="flex items-center gap-2 p-2 bg-primary/5 border border-primary/20 rounded-md">
+        <MapPin className="h-4 w-4 text-primary flex-shrink-0" />
+        <p className="text-xs text-muted-foreground">
+          Start typing for suggested Kenya addresses or use the compass icon to detect your location automatically.
+        </p>
       </div>
     </div>
   );
