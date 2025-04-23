@@ -545,13 +545,200 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
     // For some reason, the useState hook was causing issues here
     // We'll initialize the isManualEntry value directly in the function scope
     const isManualEntry = form.getValues('citySelection') ? false : true;
+    const [isDetecting, setIsDetecting] = useState<boolean>(false);
+    
+    // Real geolocation detection
+    const detectUserLocation = () => {
+      if (!navigator.geolocation) {
+        toast({
+          title: "Location Detection Failed",
+          description: "Your browser doesn't support geolocation. Please select a city manually.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      setIsDetecting(true);
+      
+      navigator.geolocation.getCurrentPosition(
+        // Success handler
+        (position) => {
+          console.log("Geolocation success:", position.coords);
+          
+          const userLat = position.coords.latitude;
+          const userLng = position.coords.longitude;
+          
+          // Check if location is in Kenya (rough bounding box)
+          const KENYA_BOUNDS = {
+            north: 4.62,  // Northern-most point
+            south: -4.72, // Southern-most point
+            west: 33.90,  // Western-most point
+            east: 41.91   // Eastern-most point
+          };
+          
+          if (userLat < KENYA_BOUNDS.south || 
+              userLat > KENYA_BOUNDS.north || 
+              userLng < KENYA_BOUNDS.west || 
+              userLng > KENYA_BOUNDS.east) {
+            toast({
+              title: "Location Outside Kenya",
+              description: "PipaPal is only available in Kenya. Please select a Kenya location.",
+              variant: "destructive"
+            });
+            setIsDetecting(false);
+            return;
+          }
+          
+          // Find closest city from our list
+          const kenyaCities = [
+            { value: "-1.2921,36.8219,Nairobi, Kenya", name: "Nairobi", lat: -1.2921, lng: 36.8219 },
+            { value: "-4.0435,39.6682,Mombasa, Kenya", name: "Mombasa", lat: -4.0435, lng: 39.6682 },
+            { value: "-0.3031,36.0800,Nakuru, Kenya", name: "Nakuru", lat: -0.3031, lng: 36.0800 },
+            { value: "0.5143,35.2698,Eldoret, Kenya", name: "Eldoret", lat: 0.5143, lng: 35.2698 },
+            { value: "0.0395,36.3636,Nyahururu, Kenya", name: "Nyahururu", lat: 0.0395, lng: 36.3636 },
+            { value: "-0.1022,34.7617,Kisumu, Kenya", name: "Kisumu", lat: -0.1022, lng: 34.7617 },
+            { value: "-0.3696,34.8861,Kericho, Kenya", name: "Kericho", lat: -0.3696, lng: 34.8861 },
+            { value: "-0.5182,37.2709,Embu, Kenya", name: "Embu", lat: -0.5182, lng: 37.2709 },
+            { value: "-0.1018,35.0728,Kapsabet, Kenya", name: "Kapsabet", lat: -0.1018, lng: 35.0728 },
+            { value: "-0.0916,36.9733,Nyeri, Kenya", name: "Nyeri", lat: -0.0916, lng: 36.9733 },
+            { value: "-0.7983,36.9976,Machakos, Kenya", name: "Machakos", lat: -0.7983, lng: 36.9976 },
+            { value: "-0.5333,37.4515,Meru, Kenya", name: "Meru", lat: -0.5333, lng: 37.4515 }
+          ];
+          
+          // Find closest city using haversine formula
+          let closestCity = kenyaCities[0];
+          let minDistance = Number.MAX_VALUE;
+          
+          for (const city of kenyaCities) {
+            // Simple distance calculation (not perfect but good enough)
+            const distance = Math.sqrt(
+              Math.pow(city.lat - userLat, 2) + 
+              Math.pow(city.lng - userLng, 2)
+            );
+            
+            if (distance < minDistance) {
+              minDistance = distance;
+              closestCity = city;
+            }
+          }
+          
+          // If Google Maps API is loaded, try to get precise address
+          if (isMapsLoaded) {
+            try {
+              const geocoder = new google.maps.Geocoder();
+              
+              // Using promises for more modern approach
+              geocoder.geocode({ location: { lat: userLat, lng: userLng } })
+                .then((response) => {
+                  setIsDetecting(false);
+                  
+                  if (response.results && response.results[0]) {
+                    const fullAddress = response.results[0].formatted_address;
+                    console.log("Geocoded address:", fullAddress);
+                    
+                    // Update form with detected location
+                    form.setValue('location', { lat: userLat, lng: userLng });
+                    form.setValue('address', fullAddress);
+                    form.setValue('citySelection', closestCity.value);
+                    setMapCenter({ lat: userLat, lng: userLng });
+                    
+                    toast({
+                      title: "Location Detected",
+                      description: `Found your location: ${fullAddress}`,
+                    });
+                  } else {
+                    // Fallback to closest city if geocoding fails
+                    form.setValue('location', { lat: closestCity.lat, lng: closestCity.lng });
+                    form.setValue('address', closestCity.name + ", Kenya");
+                    form.setValue('citySelection', closestCity.value);
+                    setMapCenter({ lat: closestCity.lat, lng: closestCity.lng });
+                    
+                    toast({
+                      title: "Location Detected",
+                      description: `Using nearest city: ${closestCity.name}, Kenya`,
+                    });
+                  }
+                })
+                .catch((error) => {
+                  console.error("Geocoding error:", error);
+                  setIsDetecting(false);
+                  
+                  // Fallback to closest city if geocoding fails
+                  form.setValue('location', { lat: closestCity.lat, lng: closestCity.lng });
+                  form.setValue('address', closestCity.name + ", Kenya");
+                  form.setValue('citySelection', closestCity.value);
+                  setMapCenter({ lat: closestCity.lat, lng: closestCity.lng });
+                  
+                  toast({
+                    title: "Location Detected",
+                    description: `Using nearest city: ${closestCity.name}, Kenya`,
+                  });
+                });
+            } catch (error) {
+              console.error("Error creating geocoder:", error);
+              setIsDetecting(false);
+              
+              // Fallback to closest city
+              form.setValue('location', { lat: closestCity.lat, lng: closestCity.lng });
+              form.setValue('address', closestCity.name + ", Kenya");
+              form.setValue('citySelection', closestCity.value);
+              setMapCenter({ lat: closestCity.lat, lng: closestCity.lng });
+              
+              toast({
+                title: "Location Detected",
+                description: `Using nearest city: ${closestCity.name}, Kenya`,
+              });
+            }
+          } else {
+            // If Maps API not loaded, just use closest city
+            setIsDetecting(false);
+            form.setValue('location', { lat: closestCity.lat, lng: closestCity.lng });
+            form.setValue('address', closestCity.name + ", Kenya");
+            form.setValue('citySelection', closestCity.value);
+            setMapCenter({ lat: closestCity.lat, lng: closestCity.lng });
+            
+            toast({
+              title: "Location Detected",
+              description: `Using nearest city: ${closestCity.name}, Kenya`,
+            });
+          }
+        },
+        // Error handler
+        (error) => {
+          setIsDetecting(false);
+          console.error("Geolocation error:", error);
+          
+          let errorMessage = "Failed to get your location";
+          if (error.code === 1) {
+            errorMessage = "Location access denied. Please grant permission or select manually.";
+          } else if (error.code === 2) {
+            errorMessage = "Location unavailable. Please select a city manually.";
+          } else if (error.code === 3) {
+            errorMessage = "Location request timed out. Please try again or select manually.";
+          }
+          
+          toast({
+            title: "Location Detection Failed",
+            description: errorMessage,
+            variant: "destructive"
+          });
+        },
+        // Options
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        }
+      );
+    };
     
     const setIsManualEntry = (value: boolean) => {
       // Clear relevant fields when switching modes
       if (value) { // Manual mode
         form.setValue('citySelection', '', { shouldValidate: false });
-      } else { // City list mode
-        // Do nothing, let user select from dropdown
+      } else { // Detection mode
+        // Start detection automatically when user clicks "Detect Location"
+        detectUserLocation();
       }
     };
     
@@ -576,15 +763,21 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
             variant={isManualEntry ? "outline" : "default"}
             className="flex-1"
             onClick={() => setIsManualEntry(false)}
+            disabled={isDetecting}
           >
-            <MapPin className="h-4 w-4 mr-2" />
-            Detect Location
+            {isDetecting ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <MapPin className="h-4 w-4 mr-2" />
+            )}
+            {isDetecting ? "Detecting..." : "Detect Location"}
           </Button>
           <Button
             type="button"
             variant={isManualEntry ? "default" : "outline"}
             className="flex-1"
             onClick={() => setIsManualEntry(true)}
+            disabled={isDetecting}
           >
             <Clipboard className="h-4 w-4 mr-2" />
             Manual Entry
@@ -620,6 +813,7 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
                       });
                     }}
                     defaultValue={field.value || ""}
+                    disabled={isDetecting}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -667,6 +861,7 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
                           field.onChange(e.target.value);
                         }
                       }}
+                      disabled={isDetecting}
                     />
                   </FormControl>
                   <FormDescription>
