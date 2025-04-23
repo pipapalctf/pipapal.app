@@ -4,6 +4,7 @@ import Navbar from "@/components/shared/navbar";
 import Footer from "@/components/shared/footer";
 import MobileNavigation from "@/components/shared/mobile-navigation";
 import SchedulePickupForm from "@/components/forms/schedule-pickup-form";
+import MultiStepPickupForm from "@/components/forms/multi-step-pickup-form";
 import { useQuery } from "@tanstack/react-query";
 import { Collection, CollectionStatus } from "@shared/schema";
 import { CollectionDetailsDialog } from "@/components/modals/collection-details-dialog";
@@ -331,101 +332,18 @@ export default function SchedulePickupPage() {
             
             {/* Schedule New Pickup Tab */}
             <TabsContent value="schedule" id="schedule-tab-content">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="md:col-span-2">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Collection Details</CardTitle>
-                      <CardDescription>
-                        Provide the necessary information for your waste collection
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <SchedulePickupForm collectionToEdit={collectionToEdit} onSuccess={() => {
-                        setCollectionToEdit(null);
-                        navigate('/schedule-pickup?tab=pickups');
-                        scrollToElement('pickups-tab-content', 80);
-                      }} />
-                    </CardContent>
-                  </Card>
-                </div>
-                
-                <div className="space-y-6">
-                  <Card className="bg-primary/5 border-primary/20">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="flex items-center text-primary">
-                        <CalendarCheck className="mr-2 h-5 w-5" />
-                        Tips for Collection
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <ul className="space-y-3 text-sm">
-                        <li className="flex items-start">
-                          <CircleCheck className="h-4 w-4 text-primary mt-1 mr-2" />
-                          <span>Schedule at least 24 hours in advance for better service</span>
-                        </li>
-                        <li className="flex items-start">
-                          <CircleCheck className="h-4 w-4 text-primary mt-1 mr-2" />
-                          <span>Sort your waste by type for efficient recycling</span>
-                        </li>
-                        <li className="flex items-start">
-                          <CircleCheck className="h-4 w-4 text-primary mt-1 mr-2" />
-                          <span>Ensure waste is properly bagged and accessible</span>
-                        </li>
-                        <li className="flex items-start">
-                          <CircleCheck className="h-4 w-4 text-primary mt-1 mr-2" />
-                          <span>Add specific notes if your location is hard to find</span>
-                        </li>
-                      </ul>
-                    </CardContent>
-                  </Card>
-                  
-                  <Card className="bg-green-50 border-green-200">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="flex items-center text-green-600">
-                        <Recycle className="mr-2 h-5 w-5" />
-                        Points System
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm mb-3">
-                        Earn sustainability points based on waste type:
-                      </p>
-                      <div className="space-y-2 text-sm mb-3">
-                        <div className="grid grid-cols-2 gap-2">
-                          <div className="flex items-center">
-                            <div className="w-2 h-2 rounded-full bg-red-500 mr-2"></div>
-                            <span>Hazardous: 20 pts</span>
-                          </div>
-                          <div className="flex items-center">
-                            <div className="w-2 h-2 rounded-full bg-purple-500 mr-2"></div>
-                            <span>Electronic: 15 pts</span>
-                          </div>
-                          <div className="flex items-center">
-                            <div className="w-2 h-2 rounded-full bg-gray-500 mr-2"></div>
-                            <span>Metal: 12 pts</span>
-                          </div>
-                          <div className="flex items-center">
-                            <div className="w-2 h-2 rounded-full bg-blue-500 mr-2"></div>
-                            <span>Glass/Plastic: 10 pts</span>
-                          </div>
-                          <div className="flex items-center">
-                            <div className="w-2 h-2 rounded-full bg-yellow-500 mr-2"></div>
-                            <span>Paper/Organic: 8 pts</span>
-                          </div>
-                          <div className="flex items-center">
-                            <div className="w-2 h-2 rounded-full bg-emerald-500 mr-2"></div>
-                            <span>General: 5 pts</span>
-                          </div>
-                        </div>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Points shown are for standard 10kg waste collection. Points accumulate to unlock badges and rewards!
-                      </p>
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
+              <Card>
+                <CardContent className="p-6">
+                  <MultiStepPickupForm 
+                    collectionToEdit={collectionToEdit} 
+                    onSuccess={() => {
+                      setCollectionToEdit(null);
+                      navigate('/schedule-pickup?tab=pickups');
+                      scrollToElement('pickups-tab-content', 80);
+                    }} 
+                  />
+                </CardContent>
+              </Card>
             </TabsContent>
             
             {/* My Scheduled Pickups Tab */}
