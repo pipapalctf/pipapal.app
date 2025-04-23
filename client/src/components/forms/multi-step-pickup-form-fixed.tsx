@@ -552,33 +552,35 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
               <FormControl>
                 <Input 
                   placeholder="Provide exact address (e.g., street name, building, landmark)"
-                  value={field.value} 
+                  {...field}
                   onChange={(e) => {
-                    // Keep city information if already selected
+                    // Always change the field value immediately for responsiveness
+                    field.onChange(e.target.value);
+                    
+                    // Then apply additional formatting if city is selected
                     if (watchedValues.citySelection) {
                       const selectedCity = kenyaCities.find(city => city.value === watchedValues.citySelection);
-                      const locationText = e.target.value;
                       
                       if (selectedCity) {
-                        // Keep the city name and country
-                        field.onChange(`${locationText}, ${selectedCity.name}, Kenya`);
+                        // Format the full address for display
+                        setTimeout(() => {
+                          const detailedAddress = e.target.value.trim();
+                          if (detailedAddress && !detailedAddress.includes(selectedCity.name)) {
+                            // Add city name only if it's not already part of the address
+                            field.onChange(`${detailedAddress}, ${selectedCity.name}, Kenya`);
+                          }
+                        }, 500);
                         
                         // Ensure location coordinates are preserved
-                        if (!watchedValues.location) {
-                          form.setValue('location', {
-                            lat: selectedCity.lat,
-                            lng: selectedCity.lng
-                          });
-                          setMapCenter({
-                            lat: selectedCity.lat,
-                            lng: selectedCity.lng
-                          });
-                        }
-                      } else {
-                        field.onChange(locationText);
+                        form.setValue('location', {
+                          lat: selectedCity.lat,
+                          lng: selectedCity.lng
+                        });
+                        setMapCenter({
+                          lat: selectedCity.lat,
+                          lng: selectedCity.lng
+                        });
                       }
-                    } else {
-                      field.onChange(e.target.value);
                     }
                   }}
                 />
