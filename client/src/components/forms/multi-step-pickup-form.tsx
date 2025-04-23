@@ -542,8 +542,18 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
   
   // Render location step with a much simpler approach
   const renderLocationStep = () => {
-    // State for keeping track of which approach is being used
-    const [isManualEntry, setIsManualEntry] = useState<boolean>(false);
+    // For some reason, the useState hook was causing issues here
+    // We'll initialize the isManualEntry value directly in the function scope
+    const isManualEntry = form.getValues('citySelection') ? false : true;
+    
+    const setIsManualEntry = (value: boolean) => {
+      // Clear relevant fields when switching modes
+      if (value) { // Manual mode
+        form.setValue('citySelection', '', { shouldValidate: false });
+      } else { // City list mode
+        // Do nothing, let user select from dropdown
+      }
+    };
     
     return (
       <div className="space-y-6">
@@ -576,7 +586,7 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
             className="flex-1"
             onClick={() => setIsManualEntry(true)}
           >
-            <FileText className="h-4 w-4 mr-2" />
+            <Clipboard className="h-4 w-4 mr-2" />
             Manual Entry
           </Button>
         </div>
@@ -592,6 +602,8 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
                   <FormLabel>Select Your City</FormLabel>
                   <Select
                     onValueChange={(value) => {
+                      field.onChange(value);
+                      
                       // Split the value "lat,lng,name"
                       const [lat, lng, ...nameParts] = value.split(',');
                       const name = nameParts.join(',');
@@ -607,7 +619,7 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
                         lng: parseFloat(lng)
                       });
                     }}
-                    defaultValue=""
+                    defaultValue={field.value || ""}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -649,7 +661,7 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
                       onChange={(e) => {
                         // Combine city and details if city is selected
                         if (watchedValues.location) {
-                          const cityPart = watchedValues.address.split(',')[0];
+                          const cityPart = watchedValues.address?.split(',')[0] || '';
                           field.onChange(`${e.target.value}, ${cityPart}, Kenya`);
                         } else {
                           field.onChange(e.target.value);
