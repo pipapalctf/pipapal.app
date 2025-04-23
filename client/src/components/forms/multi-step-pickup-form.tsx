@@ -540,148 +540,200 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
     </div>
   );
   
-  // Render location step
-  const renderLocationStep = () => (
-    <div className="space-y-6">
-      <FormField
-        control={form.control}
-        name="address"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Collection Address</FormLabel>
-            <FormControl>
-              <LocationPicker 
-                defaultValue={field.value} 
-                onChange={handleLocationChange}
-              />
-            </FormControl>
-            <FormDescription>
-              Enter your address or use the detect location button
-            </FormDescription>
-            <div className="flex items-center px-3 py-2 mt-2 bg-amber-50 border border-amber-200 rounded-md">
-              <AlertCircle className="h-4 w-4 text-amber-500 flex-shrink-0 mr-2" />
-              <p className="text-xs text-amber-700">
-                <span className="font-medium">Note:</span> PipaPal service is currently only available in Kenya. Please make sure your location is within our service area.
+  // Render location step with a much simpler approach
+  const renderLocationStep = () => {
+    // State for keeping track of which approach is being used
+    const [isManualEntry, setIsManualEntry] = useState<boolean>(false);
+    
+    return (
+      <div className="space-y-6">
+        <div className="bg-primary/5 border border-primary/20 rounded-md p-4">
+          <div className="flex items-start space-x-2">
+            <MapPin className="h-5 w-5 text-primary mt-0.5" />
+            <div>
+              <h3 className="font-medium">Collection Location</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                PipaPal service is currently only available in Kenya. Please provide your location using one of the methods below.
               </p>
             </div>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-      
-      {/* Map view section with fallback UI */}
-      <div className="mt-4">
-        {isMapsLoaded ? (
-          watchedValues.location ? (
-            // Map with location pin
-            <div className="rounded-md overflow-hidden border">
-              <GoogleMap
-                mapContainerStyle={{
-                  width: '100%',
-                  height: '300px'
-                }}
-                center={mapCenter}
-                zoom={14}
-                options={{
-                  disableDefaultUI: true,
-                  zoomControl: true,
-                  streetViewControl: true,
-                }}
-              >
-                <MarkerF
-                  position={mapCenter}
-                  title={watchedValues.address}
-                />
-              </GoogleMap>
-            </div>
-          ) : (
-            // No location selected yet
-            <div className="p-4 border rounded-md bg-muted/30 text-center space-y-2">
-              <div className="flex justify-center">
-                <MapPin className="h-10 w-10 text-muted-foreground" />
-              </div>
-              <p className="text-sm text-muted-foreground">Enter an address or use the detect location button to see a map</p>
-            </div>
-          )
-        ) : (
-          // Map unavailable - show alternative location picker
-          <div className="border rounded-md overflow-hidden">
-            <div className="p-4 bg-muted/30">
-              <div className="flex flex-col space-y-2">
-                <p className="text-sm text-muted-foreground text-center">
-                  Maps are currently unavailable. Please select a city from the list below or enter your address manually.
-                </p>
-                <div className="flex items-center px-3 py-2 bg-amber-50 border border-amber-200 rounded-md">
-                  <AlertCircle className="h-4 w-4 text-amber-500 flex-shrink-0 mr-2" />
-                  <p className="text-xs text-amber-700">
-                    <span className="font-medium">Note:</span> PipaPal service is currently only available in Kenya. Please make sure your location is within our service area.
-                  </p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="p-4 space-y-4">
-              {/* Select a city when maps don't load - using regular state instead of form field */}
-              <div className="space-y-2">
-                <p className="text-sm font-medium">Select nearest city</p>
-                <Select
-                  onValueChange={(value) => {
-                    // Split the value "lat,lng,name"
-                    const [lat, lng, ...nameParts] = value.split(',');
-                    const name = nameParts.join(',');
-                    
-                    // Update form with location and address
-                    form.setValue('location', {
-                      lat: parseFloat(lat),
-                      lng: parseFloat(lng)
-                    });
-                    form.setValue('address', name);
-                    setMapCenter({
-                      lat: parseFloat(lat),
-                      lng: parseFloat(lng)
-                    });
-                  }}
-                  defaultValue=""
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose a nearby city" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="-1.2921,36.8219,Nairobi, Kenya">Nairobi</SelectItem>
-                    <SelectItem value="-4.0435,39.6682,Mombasa, Kenya">Mombasa</SelectItem>
-                    <SelectItem value="-0.3031,36.0800,Nakuru, Kenya">Nakuru</SelectItem>
-                    <SelectItem value="0.5143,35.2698,Eldoret, Kenya">Eldoret</SelectItem>
-                    <SelectItem value="0.0395,36.3636,Nyahururu, Kenya">Nyahururu</SelectItem>
-                    <SelectItem value="-0.1022,34.7617,Kisumu, Kenya">Kisumu</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-sm text-muted-foreground">
-                  Select the city closest to your location
-                </p>
-              </div>
-              
-              {/* Show selected location in card format when maps aren't available */}
-              {watchedValues.address && watchedValues.location && (
-                <div className="bg-primary/5 border border-primary/20 rounded-md p-3">
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 rounded-full bg-primary/10">
-                      <MapPin className="h-4 w-4 text-primary" />
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-sm">Selected Location</h4>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {watchedValues.address}
-                      </p>
-                    </div>
-                  </div>
-                </div>
+          </div>
+        </div>
+        
+        {/* Location Selection Method Toggle */}
+        <div className="flex items-center gap-2 border rounded-md p-2">
+          <Button
+            type="button"
+            variant={isManualEntry ? "outline" : "default"}
+            className="flex-1"
+            onClick={() => setIsManualEntry(false)}
+          >
+            <MapPin className="h-4 w-4 mr-2" />
+            From City List
+          </Button>
+          <Button
+            type="button"
+            variant={isManualEntry ? "default" : "outline"}
+            className="flex-1"
+            onClick={() => setIsManualEntry(true)}
+          >
+            <FileText className="h-4 w-4 mr-2" />
+            Manual Entry
+          </Button>
+        </div>
+        
+        {/* Method 1: Select from Kenya Cities List */}
+        {!isManualEntry && (
+          <div className="space-y-4">
+            <FormField
+              control={form.control}
+              name="citySelection"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Select Your City</FormLabel>
+                  <Select
+                    onValueChange={(value) => {
+                      // Split the value "lat,lng,name"
+                      const [lat, lng, ...nameParts] = value.split(',');
+                      const name = nameParts.join(',');
+                      
+                      // Update form with location and address
+                      form.setValue('location', {
+                        lat: parseFloat(lat),
+                        lng: parseFloat(lng)
+                      });
+                      form.setValue('address', name);
+                      setMapCenter({
+                        lat: parseFloat(lat),
+                        lng: parseFloat(lng)
+                      });
+                    }}
+                    defaultValue=""
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose your city" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="-1.2921,36.8219,Nairobi, Kenya">Nairobi</SelectItem>
+                      <SelectItem value="-4.0435,39.6682,Mombasa, Kenya">Mombasa</SelectItem>
+                      <SelectItem value="-0.3031,36.0800,Nakuru, Kenya">Nakuru</SelectItem>
+                      <SelectItem value="0.5143,35.2698,Eldoret, Kenya">Eldoret</SelectItem>
+                      <SelectItem value="0.0395,36.3636,Nyahururu, Kenya">Nyahururu</SelectItem>
+                      <SelectItem value="-0.1022,34.7617,Kisumu, Kenya">Kisumu</SelectItem>
+                      <SelectItem value="-0.3696,34.8861,Kericho, Kenya">Kericho</SelectItem>
+                      <SelectItem value="-0.5182,37.2709,Embu, Kenya">Embu</SelectItem>
+                      <SelectItem value="-0.1018,35.0728,Kapsabet, Kenya">Kapsabet</SelectItem>
+                      <SelectItem value="-0.0916,36.9733,Nyeri, Kenya">Nyeri</SelectItem>
+                      <SelectItem value="-0.7983,36.9976,Machakos, Kenya">Machakos</SelectItem>
+                      <SelectItem value="-0.5333,37.4515,Meru, Kenya">Meru</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>
+                    Choose the closest city to your location
+                  </FormDescription>
+                </FormItem>
               )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="address"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Address Details (optional)</FormLabel>
+                  <FormControl>
+                    <Input 
+                      placeholder="Additional address details (e.g. street name, landmark)"
+                      value={field.value} 
+                      onChange={(e) => {
+                        // Combine city and details if city is selected
+                        if (watchedValues.location) {
+                          const cityPart = watchedValues.address.split(',')[0];
+                          field.onChange(`${e.target.value}, ${cityPart}, Kenya`);
+                        } else {
+                          field.onChange(e.target.value);
+                        }
+                      }}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Add specific details to help the collector find your location
+                  </FormDescription>
+                </FormItem>
+              )}
+            />
+          </div>
+        )}
+        
+        {/* Method 2: Manual Address Entry */}
+        {isManualEntry && (
+          <FormField
+            control={form.control}
+            name="address"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Full Address</FormLabel>
+                <FormControl>
+                  <Input 
+                    placeholder="Enter your complete address in Kenya"
+                    value={field.value} 
+                    onChange={(e) => {
+                      field.onChange(e.target.value);
+                      // Clear location coordinates since we're using manual entry
+                      form.setValue('location', undefined);
+                    }}
+                  />
+                </FormControl>
+                <FormDescription>
+                  Please provide detailed address including street name, area, and city in Kenya
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+        
+        {/* Display Selected Location */}
+        {watchedValues.address && (
+          <div className="mt-4 bg-primary/10 border border-primary/20 rounded-md p-4">
+            <div className="flex items-start space-x-3">
+              <MapPin className="h-5 w-5 text-primary mt-0.5" />
+              <div>
+                <h4 className="font-medium">Selected Location</h4>
+                <p className="text-sm text-muted-foreground mt-1 break-words">
+                  {watchedValues.address}
+                </p>
+                
+                {/* Show map if coordinates are available and Maps API is loaded */}
+                {watchedValues.location && isMapsLoaded && (
+                  <div className="mt-3 rounded-md overflow-hidden border border-border">
+                    <GoogleMap
+                      mapContainerStyle={{
+                        width: '100%',
+                        height: '200px'
+                      }}
+                      center={mapCenter}
+                      zoom={13}
+                      options={{
+                        disableDefaultUI: true,
+                        zoomControl: true,
+                      }}
+                    >
+                      <MarkerF
+                        position={mapCenter}
+                        title={watchedValues.address}
+                      />
+                    </GoogleMap>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
       </div>
-    </div>
-  );
+    );
+  };
   
   // Render scheduling step
   const renderSchedulingStep = () => (
