@@ -507,12 +507,16 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
                   const selectedCity = kenyaCities.find(city => city.value === value);
                   
                   if (selectedCity) {
-                    // Update form with location and address
+                    // Update form with location
                     form.setValue('location', {
                       lat: selectedCity.lat,
                       lng: selectedCity.lng
                     });
-                    form.setValue('address', `${selectedCity.name}, Kenya`);
+                    
+                    // Reset address field to blank to allow user to enter their specific details
+                    form.setValue('address', '');
+                    
+                    // Update map center
                     setMapCenter({
                       lat: selectedCity.lat,
                       lng: selectedCity.lng
@@ -552,26 +556,23 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
               <FormControl>
                 <Input 
                   placeholder="Provide exact address (e.g., street name, building, landmark)"
-                  {...field}
+                  value={field.value}
                   onChange={(e) => {
-                    // Always change the field value immediately for responsiveness
+                    // Always update the field value directly for immediate feedback
                     field.onChange(e.target.value);
-                    
-                    // Then apply additional formatting if city is selected
+                  }}
+                  onBlur={() => {
+                    // After user finishes typing, format address properly
                     if (watchedValues.citySelection) {
                       const selectedCity = kenyaCities.find(city => city.value === watchedValues.citySelection);
+                      if (selectedCity && field.value && !field.value.includes(selectedCity.name)) {
+                        const detailedAddress = field.value.trim();
+                        // Only add city if it's not already in the address
+                        field.onChange(`${detailedAddress}, ${selectedCity.name}, Kenya`);
+                      }
                       
-                      if (selectedCity) {
-                        // Format the full address for display
-                        setTimeout(() => {
-                          const detailedAddress = e.target.value.trim();
-                          if (detailedAddress && !detailedAddress.includes(selectedCity.name)) {
-                            // Add city name only if it's not already part of the address
-                            field.onChange(`${detailedAddress}, ${selectedCity.name}, Kenya`);
-                          }
-                        }, 500);
-                        
-                        // Ensure location coordinates are preserved
+                      // Make sure coordinates are preserved
+                      if (selectedCity && !watchedValues.location) {
                         form.setValue('location', {
                           lat: selectedCity.lat,
                           lng: selectedCity.lng
