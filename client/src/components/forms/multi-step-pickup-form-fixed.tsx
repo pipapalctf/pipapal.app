@@ -153,12 +153,16 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
     }
   }, [watchedValues.location]);
   
+  // Track submission success state
+  const [isSubmitSuccess, setIsSubmitSuccess] = useState<boolean>(false);
+  
   // Create mutation for saving collection
   const createCollectionMutation = useMutation({
     mutationFn: async (data: FormValues) => {
-      // Format the date as ISO string
+      // Format the date as ISO string and exclude UI-only fields
+      const { confirmSubmission, ...dataToSend } = data;
       const formattedData = {
-        ...data,
+        ...dataToSend,
         scheduledDate: data.scheduledDate.toISOString(),
       };
       
@@ -176,6 +180,10 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
       }
     },
     onSuccess: () => {
+      // Set success state
+      setIsSubmitSuccess(true);
+      setIsSubmitting(false);
+      
       toast({
         title: collectionToEdit ? "Collection Updated" : "Collection Scheduled",
         description: collectionToEdit 
@@ -187,13 +195,30 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
       queryClient.invalidateQueries({ queryKey: ['/api/collections'] });
       queryClient.invalidateQueries({ queryKey: ['/api/collections/upcoming'] });
       
-      // Trigger success callback if provided
-      if (onSuccess) {
-        onSuccess();
-      } else {
-        // Navigate back to dashboard
-        navigate("/");
-      }
+      // After a delay, either reset form or navigate away
+      setTimeout(() => {
+        if (onSuccess) {
+          onSuccess();
+        } else if (collectionToEdit) {
+          // Navigate back to dashboard if editing
+          navigate("/");
+        } else {
+          // Reset form if not editing and no callback
+          form.reset({
+            wasteType: "",
+            wasteDescription: "",
+            wasteAmount: 0,
+            address: "",
+            notes: "",
+            scheduledDate: new Date(Date.now() + 24 * 60 * 60 * 1000), // Tomorrow
+            location: undefined,
+            citySelection: "",
+            confirmSubmission: false,
+          });
+          setCurrentStep(FormStep.WASTE_DETAILS);
+          setIsSubmitSuccess(false);
+        }
+      }, 2000); // Show success state for 2 seconds
     },
     onError: (error) => {
       toast({
@@ -207,6 +232,16 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
   
   // Handle form submission
   const onSubmit = (values: FormValues) => {
+    // Ensure checkbox is checked before submission
+    if (currentStep === FormStep.REVIEW && !values.confirmSubmission) {
+      toast({
+        title: "Confirmation Required",
+        description: "Please confirm your request by checking the confirmation box",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setIsSubmitting(true);
     createCollectionMutation.mutate(values);
   };
@@ -820,30 +855,26 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
           
           {/* Confirmation Checkbox */}
           <div className="mt-6 bg-primary/10 rounded-md p-4 border border-primary/20">
-            <FormField
-              control={form.control}
-              name="confirmSubmission"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={(checked) => {
-                        field.onChange(checked);
-                      }}
-                    />
-                  </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel>
-                      I confirm that the information provided is correct and I'd like to schedule this waste collection
-                    </FormLabel>
-                    <FormDescription>
-                      Once confirmed, a collection request will be sent to available collectors in your area
-                    </FormDescription>
-                  </div>
-                </FormItem>
-              )}
-            />
+            <div className="flex flex-row items-start space-x-3 space-y-0">
+              <Checkbox
+                id="confirm-checkbox"
+                checked={!!watchedValues.confirmSubmission}
+                onCheckedChange={(checked) => {
+                  form.setValue('confirmSubmission', !!checked);
+                }}
+              />
+              <div className="space-y-1 leading-none">
+                <label
+                  htmlFor="confirm-checkbox"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  I confirm that the information provided is correct and I'd like to schedule this waste collection
+                </label>
+                <p className="text-sm text-muted-foreground">
+                  Once confirmed, a collection request will be sent to available collectors in your area
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -915,13 +946,19 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
             ) : (
               <Button
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isSubmitting || (!watchedValues.confirmSubmission && !isSubmitSuccess)}
+                variant={isSubmitSuccess ? "success" : "default"}
                 className="space-x-2"
               >
                 {isSubmitting ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
                     <span>Processing...</span>
+                  </>
+                ) : isSubmitSuccess ? (
+                  <>
+                    <BadgeCheck className="h-4 w-4 text-green-500" />
+                    <span>Collection Scheduled!</span>
                   </>
                 ) : (
                   <>
@@ -932,6 +969,13 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
               </Button>
             )}
           </div>
+          
+          {/* Display note when on review step and checkbox is not checked */}
+          {currentStep === FormStep.REVIEW && !watchedValues.confirmSubmission && (
+            <p className="text-sm text-muted-foreground text-center">
+              Please confirm the details above by checking the box to enable submission
+            </p>
+          )}
         </form>
       </Form>
     </div>
