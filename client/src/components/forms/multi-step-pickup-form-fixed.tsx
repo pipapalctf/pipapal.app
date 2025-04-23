@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/popover";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
 import { 
   Card, 
   CardContent, 
@@ -87,6 +88,8 @@ const formSchema = z.object({
   notes: z.string().optional(),
   // This field is only used for UI interaction, not stored in the database
   citySelection: z.string().optional(),
+  // Confirmation checkbox for submission
+  confirmSubmission: z.boolean().optional().default(false),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -136,6 +139,7 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
         : new Date(Date.now() + 24 * 60 * 60 * 1000), // Tomorrow
       location: collectionToEdit?.location as LocationType | undefined,
       citySelection: "",
+      confirmSubmission: false,
     },
   });
   
@@ -694,6 +698,10 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
             <h3 className="font-medium">Review Your Collection Request</h3>
           </div>
           
+          <p className="text-sm text-muted-foreground mb-4">
+            Please review your collection request details below and confirm when you're ready to submit.
+          </p>
+          
           <div className="space-y-4">
             {/* Waste Details Card */}
             <Card>
@@ -808,6 +816,34 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
                 </div>
               </CardContent>
             </Card>
+          </div>
+          
+          {/* Confirmation Checkbox */}
+          <div className="mt-6 bg-primary/10 rounded-md p-4 border border-primary/20">
+            <FormField
+              control={form.control}
+              name="confirmSubmission"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={(checked) => {
+                        field.onChange(checked);
+                      }}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>
+                      I confirm that the information provided is correct and I'd like to schedule this waste collection
+                    </FormLabel>
+                    <FormDescription>
+                      Once confirmed, a collection request will be sent to available collectors in your area
+                    </FormDescription>
+                  </div>
+                </FormItem>
+              )}
+            />
           </div>
         </div>
       </div>
