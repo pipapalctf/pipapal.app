@@ -50,7 +50,8 @@ import {
   Scale,
   FileText,
   Clipboard,
-  AlertCircle
+  AlertCircle,
+  Gift as GiftIcon
 } from "lucide-react";
 import { iconMap } from "@/components/ui/icon-badge";
 import { WasteType, WasteTypeValue, Collection } from "@shared/schema";
@@ -277,13 +278,18 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
               <SelectContent>
                 {Object.entries(wasteTypeConfig).map(([value, config]) => (
                   <SelectItem key={value} value={value}>
-                    <div className="flex items-center">
-                      {config.icon && iconMap[config.icon] && (
-                        <span className={`mr-2 ${config.textColor}`}>
-                          {React.createElement(iconMap[config.icon], { className: "h-4 w-4" })}
-                        </span>
-                      )}
-                      {config.label}
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex items-center">
+                        {config.icon && iconMap[config.icon] && (
+                          <span className={`mr-2 ${config.textColor}`}>
+                            {React.createElement(iconMap[config.icon], { className: "h-4 w-4" })}
+                          </span>
+                        )}
+                        {config.label}
+                      </div>
+                      <div className="ml-2 px-2 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
+                        +{config.points} points/kg
+                      </div>
                     </div>
                   </SelectItem>
                 ))}
@@ -353,25 +359,43 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
             wasteTypeConfig[watchedValues.wasteType as WasteTypeValue]?.bgColor || 'bg-card'
           }`}>
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center">
-                {wasteTypeConfig[watchedValues.wasteType as WasteTypeValue]?.icon && (
-                  <span className={`mr-2 ${wasteTypeConfig[watchedValues.wasteType as WasteTypeValue]?.textColor}`}>
-                    {React.createElement(iconMap[wasteTypeConfig[watchedValues.wasteType as WasteTypeValue]?.icon], { className: "h-5 w-5" })}
-                  </span>
-                )}
-                {wasteTypeConfig[watchedValues.wasteType as WasteTypeValue]?.label} Waste
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg flex items-center">
+                  {wasteTypeConfig[watchedValues.wasteType as WasteTypeValue]?.icon && (
+                    <span className={`mr-2 ${wasteTypeConfig[watchedValues.wasteType as WasteTypeValue]?.textColor}`}>
+                      {React.createElement(iconMap[wasteTypeConfig[watchedValues.wasteType as WasteTypeValue]?.icon], { className: "h-5 w-5" })}
+                    </span>
+                  )}
+                  {wasteTypeConfig[watchedValues.wasteType as WasteTypeValue]?.label} Waste
+                </CardTitle>
+                <div className="px-3 py-1 rounded-full bg-primary/20 text-primary font-medium flex items-center">
+                  <GiftIcon className="h-3 w-3 mr-1" />
+                  {wasteTypeConfig[watchedValues.wasteType as WasteTypeValue]?.points} points/kg
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="text-sm">
                 <p className="mb-2">{wasteTypeConfig[watchedValues.wasteType as WasteTypeValue]?.description}</p>
                 {watchedValues.wasteAmount > 0 && (
-                  <div className="flex justify-between items-center mt-3 pt-3 border-t border-border">
-                    <div className="flex items-center">
-                      <Scale className="h-4 w-4 mr-2 text-muted-foreground" />
-                      <span>Estimated Amount:</span>
+                  <div className="space-y-3 mt-3 pt-3 border-t border-border">
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center">
+                        <Scale className="h-4 w-4 mr-2 text-muted-foreground" />
+                        <span>Estimated Amount:</span>
+                      </div>
+                      <span className="font-medium">{watchedValues.wasteAmount} kg</span>
                     </div>
-                    <span className="font-medium">{watchedValues.wasteAmount} kg</span>
+                    
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center">
+                        <GiftIcon className="h-4 w-4 mr-2 text-muted-foreground" />
+                        <span>Points Earning:</span>
+                      </div>
+                      <span className="font-medium text-primary">
+                        {watchedValues.wasteAmount * (wasteTypeConfig[watchedValues.wasteType as WasteTypeValue]?.points || 5)} points
+                      </span>
+                    </div>
                   </div>
                 )}
               </div>
@@ -382,59 +406,22 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
     </div>
   );
   
-  // Render location step with a much simpler approach
+  // Render location step with manual city selection only
   const renderLocationStep = () => {
-    const manualMode = !watchedValues.citySelection;
-    
-    // Function to switch between modes
-    const setManualMode = (value: boolean) => {
-      if (value) { // Manual mode
-        form.setValue('citySelection', '', { shouldValidate: false });
-      } else { // Cities mode
-        // Do nothing, let user select from dropdown
-      }
-    };
-    
-    // Function to detect user location
-    const detectUserLocation = () => {
-      if (!navigator.geolocation) {
-        toast({
-          title: "Location Detection Failed",
-          description: "Your browser doesn't support geolocation. Please select a city manually.",
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      const kenyaCities = [
-        { value: "-1.2921,36.8219,Nairobi, Kenya", name: "Nairobi", lat: -1.2921, lng: 36.8219 },
-        { value: "-4.0435,39.6682,Mombasa, Kenya", name: "Mombasa", lat: -4.0435, lng: 39.6682 },
-        { value: "-0.3031,36.0800,Nakuru, Kenya", name: "Nakuru", lat: -0.3031, lng: 36.0800 },
-        { value: "0.5143,35.2698,Eldoret, Kenya", name: "Eldoret", lat: 0.5143, lng: 35.2698 },
-        { value: "0.0395,36.3636,Nyahururu, Kenya", name: "Nyahururu", lat: 0.0395, lng: 36.3636 },
-        { value: "-0.1022,34.7617,Kisumu, Kenya", name: "Kisumu", lat: -0.1022, lng: 34.7617 },
-        { value: "-0.3696,34.8861,Kericho, Kenya", name: "Kericho", lat: -0.3696, lng: 34.8861 },
-        { value: "-0.5182,37.2709,Embu, Kenya", name: "Embu", lat: -0.5182, lng: 37.2709 },
-        { value: "-0.1018,35.0728,Kapsabet, Kenya", name: "Kapsabet", lat: -0.1018, lng: 35.0728 },
-        { value: "-0.0916,36.9733,Nyeri, Kenya", name: "Nyeri", lat: -0.0916, lng: 36.9733 },
-        { value: "-0.7983,36.9976,Machakos, Kenya", name: "Machakos", lat: -0.7983, lng: 36.9976 },
-        { value: "-0.5333,37.4515,Meru, Kenya", name: "Meru", lat: -0.5333, lng: 37.4515 }
-      ];
-      
-      // For now, just select a random Kenya city
-      const randomCity = kenyaCities[Math.floor(Math.random() * kenyaCities.length)];
-      
-      // Update form with detected location
-      form.setValue('location', { lat: randomCity.lat, lng: randomCity.lng });
-      form.setValue('address', randomCity.name + ", Kenya");
-      form.setValue('citySelection', randomCity.value);
-      setMapCenter({ lat: randomCity.lat, lng: randomCity.lng });
-      
-      toast({
-        title: "Location Detected",
-        description: `Using nearest city: ${randomCity.name}, Kenya`,
-      });
-    };
+    const kenyaCities = [
+      { value: "-1.2921,36.8219,Nairobi, Kenya", name: "Nairobi", lat: -1.2921, lng: 36.8219 },
+      { value: "-4.0435,39.6682,Mombasa, Kenya", name: "Mombasa", lat: -4.0435, lng: 39.6682 },
+      { value: "-0.3031,36.0800,Nakuru, Kenya", name: "Nakuru", lat: -0.3031, lng: 36.0800 },
+      { value: "0.5143,35.2698,Eldoret, Kenya", name: "Eldoret", lat: 0.5143, lng: 35.2698 },
+      { value: "0.0395,36.3636,Nyahururu, Kenya", name: "Nyahururu", lat: 0.0395, lng: 36.3636 },
+      { value: "-0.1022,34.7617,Kisumu, Kenya", name: "Kisumu", lat: -0.1022, lng: 34.7617 },
+      { value: "-0.3696,34.8861,Kericho, Kenya", name: "Kericho", lat: -0.3696, lng: 34.8861 },
+      { value: "-0.5182,37.2709,Embu, Kenya", name: "Embu", lat: -0.5182, lng: 37.2709 },
+      { value: "-0.1018,35.0728,Kapsabet, Kenya", name: "Kapsabet", lat: -0.1018, lng: 35.0728 },
+      { value: "-0.0916,36.9733,Nyeri, Kenya", name: "Nyeri", lat: -0.0916, lng: 36.9733 },
+      { value: "-0.7983,36.9976,Machakos, Kenya", name: "Machakos", lat: -0.7983, lng: 36.9976 },
+      { value: "-0.5333,37.4515,Meru, Kenya", name: "Meru", lat: -0.5333, lng: 37.4515 }
+    ];
     
     return (
       <div className="space-y-6">
@@ -444,148 +431,97 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
             <div>
               <h3 className="font-medium">Collection Location</h3>
               <p className="text-sm text-muted-foreground mt-1">
-                PipaPal service is currently only available in Kenya. Please provide your location using one of the methods below.
+                PipaPal service is currently only available in Kenya. Please select your city and provide your address details.
               </p>
             </div>
           </div>
         </div>
         
-        {/* Location Selection Method Toggle */}
-        <div className="flex items-center gap-2 border rounded-md p-2">
-          <Button
-            type="button"
-            variant={manualMode ? "outline" : "default"}
-            className="flex-1"
-            onClick={() => detectUserLocation()}
-          >
-            <MapPin className="h-4 w-4 mr-2" />
-            Detect Location
-          </Button>
-          <Button
-            type="button"
-            variant={manualMode ? "default" : "outline"}
-            className="flex-1"
-            onClick={() => setManualMode(true)}
-          >
-            <Clipboard className="h-4 w-4 mr-2" />
-            Manual Entry
-          </Button>
-        </div>
-        
-        {/* Method 1: Select from Kenya Cities List */}
-        {!manualMode && (
-          <div className="space-y-4">
-            <FormField
-              control={form.control}
-              name="citySelection"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Select Your Location</FormLabel>
-                  <Select
-                    onValueChange={(value) => {
-                      field.onChange(value);
-                      
-                      // Split the value "lat,lng,name"
-                      const [lat, lng, ...nameParts] = value.split(',');
-                      const name = nameParts.join(',');
-                      
-                      // Update form with location and address
-                      form.setValue('location', {
-                        lat: parseFloat(lat),
-                        lng: parseFloat(lng)
-                      });
-                      form.setValue('address', name);
-                      setMapCenter({
-                        lat: parseFloat(lat),
-                        lng: parseFloat(lng)
-                      });
-                    }}
-                    defaultValue={field.value || ""}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Choose your city" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="-1.2921,36.8219,Nairobi, Kenya">Nairobi</SelectItem>
-                      <SelectItem value="-4.0435,39.6682,Mombasa, Kenya">Mombasa</SelectItem>
-                      <SelectItem value="-0.3031,36.0800,Nakuru, Kenya">Nakuru</SelectItem>
-                      <SelectItem value="0.5143,35.2698,Eldoret, Kenya">Eldoret</SelectItem>
-                      <SelectItem value="0.0395,36.3636,Nyahururu, Kenya">Nyahururu</SelectItem>
-                      <SelectItem value="-0.1022,34.7617,Kisumu, Kenya">Kisumu</SelectItem>
-                      <SelectItem value="-0.3696,34.8861,Kericho, Kenya">Kericho</SelectItem>
-                      <SelectItem value="-0.5182,37.2709,Embu, Kenya">Embu</SelectItem>
-                      <SelectItem value="-0.1018,35.0728,Kapsabet, Kenya">Kapsabet</SelectItem>
-                      <SelectItem value="-0.0916,36.9733,Nyeri, Kenya">Nyeri</SelectItem>
-                      <SelectItem value="-0.7983,36.9976,Machakos, Kenya">Machakos</SelectItem>
-                      <SelectItem value="-0.5333,37.4515,Meru, Kenya">Meru</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormDescription>
-                    Select your nearest city for accurate waste collection
-                  </FormDescription>
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="address"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Address Details (optional)</FormLabel>
-                  <FormControl>
-                    <Input 
-                      placeholder="Additional address details (e.g. street name, landmark)"
-                      value={field.value} 
-                      onChange={(e) => {
-                        // Combine city and details if city is selected
-                        if (watchedValues.location) {
-                          const cityPart = watchedValues.address?.split(',')[0] || '';
-                          field.onChange(`${e.target.value}, ${cityPart}, Kenya`);
-                        } else {
-                          field.onChange(e.target.value);
-                        }
-                      }}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Add specific details to help the collector find your location
-                  </FormDescription>
-                </FormItem>
-              )}
-            />
-          </div>
-        )}
-        
-        {/* Method 2: Manual Address Entry */}
-        {manualMode && (
-          <FormField
-            control={form.control}
-            name="address"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Full Address</FormLabel>
+        {/* City Selection */}
+        <FormField
+          control={form.control}
+          name="citySelection"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Select Your City</FormLabel>
+              <Select
+                onValueChange={(value) => {
+                  field.onChange(value);
+                  
+                  // Split the value "lat,lng,name"
+                  const [lat, lng, ...nameParts] = value.split(',');
+                  const name = nameParts.join(',');
+                  
+                  // Update form with location and address
+                  form.setValue('location', {
+                    lat: parseFloat(lat),
+                    lng: parseFloat(lng)
+                  });
+                  form.setValue('address', name);
+                  setMapCenter({
+                    lat: parseFloat(lat),
+                    lng: parseFloat(lng)
+                  });
+                }}
+                defaultValue={field.value || ""}
+              >
                 <FormControl>
-                  <Input 
-                    placeholder="Enter your complete address in Kenya"
-                    value={field.value} 
-                    onChange={(e) => {
-                      field.onChange(e.target.value);
-                      // Clear location coordinates since we're using manual entry
-                      form.setValue('location', undefined);
-                    }}
-                  />
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose your city" />
+                  </SelectTrigger>
                 </FormControl>
-                <FormDescription>
-                  Please provide detailed address including street name, area, and city in Kenya
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        )}
+                <SelectContent>
+                  <SelectItem value="-1.2921,36.8219,Nairobi, Kenya">Nairobi</SelectItem>
+                  <SelectItem value="-4.0435,39.6682,Mombasa, Kenya">Mombasa</SelectItem>
+                  <SelectItem value="-0.3031,36.0800,Nakuru, Kenya">Nakuru</SelectItem>
+                  <SelectItem value="0.5143,35.2698,Eldoret, Kenya">Eldoret</SelectItem>
+                  <SelectItem value="0.0395,36.3636,Nyahururu, Kenya">Nyahururu</SelectItem>
+                  <SelectItem value="-0.1022,34.7617,Kisumu, Kenya">Kisumu</SelectItem>
+                  <SelectItem value="-0.3696,34.8861,Kericho, Kenya">Kericho</SelectItem>
+                  <SelectItem value="-0.5182,37.2709,Embu, Kenya">Embu</SelectItem>
+                  <SelectItem value="-0.1018,35.0728,Kapsabet, Kenya">Kapsabet</SelectItem>
+                  <SelectItem value="-0.0916,36.9733,Nyeri, Kenya">Nyeri</SelectItem>
+                  <SelectItem value="-0.7983,36.9976,Machakos, Kenya">Machakos</SelectItem>
+                  <SelectItem value="-0.5333,37.4515,Meru, Kenya">Meru</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormDescription>
+                Select the city where collection will take place
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        {/* Address Details */}
+        <FormField
+          control={form.control}
+          name="address"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Address Details</FormLabel>
+              <FormControl>
+                <Input 
+                  placeholder="Provide exact address (e.g., street name, building, landmark)"
+                  value={field.value} 
+                  onChange={(e) => {
+                    // Keep city information if already selected
+                    if (watchedValues.citySelection) {
+                      const city = watchedValues.address?.split(',')[0] || '';
+                      field.onChange(`${e.target.value}, ${city}, Kenya`);
+                    } else {
+                      field.onChange(e.target.value);
+                    }
+                  }}
+                />
+              </FormControl>
+              <FormDescription>
+                Add detailed address to help the collector find your location
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         
         {/* Display Selected Location */}
         {watchedValues.address && (
