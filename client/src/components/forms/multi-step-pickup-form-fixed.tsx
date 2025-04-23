@@ -947,8 +947,7 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
               <Button
                 type="submit"
                 disabled={isSubmitting || (!watchedValues.confirmSubmission && !isSubmitSuccess)}
-                variant={isSubmitSuccess ? "success" : "default"}
-                className="space-x-2"
+                className={`space-x-2 ${isSubmitSuccess ? 'bg-green-600 text-white hover:bg-green-700' : ''}`}
               >
                 {isSubmitting ? (
                   <>
@@ -957,7 +956,7 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
                   </>
                 ) : isSubmitSuccess ? (
                   <>
-                    <BadgeCheck className="h-4 w-4 text-green-500" />
+                    <BadgeCheck className="h-4 w-4" />
                     <span>Collection Scheduled!</span>
                   </>
                 ) : (
