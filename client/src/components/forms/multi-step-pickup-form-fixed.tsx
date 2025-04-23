@@ -107,6 +107,22 @@ enum FormStep {
   REVIEW = 3
 }
 
+// Define Kenya cities with coordinates
+const kenyaCities = [
+  { value: "-1.2921,36.8219,Nairobi, Kenya", name: "Nairobi", lat: -1.2921, lng: 36.8219 },
+  { value: "-4.0435,39.6682,Mombasa, Kenya", name: "Mombasa", lat: -4.0435, lng: 39.6682 },
+  { value: "-0.3031,36.0800,Nakuru, Kenya", name: "Nakuru", lat: -0.3031, lng: 36.0800 },
+  { value: "0.5143,35.2698,Eldoret, Kenya", name: "Eldoret", lat: 0.5143, lng: 35.2698 },
+  { value: "0.0395,36.3636,Nyahururu, Kenya", name: "Nyahururu", lat: 0.0395, lng: 36.3636 },
+  { value: "-0.1022,34.7617,Kisumu, Kenya", name: "Kisumu", lat: -0.1022, lng: 34.7617 },
+  { value: "-0.3696,34.8861,Kericho, Kenya", name: "Kericho", lat: -0.3696, lng: 34.8861 },
+  { value: "-0.5182,37.2709,Embu, Kenya", name: "Embu", lat: -0.5182, lng: 37.2709 },
+  { value: "-0.1018,35.0728,Kapsabet, Kenya", name: "Kapsabet", lat: -0.1018, lng: 35.0728 },
+  { value: "-0.0916,36.9733,Nyeri, Kenya", name: "Nyeri", lat: -0.0916, lng: 36.9733 },
+  { value: "-0.7983,36.9976,Machakos, Kenya", name: "Machakos", lat: -0.7983, lng: 36.9976 },
+  { value: "-0.5333,37.4515,Meru, Kenya", name: "Meru", lat: -0.5333, lng: 37.4515 }
+];
+
 const libraries = ['places'] as Array<'places'>;
 
 export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: MultiStepPickupFormProps) {
@@ -487,20 +503,21 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
                 onValueChange={(value) => {
                   field.onChange(value);
                   
-                  // Split the value "lat,lng,name"
-                  const [lat, lng, ...nameParts] = value.split(',');
-                  const name = nameParts.join(',');
+                  // Find the selected city from our array
+                  const selectedCity = kenyaCities.find(city => city.value === value);
                   
-                  // Update form with location and address
-                  form.setValue('location', {
-                    lat: parseFloat(lat),
-                    lng: parseFloat(lng)
-                  });
-                  form.setValue('address', name);
-                  setMapCenter({
-                    lat: parseFloat(lat),
-                    lng: parseFloat(lng)
-                  });
+                  if (selectedCity) {
+                    // Update form with location and address
+                    form.setValue('location', {
+                      lat: selectedCity.lat,
+                      lng: selectedCity.lng
+                    });
+                    form.setValue('address', `${selectedCity.name}, Kenya`);
+                    setMapCenter({
+                      lat: selectedCity.lat,
+                      lng: selectedCity.lng
+                    });
+                  }
                 }}
                 defaultValue={field.value || ""}
               >
@@ -510,18 +527,11 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="-1.2921,36.8219,Nairobi, Kenya">Nairobi</SelectItem>
-                  <SelectItem value="-4.0435,39.6682,Mombasa, Kenya">Mombasa</SelectItem>
-                  <SelectItem value="-0.3031,36.0800,Nakuru, Kenya">Nakuru</SelectItem>
-                  <SelectItem value="0.5143,35.2698,Eldoret, Kenya">Eldoret</SelectItem>
-                  <SelectItem value="0.0395,36.3636,Nyahururu, Kenya">Nyahururu</SelectItem>
-                  <SelectItem value="-0.1022,34.7617,Kisumu, Kenya">Kisumu</SelectItem>
-                  <SelectItem value="-0.3696,34.8861,Kericho, Kenya">Kericho</SelectItem>
-                  <SelectItem value="-0.5182,37.2709,Embu, Kenya">Embu</SelectItem>
-                  <SelectItem value="-0.1018,35.0728,Kapsabet, Kenya">Kapsabet</SelectItem>
-                  <SelectItem value="-0.0916,36.9733,Nyeri, Kenya">Nyeri</SelectItem>
-                  <SelectItem value="-0.7983,36.9976,Machakos, Kenya">Machakos</SelectItem>
-                  <SelectItem value="-0.5333,37.4515,Meru, Kenya">Meru</SelectItem>
+                  {kenyaCities.map((city) => (
+                    <SelectItem key={city.name} value={city.value}>
+                      {city.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <FormDescription>
@@ -546,8 +556,27 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
                   onChange={(e) => {
                     // Keep city information if already selected
                     if (watchedValues.citySelection) {
-                      const city = watchedValues.address?.split(',')[0] || '';
-                      field.onChange(`${e.target.value}, ${city}, Kenya`);
+                      const selectedCity = kenyaCities.find(city => city.value === watchedValues.citySelection);
+                      const locationText = e.target.value;
+                      
+                      if (selectedCity) {
+                        // Keep the city name and country
+                        field.onChange(`${locationText}, ${selectedCity.name}, Kenya`);
+                        
+                        // Ensure location coordinates are preserved
+                        if (!watchedValues.location) {
+                          form.setValue('location', {
+                            lat: selectedCity.lat,
+                            lng: selectedCity.lng
+                          });
+                          setMapCenter({
+                            lat: selectedCity.lat,
+                            lng: selectedCity.lng
+                          });
+                        }
+                      } else {
+                        field.onChange(locationText);
+                      }
                     } else {
                       field.onChange(e.target.value);
                     }
