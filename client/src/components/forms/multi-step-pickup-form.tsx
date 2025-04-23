@@ -286,19 +286,53 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
     }
     
     if (isValid) {
-      if (currentStep < FormStep.REVIEW) {
-        setCurrentStep(prev => (prev + 1) as FormStep);
-      } else {
-        // If we're on the review step, submit the form
-        handleSubmit();
+      // Scroll to the top of the form before changing steps
+      const formElement = document.querySelector('form');
+      if (formElement) {
+        // Get the form's position
+        const formRect = formElement.getBoundingClientRect();
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        
+        // Scroll to the top of the form with smooth behavior
+        window.scrollTo({
+          top: scrollTop + formRect.top - 100, // Subtract some padding
+          behavior: 'smooth'
+        });
       }
+      
+      // Set a small timeout to ensure the scroll happens before the form changes
+      setTimeout(() => {
+        if (currentStep < FormStep.REVIEW) {
+          setCurrentStep(prev => (prev + 1) as FormStep);
+        } else {
+          // If we're on the review step, submit the form
+          handleSubmit();
+        }
+      }, 100);
     }
   };
   
   // Go back to the previous step
   const handleBack = () => {
     if (currentStep > FormStep.WASTE_DETAILS) {
-      setCurrentStep(prev => (prev - 1) as FormStep);
+      // Scroll to the top of the form before changing steps
+      const formElement = document.querySelector('form');
+      if (formElement) {
+        // Get the form's position
+        const formRect = formElement.getBoundingClientRect();
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        
+        // Scroll to the top of the form with smooth behavior
+        window.scrollTo({
+          top: scrollTop + formRect.top - 100, // Subtract some padding
+          behavior: 'smooth'
+        });
+      }
+      
+      // Set a small timeout to ensure the scroll happens before the form changes
+      setTimeout(() => {
+        setCurrentStep(prev => (prev - 1) as FormStep);
+      }, 100);
     }
   };
   
@@ -509,29 +543,45 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
         )}
       />
       
-      {/* Map view - only show if location is available or address is set */}
-      {isMapsLoaded && (
-        <div className="mt-4 rounded-md overflow-hidden border">
-          <GoogleMap
-            mapContainerStyle={{
-              width: '100%',
-              height: '300px'
-            }}
-            center={mapCenter}
-            zoom={14}
-            options={{
-              disableDefaultUI: true,
-              zoomControl: true,
-              streetViewControl: true,
-            }}
-          >
-            {watchedValues.location && (
+      {/* Map view - only show if Google Maps is loaded and location is available */}
+      {isMapsLoaded ? (
+        watchedValues.location ? (
+          <div className="mt-4 rounded-md overflow-hidden border">
+            <GoogleMap
+              mapContainerStyle={{
+                width: '100%',
+                height: '300px'
+              }}
+              center={mapCenter}
+              zoom={14}
+              options={{
+                disableDefaultUI: true,
+                zoomControl: true,
+                streetViewControl: true,
+              }}
+            >
               <MarkerF
-                position={watchedValues.location}
+                position={mapCenter}
                 title={watchedValues.address}
               />
-            )}
-          </GoogleMap>
+            </GoogleMap>
+          </div>
+        ) : (
+          <div className="mt-4 p-4 border rounded-md bg-muted/30 text-center space-y-2">
+            <div className="flex justify-center">
+              <MapPin className="h-10 w-10 text-muted-foreground" />
+            </div>
+            <p className="text-sm text-muted-foreground">Enter an address or use the detect location button to see a map</p>
+          </div>
+        )
+      ) : (
+        <div className="mt-4 p-4 border rounded-md bg-muted/30 text-center space-y-2">
+          <p className="text-sm text-muted-foreground">
+            Map loading is unavailable at the moment. You can still continue by entering your address manually.
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Don't worry, your pickup can still be scheduled without a map.
+          </p>
         </div>
       )}
     </div>

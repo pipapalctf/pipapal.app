@@ -85,6 +85,19 @@ export default function LocationPicker({ defaultValue, onChange }: LocationPicke
       }
     }, 10000); // 10 seconds timeout
     
+    // Use Kenya-specific locations for fallback addresses
+    const kenyaLocations = [
+      { name: "Nairobi, Kenya", lat: -1.2921, lng: 36.8219 },
+      { name: "Mombasa, Kenya", lat: -4.0435, lng: 39.6682 },
+      { name: "Nakuru, Kenya", lat: -0.3031, lng: 36.0800 },
+      { name: "Eldoret, Kenya", lat: 0.5143, lng: 35.2698 },
+      { name: "Nyahururu, Kenya", lat: 0.0395, lng: 36.3636 },
+      { name: "Kisumu, Kenya", lat: -0.1022, lng: 34.7617 }
+    ];
+    
+    // Choose a random location from the list
+    const randomLocation = kenyaLocations[Math.floor(Math.random() * kenyaLocations.length)];
+    
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         try {
@@ -95,8 +108,8 @@ export default function LocationPicker({ defaultValue, onChange }: LocationPicke
           
           console.log("Current position detected:", latitude, longitude);
           
-          // Set a default address if geocoding fails
-          const defaultAddress = "Nairobi, Kenya";
+          // Set a default address immediately so users can proceed
+          const defaultAddress = randomLocation.name;
           setAddress(defaultAddress);
           onChange(defaultAddress, location);
           
@@ -135,11 +148,17 @@ export default function LocationPicker({ defaultValue, onChange }: LocationPicke
         } catch (error) {
           clearTimeout(timeoutId); // Clear the timeout
           console.error("Location detection error:", error);
+          
+          // Use fallback location in case of error
+          const fallbackLocation = randomLocation;
+          setAddress(fallbackLocation.name);
+          onChange(fallbackLocation.name, { lat: fallbackLocation.lat, lng: fallbackLocation.lng });
+          
           toast({
-            title: "Location Detection Failed",
-            description: "Failed to process your location. Please enter your address manually.",
-            variant: "destructive"
+            title: "Using Default Location",
+            description: "We're using " + fallbackLocation.name + " as a fallback. You can edit this."
           });
+          
           setIsDetectingLocation(false);
         }
       },
@@ -156,17 +175,20 @@ export default function LocationPicker({ defaultValue, onChange }: LocationPicke
           errorMessage = "Location request timed out. Please try again or enter address manually.";
         }
         
-        toast({
-          title: "Location Detection Failed",
-          description: errorMessage,
-          variant: "destructive"
-        });
-        setIsDetectingLocation(false);
+        console.log("Geolocation error:", error);
         
-        // Set a default address even in error case so users can continue
-        const defaultAddress = "Nairobi, Kenya";
-        setAddress(defaultAddress);
-        onChange(defaultAddress, { lat: -1.2921, lng: 36.8219 }); // Default Nairobi coordinates
+        // Use a fallback location from our list
+        const fallbackLocation = randomLocation;
+        
+        // Let the user know we're using a fallback
+        toast({
+          title: "Using Default Location",
+          description: "We're using " + fallbackLocation.name + " as a fallback. You can edit this."
+        });
+        
+        setAddress(fallbackLocation.name);
+        onChange(fallbackLocation.name, { lat: fallbackLocation.lat, lng: fallbackLocation.lng });
+        setIsDetectingLocation(false);
       },
       {
         enableHighAccuracy: true,
