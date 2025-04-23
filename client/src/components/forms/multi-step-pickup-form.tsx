@@ -64,6 +64,9 @@ import { useState, useEffect } from "react";
 import LocationPicker from "./location-picker";
 import { GoogleMap, useJsApiLoader, MarkerF } from "@react-google-maps/api";
 
+// Define location type
+type LocationType = { lat: number; lng: number };
+
 const formSchema = z.object({
   wasteType: z.string({
     required_error: "Please select the type of waste",
@@ -80,10 +83,7 @@ const formSchema = z.object({
     required_error: "Please select a date and time",
   }),
   address: z.string().min(5, "Address must be at least 5 characters"),
-  location: z.object({
-    lat: z.number(),
-    lng: z.number()
-  }).optional(),
+  location: z.custom<LocationType>().optional(),
   notes: z.string().optional(),
 });
 
@@ -115,7 +115,7 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
   const [isRescheduling, setIsRescheduling] = useState<boolean>(false);
   
   // Map state
-  const [mapCenter, setMapCenter] = useState<google.maps.LatLngLiteral>({ lat: -1.2921, lng: 36.8219 }); // Default to Nairobi
+  const [mapCenter, setMapCenter] = useState<LocationType>({ lat: -1.2921, lng: 36.8219 }); // Default to Nairobi
   
   // Load Google Maps API
   const { isLoaded: isMapsLoaded } = useJsApiLoader({
@@ -152,12 +152,15 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
       
       // Also update map center if location is available
       if (collectionToEdit.location && 
-          typeof collectionToEdit.location.lat === 'number' && 
-          typeof collectionToEdit.location.lng === 'number') {
-        setMapCenter({
-          lat: collectionToEdit.location.lat,
-          lng: collectionToEdit.location.lng
-        });
+          typeof collectionToEdit.location === 'object' && 
+          collectionToEdit.location !== null) {
+        const loc = collectionToEdit.location as any;
+        if (typeof loc.lat === 'number' && typeof loc.lng === 'number') {
+          setMapCenter({
+            lat: loc.lat,
+            lng: loc.lng
+          });
+        }
       }
     } else {
       // Reset the form if no collection is being edited
