@@ -6,10 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useJsApiLoader, Autocomplete } from '@react-google-maps/api';
 
 // Define the libraries to load for Google Maps
-// Use an array with a specific type
 const libraries = ['places'] as Array<'places'>;
-// Alternatively we could use:
-// const libraries: ['places'] = ['places'];
 
 interface LocationPickerProps {
   defaultValue?: string;
@@ -24,13 +21,14 @@ export default function LocationPicker({ defaultValue, onChange }: LocationPicke
   
   // Load Google Maps API
   const { isLoaded, loadError } = useJsApiLoader({
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string,
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string || "", // Provide empty string as fallback
     libraries
   });
   
   // Handle API loading error
   useEffect(() => {
     if (loadError) {
+      console.error("Google Maps API loading error:", loadError);
       toast({
         title: "Google Maps Error",
         description: "Failed to load Google Maps. Please enter your address manually.",
@@ -59,144 +57,181 @@ export default function LocationPicker({ defaultValue, onChange }: LocationPicke
     }
   }, [onChange]);
   
+  // Define Kenya locations for fallbacks
+  const kenyaLocations = [
+    { name: "Nairobi, Kenya", lat: -1.2921, lng: 36.8219 },
+    { name: "Mombasa, Kenya", lat: -4.0435, lng: 39.6682 },
+    { name: "Nakuru, Kenya", lat: -0.3031, lng: 36.0800 },
+    { name: "Eldoret, Kenya", lat: 0.5143, lng: 35.2698 },
+    { name: "Nyahururu, Kenya", lat: 0.0395, lng: 36.3636 },
+    { name: "Kisumu, Kenya", lat: -0.1022, lng: 34.7617 }
+  ];
+  
+  // Function to use a fallback location
+  const useFallbackLocation = useCallback((reason: string) => {
+    const randomIndex = Math.floor(Math.random() * kenyaLocations.length);
+    const fallbackLocation = kenyaLocations[randomIndex];
+    
+    console.log(`Using fallback location (${reason}):`, fallbackLocation);
+    
+    setAddress(fallbackLocation.name);
+    onChange(fallbackLocation.name, { 
+      lat: fallbackLocation.lat, 
+      lng: fallbackLocation.lng 
+    });
+    
+    toast({
+      title: "Using Default Location",
+      description: `${reason}. Using ${fallbackLocation.name} as a fallback.`
+    });
+    
+    setIsDetectingLocation(false);
+  }, [kenyaLocations, onChange, toast]);
+  
   // Handle detect current location
   const detectCurrentLocation = useCallback(() => {
     setIsDetectingLocation(true);
     
+    // Log environment details for debugging
+    console.log("Environment check:");
+    console.log("- Geolocation supported:", !!navigator.geolocation);
+    console.log("- Protocol:", window.location.protocol);
+    console.log("- Secure context:", window.isSecureContext);
+    
+    // Check if geolocation is supported
     if (!navigator.geolocation) {
-      toast({
-        title: "Location Detection Failed",
-        description: "Geolocation is not supported by your browser. Please enter your address manually.",
-        variant: "destructive"
-      });
-      setIsDetectingLocation(false);
+      console.warn("Geolocation not supported by browser");
+      useFallbackLocation("Geolocation is not supported by your browser");
       return;
     }
     
-    // Set a timeout to prevent infinite loading
+    // Check for secure context (required for geolocation)
+    if (!window.isSecureContext) {
+      console.warn("Not in secure context - geolocation may fail");
+      // In non-secure contexts, try geolocation anyway but be prepared for it to fail
+    }
+    
+    // Set a timeout to prevent hanging
     const timeoutId = setTimeout(() => {
       if (isDetectingLocation) {
-        setIsDetectingLocation(false);
-        toast({
-          title: "Location Detection Timeout",
-          description: "Detection took too long. Please enter your address manually.",
-          variant: "destructive"
-        });
+        console.warn("Geolocation request timed out after 10 seconds");
+        useFallbackLocation("Location detection timed out");
       }
-    }, 10000); // 10 seconds timeout
+    }, 10000);
     
-    // Use Kenya-specific locations for fallback addresses
-    const kenyaLocations = [
-      { name: "Nairobi, Kenya", lat: -1.2921, lng: 36.8219 },
-      { name: "Mombasa, Kenya", lat: -4.0435, lng: 39.6682 },
-      { name: "Nakuru, Kenya", lat: -0.3031, lng: 36.0800 },
-      { name: "Eldoret, Kenya", lat: 0.5143, lng: 35.2698 },
-      { name: "Nyahururu, Kenya", lat: 0.0395, lng: 36.3636 },
-      { name: "Kisumu, Kenya", lat: -0.1022, lng: 34.7617 }
-    ];
-    
-    // Choose a random location from the list
-    const randomLocation = kenyaLocations[Math.floor(Math.random() * kenyaLocations.length)];
-    
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        try {
-          clearTimeout(timeoutId); // Clear the timeout if successful
+    try {
+      // Request the user's location
+      console.log("Requesting geolocation...");
+      navigator.geolocation.getCurrentPosition(
+        // Success handler
+        (position) => {
+          clearTimeout(timeoutId);
+          console.log("Geolocation success:", position);
           
           const { latitude, longitude } = position.coords;
           const location = { lat: latitude, lng: longitude };
           
-          console.log("Current position detected:", latitude, longitude);
-          
-          // Set a default address immediately so users can proceed
-          const defaultAddress = randomLocation.name;
-          setAddress(defaultAddress);
-          onChange(defaultAddress, location);
+          // First set a city-level location so user can proceed
+          const closestCity = findClosestCity(latitude, longitude);
+          setAddress(closestCity.name);
+          onChange(closestCity.name, location);
           
           toast({
             title: "Location Detected",
             description: "Using approximate location. You can update it for more accuracy."
           });
           
-          // Try geocoding in the background
-          try {
-            const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-            const response = await fetch(
-              `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`
-            );
-            
-            const data = await response.json();
-            console.log("Geocoding response:", data);
-            
-            if (data.status === "OK" && data.results && data.results.length > 0) {
-              const formattedAddress = data.results[0].formatted_address;
-              console.log("Address found:", formattedAddress);
-              setAddress(formattedAddress);
-              onChange(formattedAddress, location);
-              
-              toast({
-                title: "Location Updated",
-                description: "We found your address: " + formattedAddress
-              });
-            }
-          } catch (geocodeError) {
-            console.error("Background geocoding failed:", geocodeError);
-            // Already using default address, so no need to show error
+          // Then try to get the precise address via geocoding
+          getAddressFromCoords(latitude, longitude);
+          
+          setIsDetectingLocation(false);
+        },
+        // Error handler
+        (error) => {
+          clearTimeout(timeoutId);
+          console.error("Geolocation error:", error);
+          
+          let message = "Failed to get your location";
+          
+          if (error.code === 1) {
+            message = "Location access denied. Please grant permission";
+          } else if (error.code === 2) {
+            message = "Location unavailable on your device";
+          } else if (error.code === 3) {
+            message = "Location request timed out";
           }
           
-          setIsDetectingLocation(false);
-        } catch (error) {
-          clearTimeout(timeoutId); // Clear the timeout
-          console.error("Location detection error:", error);
-          
-          // Use fallback location in case of error
-          const fallbackLocation = randomLocation;
-          setAddress(fallbackLocation.name);
-          onChange(fallbackLocation.name, { lat: fallbackLocation.lat, lng: fallbackLocation.lng });
-          
-          toast({
-            title: "Using Default Location",
-            description: "We're using " + fallbackLocation.name + " as a fallback. You can edit this."
-          });
-          
-          setIsDetectingLocation(false);
+          useFallbackLocation(message);
+        },
+        // Options
+        {
+          enableHighAccuracy: true,
+          timeout: 8000,
+          maximumAge: 0
         }
-      },
-      (error) => {
-        clearTimeout(timeoutId); // Clear the timeout in error case too
-        
-        let errorMessage = "Failed to get your location.";
-        
-        if (error.code === 1) {
-          errorMessage = "Location access denied. Please grant permission or enter address manually.";
-        } else if (error.code === 2) {
-          errorMessage = "Location unavailable. Please try again or enter address manually.";
-        } else if (error.code === 3) {
-          errorMessage = "Location request timed out. Please try again or enter address manually.";
-        }
-        
-        console.log("Geolocation error:", error);
-        
-        // Use a fallback location from our list
-        const fallbackLocation = randomLocation;
-        
-        // Let the user know we're using a fallback
-        toast({
-          title: "Using Default Location",
-          description: "We're using " + fallbackLocation.name + " as a fallback. You can edit this."
-        });
-        
-        setAddress(fallbackLocation.name);
-        onChange(fallbackLocation.name, { lat: fallbackLocation.lat, lng: fallbackLocation.lng });
-        setIsDetectingLocation(false);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 5000,
-        maximumAge: 0
+      );
+    } catch (error) {
+      console.error("Exception with geolocation API:", error);
+      useFallbackLocation("Unexpected error accessing location services");
+    }
+  }, [useFallbackLocation, isDetectingLocation]);
+  
+  // Find the closest city from our predefined list
+  const findClosestCity = (latitude: number, longitude: number) => {
+    let closestCity = kenyaLocations[0];
+    let minDistance = Number.MAX_VALUE;
+    
+    kenyaLocations.forEach(city => {
+      const distance = Math.sqrt(
+        Math.pow(city.lat - latitude, 2) + 
+        Math.pow(city.lng - longitude, 2)
+      );
+      
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestCity = city;
       }
-    );
-  }, [onChange, toast, isDetectingLocation]);
+    });
+    
+    return closestCity;
+  };
+  
+  // Get address from coordinates using Google's Geocoding API
+  const getAddressFromCoords = async (latitude: number, longitude: number) => {
+    try {
+      const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+      console.log("Geocoding with API key available:", !!apiKey);
+      
+      if (!apiKey) {
+        console.warn("No Google Maps API key - skipping geocoding");
+        return;
+      }
+      
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`
+      );
+      
+      const data = await response.json();
+      console.log("Geocoding response status:", data.status);
+      
+      if (data.status === "OK" && data.results && data.results.length > 0) {
+        const formattedAddress = data.results[0].formatted_address;
+        console.log("Found address:", formattedAddress);
+        
+        setAddress(formattedAddress);
+        onChange(formattedAddress, { lat: latitude, lng: longitude });
+        
+        toast({
+          title: "Location Updated",
+          description: "We found your address: " + formattedAddress
+        });
+      } else {
+        console.warn("Geocoding failed:", data.status, data.error_message);
+      }
+    } catch (error) {
+      console.error("Geocoding request failed:", error);
+    }
+  };
   
   // Handle manual address input
   const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {

@@ -118,10 +118,22 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
   const [mapCenter, setMapCenter] = useState<LocationType>({ lat: -1.2921, lng: 36.8219 }); // Default to Nairobi
   
   // Load Google Maps API
-  const { isLoaded: isMapsLoaded } = useJsApiLoader({
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string,
+  // Check if Google Maps API key exists
+  const mapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string;
+  console.log("Google Maps API key available:", !!mapsApiKey);
+  
+  // Load Google Maps API if key is available
+  const { isLoaded: isMapsLoaded, loadError } = useJsApiLoader({
+    googleMapsApiKey: mapsApiKey || "", // Provide empty string if key is missing
     libraries
   });
+  
+  // Log any errors loading Google Maps
+  useEffect(() => {
+    if (loadError) {
+      console.error("Error loading Google Maps API:", loadError);
+    }
+  }, [loadError]);
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
