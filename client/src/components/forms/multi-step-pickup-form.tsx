@@ -558,6 +558,12 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
             <FormDescription>
               Enter your address or use the detect location button
             </FormDescription>
+            <div className="flex items-center px-3 py-2 mt-2 bg-amber-50 border border-amber-200 rounded-md">
+              <AlertCircle className="h-4 w-4 text-amber-500 flex-shrink-0 mr-2" />
+              <p className="text-xs text-amber-700">
+                <span className="font-medium">Note:</span> PipaPal service is currently only available in Kenya. Please make sure your location is within our service area.
+              </p>
+            </div>
             <FormMessage />
           </FormItem>
         )}
@@ -600,16 +606,24 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
         ) : (
           // Map unavailable - show alternative location picker
           <div className="border rounded-md overflow-hidden">
-            <div className="p-4 bg-muted/30 text-center">
-              <p className="text-sm text-muted-foreground">
-                Maps are currently unavailable. Please select a city from the list below or enter your address manually.
-              </p>
+            <div className="p-4 bg-muted/30">
+              <div className="flex flex-col space-y-2">
+                <p className="text-sm text-muted-foreground text-center">
+                  Maps are currently unavailable. Please select a city from the list below or enter your address manually.
+                </p>
+                <div className="flex items-center px-3 py-2 bg-amber-50 border border-amber-200 rounded-md">
+                  <AlertCircle className="h-4 w-4 text-amber-500 flex-shrink-0 mr-2" />
+                  <p className="text-xs text-amber-700">
+                    <span className="font-medium">Note:</span> PipaPal service is currently only available in Kenya. Please make sure your location is within our service area.
+                  </p>
+                </div>
+              </div>
             </div>
             
             <div className="p-4 space-y-4">
               {/* Select a city when maps don't load - using regular state instead of form field */}
               <div className="space-y-2">
-                <Label>Select nearest city</Label>
+                <p className="text-sm font-medium">Select nearest city</p>
                 <Select
                   onValueChange={(value) => {
                     // Split the value "lat,lng,name"
