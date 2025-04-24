@@ -52,6 +52,7 @@ import {
   FileText,
   Clipboard,
   AlertCircle,
+  Building,
   Gift as GiftIcon
 } from "lucide-react";
 import { iconMap } from "@/components/ui/icon-badge";
@@ -63,10 +64,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import React, { useState, useEffect } from "react";
-import { GoogleMap, useJsApiLoader, MarkerF } from "@react-google-maps/api";
-
-// Define location type
-type LocationType = { lat: number; lng: number };
 
 const formSchema = z.object({
   wasteType: z.string({
@@ -83,11 +80,11 @@ const formSchema = z.object({
   scheduledDate: z.date({
     required_error: "Please select a date and time",
   }),
+  city: z.string({
+    required_error: "Please select a city",
+  }),
   address: z.string().min(5, "Address must be at least 5 characters"),
-  location: z.custom<LocationType>().optional(),
   notes: z.string().optional(),
-  // This field is only used for UI interaction, not stored in the database
-  citySelection: z.string().optional(),
   // Confirmation checkbox for submission
   confirmSubmission: z.boolean().optional().default(false),
 });
@@ -107,23 +104,21 @@ enum FormStep {
   REVIEW = 3
 }
 
-// Define Kenya cities with coordinates
+// Define Kenya cities (simplified without coordinates)
 const kenyaCities = [
-  { value: "-1.2921,36.8219,Nairobi, Kenya", name: "Nairobi", lat: -1.2921, lng: 36.8219 },
-  { value: "-4.0435,39.6682,Mombasa, Kenya", name: "Mombasa", lat: -4.0435, lng: 39.6682 },
-  { value: "-0.3031,36.0800,Nakuru, Kenya", name: "Nakuru", lat: -0.3031, lng: 36.0800 },
-  { value: "0.5143,35.2698,Eldoret, Kenya", name: "Eldoret", lat: 0.5143, lng: 35.2698 },
-  { value: "0.0395,36.3636,Nyahururu, Kenya", name: "Nyahururu", lat: 0.0395, lng: 36.3636 },
-  { value: "-0.1022,34.7617,Kisumu, Kenya", name: "Kisumu", lat: -0.1022, lng: 34.7617 },
-  { value: "-0.3696,34.8861,Kericho, Kenya", name: "Kericho", lat: -0.3696, lng: 34.8861 },
-  { value: "-0.5182,37.2709,Embu, Kenya", name: "Embu", lat: -0.5182, lng: 37.2709 },
-  { value: "-0.1018,35.0728,Kapsabet, Kenya", name: "Kapsabet", lat: -0.1018, lng: 35.0728 },
-  { value: "-0.0916,36.9733,Nyeri, Kenya", name: "Nyeri", lat: -0.0916, lng: 36.9733 },
-  { value: "-0.7983,36.9976,Machakos, Kenya", name: "Machakos", lat: -0.7983, lng: 36.9976 },
-  { value: "-0.5333,37.4515,Meru, Kenya", name: "Meru", lat: -0.5333, lng: 37.4515 }
+  { value: "nairobi", name: "Nairobi" },
+  { value: "mombasa", name: "Mombasa" },
+  { value: "nakuru", name: "Nakuru" },
+  { value: "eldoret", name: "Eldoret" },
+  { value: "nyahururu", name: "Nyahururu" },
+  { value: "kisumu", name: "Kisumu" },
+  { value: "kericho", name: "Kericho" },
+  { value: "embu", name: "Embu" },
+  { value: "kapsabet", name: "Kapsabet" },
+  { value: "nyeri", name: "Nyeri" },
+  { value: "machakos", name: "Machakos" },
+  { value: "meru", name: "Meru" }
 ];
-
-const libraries = ['places'] as Array<'places'>;
 
 export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: MultiStepPickupFormProps) {
   const { toast } = useToast();
@@ -133,13 +128,6 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
   // Form state
   const [currentStep, setCurrentStep] = useState<FormStep>(FormStep.WASTE_DETAILS);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [mapCenter, setMapCenter] = useState<LocationType>({ lat: -1.2921, lng: 36.8219 }); // Default to Nairobi
-  
-  // Load Google Maps API
-  const { isLoaded: isMapsLoaded } = useJsApiLoader({
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string,
-    libraries
-  });
   
   // Initialize form with default values or edit values
   const form = useForm<FormValues>({
@@ -150,24 +138,16 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
       wasteAmount: collectionToEdit?.wasteAmount || 0,
       address: collectionToEdit?.address || "",
       notes: collectionToEdit?.notes || "",
+      city: collectionToEdit?.city || "",
       scheduledDate: collectionToEdit?.scheduledDate 
         ? new Date(collectionToEdit.scheduledDate) 
         : new Date(Date.now() + 24 * 60 * 60 * 1000), // Tomorrow
-      location: collectionToEdit?.location as LocationType | undefined,
-      citySelection: "",
       confirmSubmission: false,
     },
   });
   
   // Watch form values for use in UI
   const watchedValues = form.watch();
-  
-  // When location changes, update map center
-  useEffect(() => {
-    if (watchedValues.location) {
-      setMapCenter(watchedValues.location);
-    }
-  }, [watchedValues.location]);
   
   // Track submission success state
   const [isSubmitSuccess, setIsSubmitSuccess] = useState<boolean>(false);
