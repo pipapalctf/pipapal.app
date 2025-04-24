@@ -324,6 +324,11 @@ export function CollectionDetailsDialog({
                         <p className="text-sm">{collection.address}</p>
                       </div>
                     </div>
+                    <div className="flex items-center">
+                      <Building className="h-4 w-4 mr-2 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground mr-1">City:</span>
+                      <span className="text-sm font-medium">{collection.city || 'Not specified'}</span>
+                    </div>
                   </div>
                 </div>
                 
