@@ -103,7 +103,7 @@ export const collections = pgTable("collections", {
   completedDate: timestamp("completed_date"),
   wasteAmount: real("waste_amount"),
   address: text("address").notNull(),
-  city: text("city").notNull(), // Added city field to replace coordinates
+  city: text("city"), // Added city field to replace coordinates (nullable for existing data)
   location: json("location"), // Keeping for backward compatibility but no longer used
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow(),
