@@ -482,29 +482,26 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
         />
         
         {/* Address Details */}
-        <FormField
-          control={form.control}
-          name="address"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Address Details</FormLabel>
-              <FormControl>
-                <Input 
-                  placeholder="Provide exact address (e.g., street name, building, landmark)"
-                  value={field.value}
-                  onChange={field.onChange}
-                  onBlur={field.onBlur}
-                  name={field.name}
-                  ref={field.ref}
-                />
-              </FormControl>
-              <FormDescription>
-                Enter the full address for waste collection, including any building/apartment numbers, floor, and landmark references.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
+        <div className="space-y-2">
+          <label htmlFor="address" className="text-sm font-medium">Address Details</label>
+          <div className="relative">
+            <input 
+              id="address"
+              type="text"
+              placeholder="Provide exact address (e.g., street name, building, landmark)"
+              value={form.getValues().address || ""}
+              onChange={(e) => form.setValue("address", e.target.value, { shouldValidate: true })}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            />
+            <MapPin className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Enter the full address for waste collection, including any building/apartment numbers, floor, and landmark references.
+          </p>
+          {form.formState.errors.address && (
+            <p className="text-sm font-medium text-destructive">{form.formState.errors.address.message}</p>
           )}
-        />
+        </div>
         
         {/* Location note */}
         <div className="rounded-md overflow-hidden border p-4 bg-muted/20">
