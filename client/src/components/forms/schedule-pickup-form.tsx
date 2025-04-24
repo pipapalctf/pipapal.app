@@ -424,13 +424,8 @@ export default function SchedulePickupForm({ collectionToEdit, onSuccess }: Sche
                   <FormControl>
                     <LocationPicker 
                       defaultValue={field.value}
-                      onChange={(address, location) => {
+                      onChange={(address) => {
                         field.onChange(address);
-                        if (location) {
-                          form.setValue("location", location);
-                        } else {
-                          form.unregister("location");
-                        }
                       }}
                     />
                   </FormControl>
