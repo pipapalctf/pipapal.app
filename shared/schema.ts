@@ -103,7 +103,8 @@ export const collections = pgTable("collections", {
   completedDate: timestamp("completed_date"),
   wasteAmount: real("waste_amount"),
   address: text("address").notNull(),
-  location: json("location"), // { lat: number, lng: number }
+  city: text("city").notNull(), // Added city field to replace coordinates
+  location: json("location"), // Keeping for backward compatibility but no longer used
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -210,7 +211,8 @@ export const insertCollectionSchema = createInsertSchema(collections, {
     status: true,
     scheduledDate: true,
     address: true,
-    location: true,
+    city: true, // Added city field
+    location: true, // Kept for backward compatibility
     notes: true,
   });
 

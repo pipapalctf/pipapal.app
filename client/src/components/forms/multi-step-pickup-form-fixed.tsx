@@ -160,6 +160,8 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
       const formattedData = {
         ...dataToSend,
         scheduledDate: data.scheduledDate.toISOString(),
+        // Add the city name to make it easier to read in the database
+        cityName: KENYA_CITIES.find(c => c.value === data.city)?.name,
       };
       
       // Handle edit vs create
@@ -722,31 +724,24 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
               </CardHeader>
               <CardContent className="pb-4 pt-0">
                 <div className="grid gap-3">
-                  <div className="text-sm">
-                    {values.address || "No address provided"}
-                  </div>
-                  
-                  {values.location && isMapsLoaded && (
-                    <div className="mt-2 border rounded-md overflow-hidden">
-                      <GoogleMap
-                        mapContainerStyle={{
-                          width: '100%',
-                          height: '150px'
-                        }}
-                        center={values.location}
-                        zoom={14}
-                        options={{
-                          disableDefaultUI: true,
-                          zoomControl: true,
-                        }}
-                      >
-                        <MarkerF
-                          position={values.location}
-                          title={values.address}
-                        />
-                      </GoogleMap>
+                  <div className="flex flex-col">
+                    <div className="flex items-center">
+                      <Building className="h-4 w-4 mr-2 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">City:</span>
+                      <span className="text-sm font-medium ml-2">
+                        {values.city && KENYA_CITIES.find(c => c.value === values.city)?.name || "Not specified"}
+                      </span>
                     </div>
-                  )}
+                    <div className="flex items-start mt-2">
+                      <MapPin className="h-4 w-4 mr-2 text-muted-foreground mt-0.5" />
+                      <div>
+                        <span className="text-sm text-muted-foreground">Address:</span>
+                        <p className="text-sm mt-1 bg-secondary/20 p-2 rounded-md">
+                          {values.address || "No address provided"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
