@@ -27,7 +27,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { format } from "date-fns";
-import { CalendarIcon, Loader2, Trash2, BadgeCheck } from "lucide-react";
+import { CalendarIcon, Loader2, Trash2, BadgeCheck, MapPin } from "lucide-react";
 import { iconMap } from "@/components/ui/icon-badge";
 import { WasteType, Collection } from "@shared/schema";
 import { wasteTypeConfig } from "@/lib/types";
@@ -37,7 +37,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { useState, useEffect } from "react";
-import LocationPicker from "./location-picker";
+
 
 const formSchema = z.object({
   wasteType: z.string({
@@ -418,13 +418,18 @@ export default function SchedulePickupForm({ collectionToEdit, onSuccess }: Sche
                 <FormItem>
                   <FormLabel>Pickup Address</FormLabel>
                   <FormControl>
-                    <LocationPicker 
-                      defaultValue={field.value}
-                      onChange={(address) => {
-                        field.onChange(address);
-                      }}
-                    />
+                    <div className="relative">
+                      <Input
+                        placeholder="Enter detailed address (e.g., Kayole Junction, School Lane)"
+                        {...field}
+                        className="pr-8"
+                      />
+                      <MapPin className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                    </div>
                   </FormControl>
+                  <FormDescription>
+                    Please provide a specific address including street name, nearby landmarks or building name.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
