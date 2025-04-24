@@ -104,8 +104,8 @@ enum FormStep {
   REVIEW = 3
 }
 
-// Define Kenya cities (simplified without coordinates)
-const kenyaCities = [
+// Define Kenya cities
+const KENYA_CITIES = [
   { value: "nairobi", name: "Nairobi" },
   { value: "mombasa", name: "Mombasa" },
   { value: "nakuru", name: "Nakuru" },
@@ -206,9 +206,8 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
             wasteAmount: 0,
             address: "",
             notes: "",
+            city: "",
             scheduledDate: new Date(Date.now() + 24 * 60 * 60 * 1000), // Tomorrow
-            location: undefined,
-            citySelection: "",
             confirmSubmission: false,
           });
           setCurrentStep(FormStep.WASTE_DETAILS);
@@ -242,15 +241,6 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
     createCollectionMutation.mutate(values);
   };
   
-  // Function to handle location change
-  const handleLocationChange = (address: string, location?: LocationType) => {
-    form.setValue('address', address);
-    if (location) {
-      form.setValue('location', location);
-      setMapCenter(location);
-    }
-  };
-  
   // Progress bar calculation
   const progress = ((currentStep + 1) / (Object.keys(FormStep).length / 2)) * 100;
   
@@ -265,7 +255,7 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
         fieldsToValidate = ['wasteType', 'wasteAmount'];
         break;
       case FormStep.LOCATION:
-        fieldsToValidate = ['address'];
+        fieldsToValidate = ['city', 'address'];
         break;
       case FormStep.SCHEDULE:
         fieldsToValidate = ['scheduledDate'];
@@ -443,21 +433,6 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
   
   // Render location step with manual city selection only
   const renderLocationStep = () => {
-    const kenyaCities = [
-      { value: "-1.2921,36.8219,Nairobi, Kenya", name: "Nairobi", lat: -1.2921, lng: 36.8219 },
-      { value: "-4.0435,39.6682,Mombasa, Kenya", name: "Mombasa", lat: -4.0435, lng: 39.6682 },
-      { value: "-0.3031,36.0800,Nakuru, Kenya", name: "Nakuru", lat: -0.3031, lng: 36.0800 },
-      { value: "0.5143,35.2698,Eldoret, Kenya", name: "Eldoret", lat: 0.5143, lng: 35.2698 },
-      { value: "0.0395,36.3636,Nyahururu, Kenya", name: "Nyahururu", lat: 0.0395, lng: 36.3636 },
-      { value: "-0.1022,34.7617,Kisumu, Kenya", name: "Kisumu", lat: -0.1022, lng: 34.7617 },
-      { value: "-0.3696,34.8861,Kericho, Kenya", name: "Kericho", lat: -0.3696, lng: 34.8861 },
-      { value: "-0.5182,37.2709,Embu, Kenya", name: "Embu", lat: -0.5182, lng: 37.2709 },
-      { value: "-0.1018,35.0728,Kapsabet, Kenya", name: "Kapsabet", lat: -0.1018, lng: 35.0728 },
-      { value: "-0.0916,36.9733,Nyeri, Kenya", name: "Nyeri", lat: -0.0916, lng: 36.9733 },
-      { value: "-0.7983,36.9976,Machakos, Kenya", name: "Machakos", lat: -0.7983, lng: 36.9976 },
-      { value: "-0.5333,37.4515,Meru, Kenya", name: "Meru", lat: -0.5333, lng: 37.4515 }
-    ];
-    
     return (
       <div className="space-y-6">
         <div className="bg-primary/5 border border-primary/20 rounded-md p-4">
@@ -475,35 +450,13 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
         {/* City Selection */}
         <FormField
           control={form.control}
-          name="citySelection"
+          name="city"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Select Your City</FormLabel>
               <Select
-                onValueChange={(value) => {
-                  field.onChange(value);
-                  
-                  // Find the selected city from our array
-                  const selectedCity = kenyaCities.find(city => city.value === value);
-                  
-                  if (selectedCity) {
-                    // Update form with location
-                    form.setValue('location', {
-                      lat: selectedCity.lat,
-                      lng: selectedCity.lng
-                    });
-                    
-                    // Reset address field to blank to allow user to enter their specific details
-                    form.setValue('address', '');
-                    
-                    // Update map center
-                    setMapCenter({
-                      lat: selectedCity.lat,
-                      lng: selectedCity.lng
-                    });
-                  }
-                }}
-                defaultValue={field.value || ""}
+                onValueChange={field.onChange}
+                defaultValue={field.value}
               >
                 <FormControl>
                   <SelectTrigger>
@@ -511,7 +464,7 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {kenyaCities.map((city) => (
+                  {KENYA_CITIES.map((city) => (
                     <SelectItem key={city.name} value={city.value}>
                       {city.name}
                     </SelectItem>
@@ -536,77 +489,40 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
               <FormControl>
                 <Input 
                   placeholder="Provide exact address (e.g., street name, building, landmark)"
-                  value={field.value}
-                  onChange={(e) => {
-                    // Always update the field value directly for immediate feedback
-                    field.onChange(e.target.value);
-                  }}
-                  onBlur={() => {
-                    // After user finishes typing, format address properly
-                    if (watchedValues.citySelection) {
-                      const selectedCity = kenyaCities.find(city => city.value === watchedValues.citySelection);
-                      if (selectedCity && field.value && !field.value.includes(selectedCity.name)) {
-                        const detailedAddress = field.value.trim();
-                        // Only add city if it's not already in the address
-                        field.onChange(`${detailedAddress}, ${selectedCity.name}, Kenya`);
-                      }
-                      
-                      // Make sure coordinates are preserved
-                      if (selectedCity && !watchedValues.location) {
-                        form.setValue('location', {
-                          lat: selectedCity.lat,
-                          lng: selectedCity.lng
-                        });
-                        setMapCenter({
-                          lat: selectedCity.lat,
-                          lng: selectedCity.lng
-                        });
-                      }
-                    }
-                  }}
+                  {...field}
                 />
               </FormControl>
               <FormDescription>
-                Add detailed address to help the collector find your location
+                Enter the full address for waste collection, including any building/apartment numbers, floor, and landmark references.
               </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
         
+        {/* Location note */}
+        <div className="rounded-md overflow-hidden border p-4 bg-muted/20">
+          <div className="flex items-center space-x-3 text-muted-foreground">
+            <Building className="h-5 w-5" />
+            <div>
+              <h4 className="font-medium text-foreground">Address Verification</h4>
+              <p className="text-sm mt-1">
+                Your address will be verified by the collector before pickup. Make sure it's accurate and includes nearby landmarks for easy identification.
+              </p>
+            </div>
+          </div>
+        </div>
+        
         {/* Display Selected Location */}
-        {watchedValues.address && (
+        {watchedValues.address && watchedValues.city && (
           <div className="mt-4 bg-primary/10 border border-primary/20 rounded-md p-4">
             <div className="flex items-start space-x-3">
               <MapPin className="h-5 w-5 text-primary mt-0.5" />
               <div>
                 <h4 className="font-medium">Selected Location</h4>
                 <p className="text-sm text-muted-foreground mt-1 break-words">
-                  {watchedValues.address}
+                  {watchedValues.address}, {watchedValues.city && KENYA_CITIES.find(c => c.value === watchedValues.city)?.name}, Kenya
                 </p>
-                
-                {/* Show map if coordinates are available and Maps API is loaded */}
-                {watchedValues.location && isMapsLoaded && (
-                  <div className="mt-3 rounded-md overflow-hidden border border-border">
-                    <GoogleMap
-                      mapContainerStyle={{
-                        width: '100%',
-                        height: '200px'
-                      }}
-                      center={mapCenter}
-                      zoom={13}
-                      options={{
-                        disableDefaultUI: true,
-                        zoomControl: true,
-                      }}
-                    >
-                      <MarkerF
-                        position={mapCenter}
-                        title={watchedValues.address}
-                      />
-                    </GoogleMap>
-                  </div>
-                )}
               </div>
             </div>
           </div>
