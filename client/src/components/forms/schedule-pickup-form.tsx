@@ -55,10 +55,6 @@ const formSchema = z.object({
     required_error: "Please select a date and time",
   }),
   address: z.string().min(5, "Address must be at least 5 characters"),
-  location: z.object({
-    lat: z.number(),
-    lng: z.number()
-  }).optional(),
   notes: z.string().optional(),
 });
 
