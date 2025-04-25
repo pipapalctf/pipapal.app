@@ -14,7 +14,8 @@ import {
   signInWithEmail, 
   signInWithGoogle,
   resendVerificationEmail,
-  signOut as firebaseSignOut
+  signOut as firebaseSignOut,
+  resetPassword
 } from "@/lib/firebase";
 import { onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
 
@@ -29,6 +30,7 @@ type AuthContextType = {
   logoutMutation: UseMutationResult<void, Error, void>;
   registerMutation: UseMutationResult<SelectUser, Error, RegisterData>;
   resendVerificationEmailMutation: UseMutationResult<void, Error, void>;
+  resetPasswordMutation: UseMutationResult<void, Error, { email: string }>;
 };
 
 const loginSchema = z.object({
@@ -247,6 +249,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     },
   });
+  
+  // Password reset mutation
+  const resetPasswordMutation = useMutation({
+    mutationFn: async ({ email }: { email: string }) => {
+      const result = await resetPassword(email);
+      
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+    },
+    onSuccess: () => {
+      toast({
+        title: "Password reset email sent",
+        description: "Please check your email for instructions to reset your password.",
+        duration: 6000,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to send reset email",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   return (
     <AuthContext.Provider
@@ -261,6 +288,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logoutMutation,
         registerMutation,
         resendVerificationEmailMutation,
+        resetPasswordMutation,
       }}
     >
       {children}

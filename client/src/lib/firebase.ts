@@ -7,7 +7,8 @@ import {
   GoogleAuthProvider, 
   signInWithPopup,
   signOut as firebaseSignOut,
-  User as FirebaseUser
+  User as FirebaseUser,
+  sendPasswordResetEmail
 } from "firebase/auth";
 
 // Firebase configuration
@@ -138,6 +139,41 @@ export const signOut = async () => {
     return { 
       success: false, 
       error: error.message || "Failed to sign out. Please try again."
+    };
+  }
+};
+
+export const resetPassword = async (email: string) => {
+  try {
+    await sendPasswordResetEmail(auth, email);
+    return { 
+      success: true,
+      message: "Password reset email sent successfully. Please check your inbox and follow the instructions to reset your password."
+    };
+  } catch (error: any) {
+    console.error("Error sending password reset email:", error);
+    
+    // Provide user-friendly error messages based on Firebase error codes
+    if (error.code === 'auth/invalid-email') {
+      return {
+        success: false,
+        error: "Please enter a valid email address."
+      };
+    } else if (error.code === 'auth/user-not-found') {
+      return {
+        success: false,
+        error: "No user found with this email address. Please check your email or create a new account."
+      };
+    } else if (error.code === 'auth/too-many-requests') {
+      return {
+        success: false,
+        error: "Too many password reset attempts. Please try again later."
+      };
+    }
+    
+    return { 
+      success: false, 
+      error: error.message || "Failed to send password reset email. Please try again."
     };
   }
 };
