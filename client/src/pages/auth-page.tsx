@@ -31,6 +31,7 @@ import { FcGoogle } from "react-icons/fc";
 
 import { Separator } from "@/components/ui/separator";
 import { RoleSelectionDialog } from "@/components/auth/role-selection-dialog";
+import { ForgotPasswordForm } from "@/components/auth/forgot-password-form";
 
 // Login form schema
 const loginFormSchema = z.object({
@@ -69,6 +70,7 @@ export default function AuthPage() {
   } = useAuth();
   const [location, navigate] = useLocation();
   const [roleDialogOpen, setRoleDialogOpen] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   
   // Check URL for tab parameter
   const getTabFromUrl = () => {
@@ -193,83 +195,101 @@ export default function AuthPage() {
                       <CardDescription>Sign in to your PipaPal account</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <Button 
-                        variant="outline" 
-                        type="button" 
-                        className="w-full mb-6" 
-                        onClick={() => handleGoogleSignIn(false)}
-                        disabled={loginWithGoogleMutation.isPending}
-                      >
-                        {loginWithGoogleMutation.isPending ? (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                          <FcGoogle className="mr-2 h-5 w-5" />
-                        )}
-                        Sign in with Google
-                      </Button>
-                        
-                      <div className="relative mb-6">
-                        <div className="absolute inset-0 flex items-center">
-                          <span className="w-full border-t" />
-                        </div>
-                        <div className="relative flex justify-center text-xs uppercase">
-                          <span className="bg-background px-2 text-muted-foreground">
-                            Or sign in with email
-                          </span>
-                        </div>
-                      </div>
-                      
-                      <Form {...loginForm}>
-                        <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-6">
-                          <FormField
-                            control={loginForm.control}
-                            name="email"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Email Address</FormLabel>
-                                <FormControl>
-                                  <Input type="email" placeholder="your.email@example.com" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          
-                          <FormField
-                            control={loginForm.control}
-                            name="password"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Password</FormLabel>
-                                <FormControl>
-                                  <Input type="password" placeholder="••••••••" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          
+                      {showForgotPassword ? (
+                        <ForgotPasswordForm onBack={() => setShowForgotPassword(false)} />
+                      ) : (
+                        <>
                           <Button 
-                            type="submit" 
-                            className="w-full" 
-                            disabled={loginMutation.isPending}
+                            variant="outline" 
+                            type="button" 
+                            className="w-full mb-6" 
+                            onClick={() => handleGoogleSignIn(false)}
+                            disabled={loginWithGoogleMutation.isPending}
                           >
-                            {loginMutation.isPending ? (
+                            {loginWithGoogleMutation.isPending ? (
                               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            ) : null}
-                            Sign In
+                            ) : (
+                              <FcGoogle className="mr-2 h-5 w-5" />
+                            )}
+                            Sign in with Google
                           </Button>
-                        </form>
-                      </Form>
-                      
-                      <div className="mt-6 text-center">
-                        <p className="text-sm text-gray-600">
-                          Don't have an account?{" "}
-                          <Button variant="link" className="p-0" onClick={() => setActiveTab("register")}>
-                            Register
-                          </Button>
-                        </p>
-                      </div>
+                            
+                          <div className="relative mb-6">
+                            <div className="absolute inset-0 flex items-center">
+                              <span className="w-full border-t" />
+                            </div>
+                            <div className="relative flex justify-center text-xs uppercase">
+                              <span className="bg-background px-2 text-muted-foreground">
+                                Or sign in with email
+                              </span>
+                            </div>
+                          </div>
+                          
+                          <Form {...loginForm}>
+                            <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-6">
+                              <FormField
+                                control={loginForm.control}
+                                name="email"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Email Address</FormLabel>
+                                    <FormControl>
+                                      <Input type="email" placeholder="your.email@example.com" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                              
+                              <FormField
+                                control={loginForm.control}
+                                name="password"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <div className="flex items-center justify-between">
+                                      <FormLabel>Password</FormLabel>
+                                      <Button 
+                                        variant="link" 
+                                        className="p-0 h-auto text-xs" 
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          setShowForgotPassword(true);
+                                        }}
+                                      >
+                                        Forgot password?
+                                      </Button>
+                                    </div>
+                                    <FormControl>
+                                      <Input type="password" placeholder="••••••••" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                              
+                              <Button 
+                                type="submit" 
+                                className="w-full" 
+                                disabled={loginMutation.isPending}
+                              >
+                                {loginMutation.isPending ? (
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                ) : null}
+                                Sign In
+                              </Button>
+                            </form>
+                          </Form>
+                          
+                          <div className="mt-6 text-center">
+                            <p className="text-sm text-gray-600">
+                              Don't have an account?{" "}
+                              <Button variant="link" className="p-0" onClick={() => setActiveTab("register")}>
+                                Register
+                              </Button>
+                            </p>
+                          </div>
+                        </>
+                      )}
                     </CardContent>
                   </Card>
                 </TabsContent>
