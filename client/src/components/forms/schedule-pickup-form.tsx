@@ -435,23 +435,22 @@ export default function SchedulePickupForm({ collectionToEdit, onSuccess }: Sche
           
           {/* Additional Notes - Full Width */}
           <div className="mt-4">
-            <FormField
-              control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Additional Notes</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Any special instructions for the collector (optional)"
-                      className="resize-none"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+            {/* Additional Notes - Basic HTML Version */}
+            <div>
+              <label htmlFor="notes-input-regular" className="text-sm font-medium">Additional Notes</label>
+              <div className="mt-2">
+                <textarea
+                  id="notes-input-regular"
+                  placeholder="Any special instructions for the collector (optional)"
+                  value={form.getValues().notes || ""}
+                  onChange={(e) => form.setValue("notes", e.target.value, { shouldValidate: true })}
+                  className="flex w-full min-h-24 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
+                />
+              </div>
+              {form.formState.errors.notes && (
+                <p className="text-sm font-medium text-destructive mt-1">{form.formState.errors.notes.message}</p>
               )}
-            />
+            </div>
           </div>
         </div>
         

@@ -627,27 +627,25 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
         )}
       />
       
-      {/* Special Notes */}
-      <FormField
-        control={form.control}
-        name="notes"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Special Instructions</FormLabel>
-            <FormControl>
-              <Textarea 
-                placeholder="Any additional details for the collector (e.g., 'Gate code: 1234', 'Call upon arrival')" 
-                className="min-h-24 resize-none"
-                {...field} 
-              />
-            </FormControl>
-            <FormDescription>
-              Add any special instructions or details that will help with the collection (optional)
-            </FormDescription>
-            <FormMessage />
-          </FormItem>
+      {/* Special Notes - Basic HTML Version */}
+      <div>
+        <label htmlFor="notes-input" className="text-sm font-medium">Special Instructions</label>
+        <div className="mt-2">
+          <textarea
+            id="notes-input"
+            placeholder="Any additional details for the collector (e.g., 'Gate code: 1234', 'Call upon arrival')"
+            value={form.getValues().notes || ""}
+            onChange={(e) => form.setValue("notes", e.target.value, { shouldValidate: true })}
+            className="flex w-full min-h-24 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
+          />
+        </div>
+        <p className="text-sm text-muted-foreground mt-1">
+          Add any special instructions or details that will help with the collection (optional)
+        </p>
+        {form.formState.errors.notes && (
+          <p className="text-sm font-medium text-destructive mt-1">{form.formState.errors.notes.message}</p>
         )}
-      />
+      </div>
     </div>
   );
   
