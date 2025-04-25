@@ -410,30 +410,27 @@ export default function SchedulePickupForm({ collectionToEdit, onSuccess }: Sche
               )}
             />
             
-            {/* Pickup Address */}
-            <FormField
-              control={form.control}
-              name="address"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Pickup Address</FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <Input
-                        placeholder="Enter detailed address (e.g., Kayole Junction, School Lane)"
-                        {...field}
-                        className="pr-8"
-                      />
-                      <MapPin className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-                    </div>
-                  </FormControl>
-                  <FormDescription>
-                    Please provide a specific address including street name, nearby landmarks or building name.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
+            {/* Pickup Address - Simplified Basic HTML Version */}
+            <div>
+              <label htmlFor="address-input" className="text-sm font-medium">Pickup Address</label>
+              <div className="relative mt-2">
+                <input
+                  id="address-input"
+                  type="text"
+                  placeholder="Enter detailed address (e.g., Kayole Junction, School Lane)"
+                  value={form.getValues().address || ""}
+                  onChange={(e) => form.setValue("address", e.target.value, { shouldValidate: true })}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 pr-8"
+                />
+                <MapPin className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+              </div>
+              <p className="text-sm text-muted-foreground mt-1">
+                Please provide a specific address including street name, nearby landmarks or building name.
+              </p>
+              {form.formState.errors.address && (
+                <p className="text-sm font-medium text-destructive mt-1">{form.formState.errors.address.message}</p>
               )}
-            />
+            </div>
           </div>
           
           {/* Additional Notes - Full Width */}
