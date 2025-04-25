@@ -29,7 +29,9 @@ import {
   Filter,
   SortDesc,
   SortAsc,
-  ArrowUpDown
+  ArrowUpDown,
+  FileText,
+  AlertCircle
 } from "lucide-react";
 import { 
   DropdownMenu, 
@@ -332,18 +334,103 @@ export default function SchedulePickupPage() {
             
             {/* Schedule New Pickup Tab */}
             <TabsContent value="schedule" id="schedule-tab-content">
-              <Card>
-                <CardContent className="p-6">
-                  <MultiStepPickupForm 
-                    collectionToEdit={collectionToEdit} 
-                    onSuccess={() => {
-                      setCollectionToEdit(null);
-                      navigate('/schedule-pickup?tab=pickups');
-                      scrollToElement('pickups-tab-content', 80);
-                    }} 
-                  />
-                </CardContent>
-              </Card>
+              <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                <div className="xl:col-span-2">
+                  <Card>
+                    <CardContent className="p-6">
+                      <MultiStepPickupForm 
+                        collectionToEdit={collectionToEdit} 
+                        onSuccess={() => {
+                          setCollectionToEdit(null);
+                          navigate('/schedule-pickup?tab=pickups');
+                          scrollToElement('pickups-tab-content', 80);
+                        }} 
+                      />
+                    </CardContent>
+                  </Card>
+                </div>
+                
+                {/* Collection Tips Side Panel */}
+                <div className="xl:col-span-1">
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg flex items-center">
+                        <BadgeCheck className="h-5 w-5 mr-2 text-primary" />
+                        Collection Tips
+                      </CardTitle>
+                      <CardDescription>
+                        Best practices for scheduling waste pickups
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {/* Tip 1 */}
+                      <div className="p-3 bg-primary/5 rounded-md border border-primary/15">
+                        <div className="flex gap-2 items-start">
+                          <Clock className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                          <div>
+                            <h3 className="font-medium text-sm">Schedule in Advance</h3>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Schedule collections at least 24 hours in advance to give collectors enough time to plan their routes.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Tip 2 */}
+                      <div className="p-3 bg-primary/5 rounded-md border border-primary/15">
+                        <div className="flex gap-2 items-start">
+                          <MapPin className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <h3 className="font-medium text-sm">Precise Location Details</h3>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Include landmarks or building details in your address to help collectors find your location easily.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Tip 3 */}
+                      <div className="p-3 bg-primary/5 rounded-md border border-primary/15">
+                        <div className="flex gap-2 items-start">
+                          <Scale className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <h3 className="font-medium text-sm">Accurate Weight Estimation</h3>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Estimate waste weight as accurately as possible—this helps collectors prepare appropriate transport.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Tip 4 */}
+                      <div className="p-3 bg-primary/5 rounded-md border border-primary/15">
+                        <div className="flex gap-2 items-start">
+                          <FileText className="h-5 w-5 text-purple-600 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <h3 className="font-medium text-sm">Special Instructions</h3>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Add any special instructions like gate codes, preferred collection areas, or access restrictions.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Tip 5 */}
+                      <div className="p-3 bg-amber-100 rounded-md border border-amber-200 dark:bg-amber-950/30 dark:border-amber-800/40">
+                        <div className="flex gap-2 items-start">
+                          <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <h3 className="font-medium text-sm">Cancellation Policy</h3>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              If you need to cancel, please do so at least 6 hours before the scheduled pickup time.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
             </TabsContent>
             
             {/* My Scheduled Pickups Tab */}
