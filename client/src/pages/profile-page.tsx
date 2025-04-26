@@ -1057,6 +1057,10 @@ export default function ProfilePage() {
               </CardFooter>
             </Card>
           </TabsContent>
+
+          <TabsContent value="feedback">
+            <FeedbackTab />
+          </TabsContent>
         </Tabs>
       </main>
       
