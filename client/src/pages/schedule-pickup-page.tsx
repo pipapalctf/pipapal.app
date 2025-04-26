@@ -96,10 +96,14 @@ export default function SchedulePickupPage() {
   
   // Handle tab selection based on URL parameter
   useEffect(() => {
-    // Check if there's a tab parameter
-    if (location.includes("?tab=pickups")) {
+    // Get the tab parameter from the URL
+    const params = new URLSearchParams(location.split('?')[1]);
+    const tabParam = params.get('tab');
+    
+    // Set the active tab based on the parameter
+    if (tabParam === 'pickups') {
       setActiveTab("pickups");
-    } else {
+    } else if (tabParam === 'schedule') {
       setActiveTab("schedule");
     }
   }, [location]);
