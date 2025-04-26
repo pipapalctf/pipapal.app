@@ -1,3 +1,3 @@
-export * from './feedback-dialog';
-export * from './feedback-list';
-export * from './feedback-tab';
+export { FeedbackDialog } from "./feedback-dialog";
+export { FeedbackList } from "./feedback-list";
+export { FeedbackTab } from "./feedback-tab";

@@ -1,4 +1,7 @@
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -27,91 +30,83 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { MessageCircle, Send, Star } from "lucide-react";
+import { FeedbackFormData, FEEDBACK_CATEGORY_LABELS } from "@/types/feedback";
 import { useFeedback } from "@/hooks/use-feedback";
 import { FeedbackCategory } from "@shared/schema";
-import { FEEDBACK_CATEGORY_LABELS } from "@/types/feedback";
-import { useLocation } from "wouter";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Loader2 } from "lucide-react";
+import { MessageCircle, MessageSquarePlus } from "lucide-react";
 
-// Feedback form validation schema
+// Form schema with validation
 const feedbackFormSchema = z.object({
-  category: z.string({
-    required_error: "Please select a category",
-  }),
-  title: z.string()
-    .min(3, { message: "Title must be at least 3 characters" })
-    .max(100, { message: "Title must be less than 100 characters" }),
-  content: z.string()
-    .min(5, { message: "Feedback must be at least 5 characters" })
-    .max(1000, { message: "Feedback must be less than 1000 characters" }),
+  category: z.string().min(1, "Please select a category"),
+  title: z.string().min(3, "Title must be at least 3 characters").max(100, "Title cannot exceed 100 characters"),
+  content: z.string().min(10, "Please provide more details").max(1000, "Feedback cannot exceed 1000 characters"),
   rating: z.number().min(1).max(5).optional(),
   currentPage: z.string().optional(),
 });
 
-type FeedbackFormValues = z.infer<typeof feedbackFormSchema>;
+type FeedbackDialogProps = {
+  variant?: "floating" | "profile";
+  currentPage?: string;
+};
 
-export function FeedbackDialog() {
+export function FeedbackDialog({ variant = "floating", currentPage }: FeedbackDialogProps) {
   const [open, setOpen] = useState(false);
   const { submitFeedback, isSubmitting } = useFeedback();
-  const [location] = useLocation();
-  
-  // Get current page URL for context
-  const currentPage = location;
-  
-  // Form default values
-  const defaultValues: Partial<FeedbackFormValues> = {
-    category: FeedbackCategory.GENERAL,
-    currentPage,
-  };
-  
-  const form = useForm<FeedbackFormValues>({
+
+  const form = useForm<FeedbackFormData>({
     resolver: zodResolver(feedbackFormSchema),
-    defaultValues,
+    defaultValues: {
+      category: FeedbackCategory.GENERAL,
+      title: "",
+      content: "",
+      rating: undefined,
+      currentPage: currentPage || window.location.pathname,
+    },
   });
-  
-  function onSubmit(values: FeedbackFormValues) {
-    submitFeedback(values, {
-      onSuccess: () => {
-        // Reset form and close dialog on success
-        form.reset(defaultValues);
-        setOpen(false);
-      }
-    });
+
+  async function onSubmit(data: FeedbackFormData) {
+    await submitFeedback.mutateAsync(data);
+    form.reset();
+    setOpen(false);
   }
-  
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button 
-          variant="secondary" 
-          size="sm" 
-          className="fixed bottom-4 right-4 z-50 rounded-full shadow-lg px-4 py-6 flex items-center gap-2"
-        >
-          <MessageCircle className="h-5 w-5" />
-          <span>Feedback</span>
-        </Button>
+        {variant === "floating" ? (
+          <Button 
+            size="icon" 
+            className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50"
+          >
+            <MessageCircle className="h-6 w-6" />
+          </Button>
+        ) : (
+          <Button className="w-full md:w-auto">
+            <MessageSquarePlus className="mr-2 h-4 w-4" />
+            Submit Feedback
+          </Button>
+        )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[525px]">
         <DialogHeader>
           <DialogTitle>Share Your Feedback</DialogTitle>
           <DialogDescription>
-            Help us improve PipaPal with your feedback, suggestions, or report issues. You'll earn 5 sustainability points for your contribution.
+            We value your input! Help us improve PipaPal by sharing your thoughts, 
+            suggestions, or reporting any issues you've encountered.
           </DialogDescription>
         </DialogHeader>
-        
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="category"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Category</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
+                  <Select 
+                    onValueChange={field.onChange} 
                     defaultValue={field.value}
                   >
                     <FormControl>
@@ -120,9 +115,9 @@ export function FeedbackDialog() {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {Object.entries(FEEDBACK_CATEGORY_LABELS).map(([value, label]) => (
+                      {Object.entries(FeedbackCategory).map(([key, value]) => (
                         <SelectItem key={value} value={value}>
-                          {label}
+                          {FEEDBACK_CATEGORY_LABELS[value] || key}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -131,7 +126,6 @@ export function FeedbackDialog() {
                 </FormItem>
               )}
             />
-            
             <FormField
               control={form.control}
               name="title"
@@ -139,75 +133,73 @@ export function FeedbackDialog() {
                 <FormItem>
                   <FormLabel>Title</FormLabel>
                   <FormControl>
-                    <Input placeholder="Brief title for your feedback" {...field} />
+                    <Input placeholder="Brief summary of your feedback" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
             <FormField
               control={form.control}
               name="content"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Feedback</FormLabel>
+                  <FormLabel>Details</FormLabel>
                   <FormControl>
                     <Textarea 
-                      placeholder="Share your thoughts, suggestions, or report an issue..." 
+                      placeholder="Please provide more information..." 
                       className="min-h-[120px]" 
                       {...field} 
                     />
                   </FormControl>
                   <FormDescription>
-                    Be as specific as possible to help us understand your feedback.
+                    Please be as specific as possible to help us understand your feedback better.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
             <FormField
               control={form.control}
               name="rating"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Rating (Optional)</FormLabel>
-                  <div className="flex items-center space-x-1">
-                    {[1, 2, 3, 4, 5].map((rating) => (
-                      <Button
-                        key={rating}
-                        type="button"
-                        variant={field.value === rating ? "default" : "outline"}
-                        size="sm"
-                        className="h-8 w-8 p-0"
-                        onClick={() => field.onChange(rating)}
-                      >
-                        <Star 
-                          className={`h-4 w-4 ${field.value === rating ? "fill-current" : ""}`} 
-                        />
-                      </Button>
-                    ))}
-                  </div>
+                <FormItem className="space-y-3">
+                  <FormLabel>How would you rate this feature or area?</FormLabel>
+                  <FormControl>
+                    <RadioGroup
+                      onValueChange={(value) => field.onChange(parseInt(value))}
+                      defaultValue={field.value?.toString()}
+                      className="flex space-x-2"
+                    >
+                      {[1, 2, 3, 4, 5].map((rating) => (
+                        <FormItem key={rating} className="flex items-center space-x-1 space-y-0">
+                          <FormControl>
+                            <RadioGroupItem value={rating.toString()} />
+                          </FormControl>
+                          <FormLabel className="font-normal">{rating}</FormLabel>
+                        </FormItem>
+                      ))}
+                    </RadioGroup>
+                  </FormControl>
+                  <FormDescription>
+                    Rating is optional
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
             <DialogFooter>
               <Button 
-                type="submit" 
+                type="button" 
+                variant="outline" 
+                onClick={() => setOpen(false)}
                 disabled={isSubmitting}
-                className="w-full sm:w-auto"
               >
-                {isSubmitting ? (
-                  <>Processing...</>
-                ) : (
-                  <>
-                    <Send className="mr-2 h-4 w-4" />
-                    Submit Feedback
-                  </>
-                )}
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Submit Feedback
               </Button>
             </DialogFooter>
           </form>

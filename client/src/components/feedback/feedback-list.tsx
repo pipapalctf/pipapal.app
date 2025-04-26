@@ -1,109 +1,117 @@
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useFeedback } from "@/hooks/use-feedback";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { format } from "date-fns";
 import { FEEDBACK_CATEGORY_LABELS, FEEDBACK_STATUS_LABELS } from "@/types/feedback";
-import { AlertTriangle, Clock, MessageCircle, ThumbsUp } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { CircleAlertIcon, ClockIcon, CheckCircleIcon, MessageCircleDashedIcon } from "lucide-react";
 
 export function FeedbackList() {
   const { userFeedback, isLoadingFeedback } = useFeedback();
-  
+
   if (isLoadingFeedback) {
-    return (
-      <div className="py-6 px-2 text-center">
-        <p className="text-muted-foreground">Loading your feedback...</p>
-      </div>
-    );
+    return <FeedbackListSkeleton />;
   }
-  
+
   if (!userFeedback || userFeedback.length === 0) {
     return (
-      <div className="py-10 px-4 text-center border border-dashed rounded-lg">
-        <MessageCircle className="mx-auto h-10 w-10 text-muted-foreground mb-2" />
-        <h3 className="text-lg font-medium">No feedback yet</h3>
-        <p className="text-muted-foreground mt-1">
-          You haven't submitted any feedback yet.
+      <div className="text-center py-8 px-4">
+        <MessageCircleDashedIcon className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+        <h3 className="text-lg font-medium text-gray-900">No feedback yet</h3>
+        <p className="mt-1 text-sm text-gray-500">
+          You haven't submitted any feedback yet. We'd love to hear your thoughts!
         </p>
       </div>
     );
   }
-  
+
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-medium">Your Feedback History</h3>
-      <div className="grid gap-4">
-        {userFeedback.map((feedback) => {
-          const createdAt = new Date(feedback.createdAt);
+      {userFeedback.map((feedback) => (
+        <div 
+          key={feedback.id}
+          className="border rounded-lg overflow-hidden hover:shadow-md transition-shadow bg-card"
+        >
+          <div className="flex items-center justify-between px-4 py-3 bg-muted/30">
+            <div className="flex items-center space-x-2">
+              <h3 className="font-medium text-sm">{feedback.title}</h3>
+              <Badge variant="outline" className="text-xs">
+                {FEEDBACK_CATEGORY_LABELS[feedback.category] || feedback.category}
+              </Badge>
+            </div>
+            <div className="flex items-center space-x-1 text-xs text-muted-foreground">
+              <ClockIcon className="h-3 w-3" />
+              <span>{feedback.createdAt ? format(new Date(feedback.createdAt), 'MMM d, yyyy') : 'N/A'}</span>
+            </div>
+          </div>
           
-          // Determine badge color based on status
-          let statusColor = "";
-          switch (feedback.status) {
-            case "pending":
-              statusColor = "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300";
-              break;
-            case "in_review":
-              statusColor = "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300";
-              break;
-            case "implemented":
-              statusColor = "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
-              break;
-            case "rejected":
-              statusColor = "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300";
-              break;
-            case "completed":
-              statusColor = "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300";
-              break;
-            default:
-              statusColor = "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
-          }
+          <div className="px-4 py-3">
+            <p className="text-sm text-muted-foreground line-clamp-2">{feedback.content}</p>
+          </div>
           
-          // Determine icon based on category
-          let CategoryIcon = MessageCircle;
-          switch (feedback.category) {
-            case "feature_request":
-              CategoryIcon = ThumbsUp;
-              break;
-            case "bug_report":
-              CategoryIcon = AlertTriangle;
-              break;
-            default:
-              CategoryIcon = MessageCircle;
-          }
-          
-          return (
-            <Card key={feedback.id} className="overflow-hidden">
-              <CardHeader className="pb-2">
-                <div className="flex justify-between items-start">
-                  <div className="flex items-center">
-                    <CategoryIcon className="h-4 w-4 mr-2 text-muted-foreground" />
-                    <Badge variant="outline">
-                      {FEEDBACK_CATEGORY_LABELS[feedback.category] || feedback.category}
-                    </Badge>
-                  </div>
-                  <Badge className={statusColor}>
-                    {FEEDBACK_STATUS_LABELS[feedback.status] || feedback.status}
-                  </Badge>
-                </div>
-                <CardTitle className="text-lg mt-2">{feedback.title}</CardTitle>
-                <CardDescription className="flex items-center text-xs">
-                  <Clock className="h-3 w-3 mr-1" />
-                  {formatDistanceToNow(createdAt, { addSuffix: true })}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                  {feedback.content}
-                </p>
-              </CardContent>
-              {feedback.currentPage && (
-                <CardFooter className="text-xs text-muted-foreground pt-0 border-t">
-                  <p>Page: {feedback.currentPage}</p>
-                </CardFooter>
-              )}
-            </Card>
-          );
-        })}
-      </div>
+          <div className="px-4 py-2 bg-muted/10 flex justify-between items-center">
+            <StatusBadge status={feedback.status || 'pending'} />
+            {feedback.rating && (
+              <div className="flex items-center">
+                <span className="text-xs text-muted-foreground mr-1">Rating:</span>
+                <span className="text-xs font-medium">{feedback.rating}/5</span>
+              </div>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  let variant: 'default' | 'secondary' | 'outline' | 'destructive' = 'outline';
+  let icon = null;
+
+  switch (status) {
+    case 'implemented':
+    case 'completed':
+      variant = 'default';
+      icon = <CheckCircleIcon className="h-3 w-3 mr-1" />;
+      break;
+    case 'in_review':
+      variant = 'secondary';
+      icon = <ClockIcon className="h-3 w-3 mr-1" />;
+      break;
+    case 'rejected':
+      variant = 'destructive';
+      icon = <CircleAlertIcon className="h-3 w-3 mr-1" />;
+      break;
+    default:
+      icon = <ClockIcon className="h-3 w-3 mr-1" />;
+  }
+
+  return (
+    <Badge variant={variant} className="text-xs flex items-center">
+      {icon}
+      {FEEDBACK_STATUS_LABELS[status] || status}
+    </Badge>
+  );
+}
+
+function FeedbackListSkeleton() {
+  return (
+    <div className="space-y-4">
+      {[1, 2].map((i) => (
+        <div key={i} className="border rounded-lg overflow-hidden">
+          <div className="p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <Skeleton className="h-5 w-1/3" />
+              <Skeleton className="h-4 w-24" />
+            </div>
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-3/4" />
+            <div className="flex justify-between pt-2">
+              <Skeleton className="h-5 w-20" />
+              <Skeleton className="h-5 w-16" />
+            </div>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
