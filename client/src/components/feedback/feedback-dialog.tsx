@@ -89,28 +89,28 @@ export function FeedbackDialog({ variant = "floating", currentPage }: FeedbackDi
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[525px]">
-        <DialogHeader>
-          <DialogTitle>Share Your Feedback</DialogTitle>
-          <DialogDescription>
+      <DialogContent className="sm:max-w-[450px] p-4 sm:p-6">
+        <DialogHeader className="pb-2">
+          <DialogTitle className="text-lg sm:text-xl">Share Your Feedback</DialogTitle>
+          <DialogDescription className="text-sm">
             We value your input! Help us improve PipaPal by sharing your thoughts, 
             suggestions, or reporting any issues you've encountered.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
             <FormField
               control={form.control}
               name="category"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="space-y-1">
                   <FormLabel>Category</FormLabel>
                   <Select 
                     onValueChange={field.onChange} 
                     defaultValue={field.value}
                   >
                     <FormControl>
-                      <SelectTrigger>
+                      <SelectTrigger className="h-9">
                         <SelectValue placeholder="Select a category" />
                       </SelectTrigger>
                     </FormControl>
@@ -130,10 +130,10 @@ export function FeedbackDialog({ variant = "floating", currentPage }: FeedbackDi
               control={form.control}
               name="title"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="space-y-1">
                   <FormLabel>Title</FormLabel>
                   <FormControl>
-                    <Input placeholder="Brief summary of your feedback" {...field} />
+                    <Input placeholder="Brief summary of your feedback" className="h-9" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -143,16 +143,16 @@ export function FeedbackDialog({ variant = "floating", currentPage }: FeedbackDi
               control={form.control}
               name="content"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="space-y-1">
                   <FormLabel>Details</FormLabel>
                   <FormControl>
                     <Textarea 
                       placeholder="Please provide more information..." 
-                      className="min-h-[120px]" 
+                      className="min-h-[80px]" 
                       {...field} 
                     />
                   </FormControl>
-                  <FormDescription>
+                  <FormDescription className="text-xs">
                     Please be as specific as possible to help us understand your feedback better.
                   </FormDescription>
                   <FormMessage />
@@ -163,7 +163,7 @@ export function FeedbackDialog({ variant = "floating", currentPage }: FeedbackDi
               control={form.control}
               name="rating"
               render={({ field }) => (
-                <FormItem className="space-y-3">
+                <FormItem className="space-y-1">
                   <FormLabel>How would you rate this feature or area?</FormLabel>
                   <FormControl>
                     <RadioGroup
@@ -181,25 +181,26 @@ export function FeedbackDialog({ variant = "floating", currentPage }: FeedbackDi
                       ))}
                     </RadioGroup>
                   </FormControl>
-                  <FormDescription>
+                  <FormDescription className="text-xs">
                     Rating is optional
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <DialogFooter>
+            <DialogFooter className="pt-2 gap-2">
               <Button 
                 type="button" 
                 variant="outline" 
                 onClick={() => setOpen(false)}
                 disabled={isSubmitting}
+                className="h-9"
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Submit Feedback
+              <Button type="submit" disabled={isSubmitting} className="h-9">
+                {isSubmitting && <Loader2 className="mr-1 h-3 w-3 animate-spin" />}
+                Submit
               </Button>
             </DialogFooter>
           </form>

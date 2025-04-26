@@ -172,6 +172,19 @@ export default function Navbar() {
               <MessageSquare className="w-4 h-4 mr-1" />
               Messages
             </Link>
+            <Link
+              href="/profile"
+              className={`transition-colors font-medium flex items-center ${
+                location === "/profile" ? "text-primary" : "text-secondary hover:text-primary"
+              }`}
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 mr-1">
+                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+              Profile
+            </Link>
             <div className="flex items-center justify-between mt-2 border-t border-gray-100 pt-2">
               <div className="py-2">
                 <NotificationBell />
