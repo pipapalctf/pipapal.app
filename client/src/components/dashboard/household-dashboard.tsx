@@ -230,13 +230,13 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
       
       {/* Action Buttons */}
       <div className="flex flex-wrap gap-3">
-        <Link href="/schedule">
+        <Link href="/schedule-pickup?tab=schedule" onClick={() => scrollToElement('schedule-tab-content', 80)}>
           <Button className="bg-green-600 hover:bg-green-700 text-white">
             <CalendarPlus className="h-4 w-4 mr-2" />
             Schedule New Pickup
           </Button>
         </Link>
-        <Link href="/collections">
+        <Link href="/schedule-pickup?tab=pickups" onClick={() => scrollToElement('pickups-tab-content', 80)}>
           <Button variant="outline" className="border-green-200 hover:bg-green-50 hover:text-green-700 dark:border-green-800 dark:hover:bg-green-900/20">
             <Truck className="h-4 w-4 mr-2" />
             View All Collections
