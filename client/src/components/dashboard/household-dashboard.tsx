@@ -230,13 +230,13 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
       
       {/* Action Buttons */}
       <div className="flex flex-wrap gap-3">
-        <Link href="/schedule-pickup?tab=schedule" onClick={() => scrollToElement('schedule-tab-content', 80)}>
+        <Link href="/schedule-pickup?tab=schedule">
           <Button className="bg-green-600 hover:bg-green-700 text-white">
             <CalendarPlus className="h-4 w-4 mr-2" />
             Schedule New Pickup
           </Button>
         </Link>
-        <Link href="/schedule-pickup?tab=pickups" onClick={() => scrollToElement('pickups-tab-content', 80)}>
+        <Link href="/schedule-pickup?tab=pickups#pickups-tab-content">
           <Button variant="outline" className="border-green-200 hover:bg-green-50 hover:text-green-700 dark:border-green-800 dark:hover:bg-green-900/20">
             <Truck className="h-4 w-4 mr-2" />
             View All Collections
@@ -802,11 +802,11 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
         <CardContent>
           <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
             {[
-              { name: 'Eco Starter', achieved: user.sustainabilityScore >= 50, icon: '🌱' },
+              { name: 'Eco Starter', achieved: (user?.sustainabilityScore || 0) >= 50, icon: '🌱' },
               { name: 'Recycling Pro', achieved: recyclingRate >= 60, icon: '♻️' },
-              { name: 'Water Saver', achieved: impact?.waterSaved > 500, icon: '💧' },
-              { name: 'Carbon Reducer', achieved: impact?.co2Reduced > 50, icon: '🌿' },
-              { name: 'Tree Saver', achieved: impact?.treesEquivalent > 2, icon: '🌳' },
+              { name: 'Water Saver', achieved: (impact?.waterSaved || 0) > 500, icon: '💧' },
+              { name: 'Carbon Reducer', achieved: (impact?.co2Reduced || 0) > 50, icon: '🌿' },
+              { name: 'Tree Saver', achieved: (impact?.treesEquivalent || 0) > 2, icon: '🌳' },
               { name: 'Consistency Hero', achieved: collectionsCountByMonth.size >= 3, icon: '🏆' }
             ].map((badge, index) => (
               <div 
@@ -833,13 +833,13 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
             Upcoming Pickups
           </CardTitle>
           <div className="flex space-x-2">
-            <Link href="/schedule-pickup?tab=pickups" onClick={() => scrollToElement('pickups-tab-content', 80)}>
+            <Link href="/schedule-pickup?tab=pickups#pickups-tab-content">
               <Button variant="outline" size="sm" className="h-8 px-2 text-xs">
                 <CalendarCheck className="mr-1 h-3.5 w-3.5" />
                 View All
               </Button>
             </Link>
-            <Link href="/schedule-pickup?tab=schedule" onClick={() => scrollToElement('schedule-tab-content', 80)}>
+            <Link href="/schedule-pickup?tab=schedule">
               <Button size="sm" className="h-8 px-2 text-xs">
                 <PlusCircle className="mr-1 h-3.5 w-3.5" />
                 Schedule
@@ -876,7 +876,7 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
                 <CalendarPlus className="h-6 w-6 text-primary" />
               </div>
               <p className="text-muted-foreground mb-4">No upcoming pickups scheduled.</p>
-              <Link href="/schedule-pickup?tab=schedule" onClick={() => scrollToElement('schedule-tab-content', 80)}>
+              <Link href="/schedule-pickup?tab=schedule">
                 <Button size="sm">
                   <PlusCircle className="mr-1 h-3.5 w-3.5" />
                   Schedule Your First Pickup
