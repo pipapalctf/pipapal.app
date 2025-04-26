@@ -12,7 +12,7 @@ export async function generateEcoTip(category: string, customPrompt?: string): P
   try {
     // If no API key is provided, return a predefined tip
     if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === "dummy-key-for-development") {
-      return getFallbackEcoTip(category);
+      return getFallbackEcoTip(category, customPrompt);
     }
     
     let prompt = "";
@@ -72,11 +72,134 @@ export async function generateEcoTip(category: string, customPrompt?: string): P
     return result;
   } catch (error) {
     console.error("Error generating EcoTip:", error);
-    return getFallbackEcoTip(category);
+    // When API fails (quota exceeded, etc.), use our fallback system with caching
+    const result = getFallbackEcoTip(category, customPrompt);
+    
+    // Store in cache for future use if it's a custom prompt
+    if (customPrompt) {
+      const cacheKey = `${category}:${customPrompt.toLowerCase().trim()}`;
+      cachedResponses[cacheKey] = result;
+    }
+    
+    return result;
   }
 }
 
-function getFallbackEcoTip(category: string): EcoTipResponse {
+// Cached responses for common prompts
+const cachedResponses: Record<string, EcoTipResponse> = {};
+
+function getFallbackEcoTip(category: string, customPrompt?: string): EcoTipResponse {
+  // If there's a custom prompt, try to find a specific match in our expanded database
+  if (customPrompt) {
+    const normalizedPrompt = customPrompt.toLowerCase().trim();
+    
+    // Check cache first
+    const cacheKey = `${category}:${normalizedPrompt}`;
+    if (cachedResponses[cacheKey]) {
+      return cachedResponses[cacheKey];
+    }
+    
+    // Try to match against known custom prompts
+    const customTips: Record<string, EcoTipResponse> = {
+      // Clothing/Textiles
+      "recycle old clothes": {
+        title: "Recycling Old Clothes Effectively",
+        content: "Donate wearable clothes to local charities, use textile recycling bins at collection points, or repurpose into cleaning rags. In Kenya, organizations like TEXFAD and Takataka Solutions accept textile waste.",
+        icon: "tshirt"
+      },
+      "reuse clothing": {
+        title: "Creative Clothing Reuse Ideas",
+        content: "Transform old t-shirts into tote bags, make cushion covers from jeans, create pet beds from sweaters, or design fabric planters. Consider skill-sharing workshops to learn upcycling techniques.",
+        icon: "recycle"
+      },
+      
+      // Electronic Waste
+      "recycle electronics": {
+        title: "E-Waste Recycling Solutions",
+        content: "Take electronics to certified e-waste recyclers like Waste Electrical & Electronic Equipment Centre in Nairobi. Remove batteries before recycling. Call WEEE Centre at +254 719 019 901 for collection.",
+        icon: "laptop"
+      },
+      "old phone recycling": {
+        title: "Mobile Phone Recycling Options",
+        content: "Return old phones to Safaricom stores for their e-waste program, or contact Computer for Schools Kenya (CFSK) who refurbish and donate devices to schools. Remove SIM cards and reset before donating.",
+        icon: "mobile"
+      },
+      
+      // Plastics
+      "plastic bottle reuse": {
+        title: "Creative Plastic Bottle Repurposing",
+        content: "Create vertical gardens, make self-watering planters, build bird feeders, or use as storage containers. Cut bottles to make funnels, scoops, or organizers for small items.",
+        icon: "wine-bottle"
+      },
+      "plastic bag recycling": {
+        title: "Plastic Bag Management Tips",
+        content: "Collect and return clean plastic bags to grocery stores with recycling bins. Reuse as trash bags or for pet waste collection. Consider switching to reusable shopping bags made of cloth or mesh.",
+        icon: "shopping-bag"
+      },
+      
+      // Food Waste
+      "kitchen waste composting": {
+        title: "Kitchen Waste Composting Guide",
+        content: "Use a small bin for vegetable scraps, coffee grounds, and eggshells. Avoid meat, dairy, and oils. In urban areas without gardens, try bokashi composting which works in sealed containers for apartments.",
+        icon: "seedling"
+      },
+      "reduce food waste": {
+        title: "Food Waste Reduction Strategies",
+        content: "Plan meals before shopping, store food properly (fruits separate from vegetables), use leftovers creatively, freeze surplus food, and understand that 'best before' differs from 'use by' dates.",
+        icon: "carrot"
+      },
+      
+      // Water Conservation
+      "water saving tips": {
+        title: "Household Water Conservation",
+        content: "Install water-saving showerheads, fix leaking taps (saving up to 20,000L yearly), collect rainwater for gardening, and reuse greywater from laundry for flushing toilets or watering plants.",
+        icon: "tint"
+      },
+      "save water in drought": {
+        title: "Drought-Time Water Saving",
+        content: "Prioritize essential water use, take shorter showers (5 mins max), use dishwashers only when full, and water gardens early morning or evening. In Kenya, contact Water Resource Authority for local restrictions.",
+        icon: "tint-slash"
+      },
+      
+      // Paper
+      "paper recycling": {
+        title: "Effective Paper Recycling",
+        content: "Separate clean paper from contaminated, remove plastic windows from envelopes, flatten cardboard boxes. In Nairobi, contact Mr. Green Africa or Takataka Solutions for collection services.",
+        icon: "newspaper"
+      },
+      "reduce paper usage": {
+        title: "Paperless Living Strategies",
+        content: "Go digital with bills and statements, use both sides when printing, reuse single-sided paper for notes, and opt out of junk mail through digital subscriptions and e-receipts.",
+        icon: "file"
+      }
+    };
+    
+    // Check for direct matches first
+    if (customTips[normalizedPrompt]) {
+      return customTips[normalizedPrompt];
+    }
+    
+    // If no direct match, check for partial matches
+    for (const [key, tip] of Object.entries(customTips)) {
+      if (normalizedPrompt.includes(key) || key.includes(normalizedPrompt)) {
+        return tip;
+      }
+    }
+    
+    // For keywords in prompt, try to find relevant tips
+    const keywords = normalizedPrompt.split(/\s+/);
+    for (const keyword of keywords) {
+      if (keyword.length < 4) continue; // Skip short words
+      
+      for (const [key, tip] of Object.entries(customTips)) {
+        if (key.includes(keyword)) {
+          return tip;
+        }
+      }
+    }
+  }
+  
+  // If no custom match found or no custom prompt provided, fall back to category-based tips
   const fallbackTips: Record<string, EcoTipResponse> = {
     "water": {
       title: "Save Water With Shower Buckets",
