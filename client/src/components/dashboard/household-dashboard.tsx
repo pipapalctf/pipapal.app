@@ -230,7 +230,7 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
       
       {/* Action Buttons */}
       <div className="flex flex-wrap gap-3">
-        <Link href="/schedule-pickup?tab=schedule">
+        <Link href="/schedule-pickup?tab=schedule#pickup-form-container">
           <Button className="bg-green-600 hover:bg-green-700 text-white">
             <CalendarPlus className="h-4 w-4 mr-2" />
             Schedule New Pickup
@@ -839,7 +839,7 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
                 View All
               </Button>
             </Link>
-            <Link href="/schedule-pickup?tab=schedule">
+            <Link href="/schedule-pickup?tab=schedule#pickup-form-container">
               <Button size="sm" className="h-8 px-2 text-xs">
                 <PlusCircle className="mr-1 h-3.5 w-3.5" />
                 Schedule
@@ -876,7 +876,7 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
                 <CalendarPlus className="h-6 w-6 text-primary" />
               </div>
               <p className="text-muted-foreground mb-4">No upcoming pickups scheduled.</p>
-              <Link href="/schedule-pickup?tab=schedule">
+              <Link href="/schedule-pickup?tab=schedule#pickup-form-container">
                 <Button size="sm">
                   <PlusCircle className="mr-1 h-3.5 w-3.5" />
                   Schedule Your First Pickup

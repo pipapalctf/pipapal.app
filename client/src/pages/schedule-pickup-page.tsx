@@ -337,7 +337,7 @@ export default function SchedulePickupPage() {
               <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                 <div className="xl:col-span-2">
                   <Card>
-                    <CardContent className="p-6">
+                    <CardContent className="p-6" id="pickup-form-container">
                       <MultiStepPickupForm 
                         collectionToEdit={collectionToEdit} 
                         onSuccess={() => {
