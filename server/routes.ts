@@ -7,10 +7,12 @@ import {
   insertMaterialInterestSchema,
   insertChatMessageSchema,
   insertActivitySchema,
+  insertFeedbackSchema,
   CollectionStatus,
   Collection,
   UserRole,
-  ChatMessage
+  ChatMessage,
+  FeedbackCategory
 } from "@shared/schema";
 import { z } from "zod";
 import { setupAuth } from "./auth";

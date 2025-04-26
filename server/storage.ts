@@ -108,6 +108,7 @@ export class MemStorage implements IStorage {
   private activities: Map<number, Activity>;
   private materialInterests: Map<number, MaterialInterest>;
   private chatMessages: Map<number, ChatMessage>;
+  private feedback: Map<number, Feedback>;
   sessionStore: any; // Using any for express-session store type
   currentUserId: number;
   currentCollectionId: number;
@@ -117,6 +118,7 @@ export class MemStorage implements IStorage {
   currentActivityId: number;
   currentMaterialInterestId: number;
   currentChatMessageId: number;
+  currentFeedbackId: number;
 
   constructor() {
     this.users = new Map();
@@ -127,6 +129,7 @@ export class MemStorage implements IStorage {
     this.activities = new Map();
     this.materialInterests = new Map();
     this.chatMessages = new Map();
+    this.feedback = new Map();
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000,
     });
@@ -138,6 +141,7 @@ export class MemStorage implements IStorage {
     this.currentActivityId = 1;
     this.currentMaterialInterestId = 1;
     this.currentChatMessageId = 1;
+    this.currentFeedbackId = 1;
     
     // Seed eco-tips
     this.seedEcoTips();
@@ -651,6 +655,48 @@ export class MemStorage implements IStorage {
           read: true
         });
       });
+  }
+  
+  // Feedback
+  async getAllFeedback(): Promise<Feedback[]> {
+    return Array.from(this.feedback.values())
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  async getFeedbackByUser(userId: number): Promise<Feedback[]> {
+    return Array.from(this.feedback.values())
+      .filter(feedback => feedback.userId === userId)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  async createFeedback(insertFeedback: InsertFeedback): Promise<Feedback> {
+    const id = this.currentFeedbackId++;
+    const now = new Date();
+    const feedback: Feedback = {
+      ...insertFeedback,
+      id,
+      status: "pending",
+      createdAt: now
+    };
+    this.feedback.set(id, feedback);
+    
+    // Create activity record for submitting feedback
+    await this.createActivity({
+      userId: feedback.userId,
+      activityType: 'feedback_submitted',
+      description: `Submitted feedback: ${feedback.title}`
+    });
+    
+    return feedback;
+  }
+
+  async updateFeedbackStatus(id: number, status: string): Promise<Feedback | undefined> {
+    const feedback = this.feedback.get(id);
+    if (!feedback) return undefined;
+    
+    const updatedFeedback = { ...feedback, status };
+    this.feedback.set(id, updatedFeedback);
+    return updatedFeedback;
   }
   
   // Seed initial data
@@ -1338,6 +1384,65 @@ export class DatabaseStorage implements IStorage {
         );
     } catch (error) {
       console.error('Error marking messages as read:', error);
+    }
+  }
+
+  // Feedback
+  async getAllFeedback(): Promise<Feedback[]> {
+    try {
+      return db.select().from(feedback)
+        .orderBy(desc(feedback.createdAt));
+    } catch (error) {
+      console.error('Error getting all feedback:', error);
+      return [];
+    }
+  }
+
+  async getFeedbackByUser(userId: number): Promise<Feedback[]> {
+    try {
+      return db.select().from(feedback)
+        .where(eq(feedback.userId, userId))
+        .orderBy(desc(feedback.createdAt));
+    } catch (error) {
+      console.error('Error getting feedback by user:', error);
+      return [];
+    }
+  }
+
+  async createFeedback(insertFeedback: InsertFeedback): Promise<Feedback> {
+    try {
+      const [feedbackEntry] = await db.insert(feedback)
+        .values({
+          ...insertFeedback,
+          status: "pending"
+        })
+        .returning();
+      
+      // Create activity record for submitting feedback
+      await this.createActivity({
+        userId: feedbackEntry.userId,
+        activityType: 'feedback_submitted',
+        description: `Submitted feedback: ${feedbackEntry.title}`
+      });
+      
+      return feedbackEntry;
+    } catch (error) {
+      console.error('Error creating feedback:', error);
+      throw new Error('Failed to submit feedback');
+    }
+  }
+
+  async updateFeedbackStatus(id: number, status: string): Promise<Feedback | undefined> {
+    try {
+      const [updatedFeedback] = await db.update(feedback)
+        .set({ status })
+        .where(eq(feedback.id, id))
+        .returning();
+      
+      return updatedFeedback;
+    } catch (error) {
+      console.error('Error updating feedback status:', error);
+      return undefined;
     }
   }
 }
