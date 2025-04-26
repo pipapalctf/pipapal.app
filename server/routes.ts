@@ -40,6 +40,21 @@ const chatMessageSchema = z.object({
   content: z.string().min(1).max(1000),
 });
 
+// Schema for feedback submissions
+const feedbackSchema = z.object({
+  category: z.enum([
+    FeedbackCategory.FEATURE_REQUEST,
+    FeedbackCategory.BUG_REPORT, 
+    FeedbackCategory.USABILITY, 
+    FeedbackCategory.SUGGESTION, 
+    FeedbackCategory.GENERAL
+  ]),
+  title: z.string().min(3).max(100),
+  content: z.string().min(5).max(1000),
+  rating: z.number().min(1).max(5).optional(),
+  currentPage: z.string().optional(),
+});
+
 // Simple middleware to require authentication
 const requireAuthentication = (req: Request, res: Response, next: NextFunction) => {
   if (!req.isAuthenticated || !req.isAuthenticated() || !req.user) {
@@ -1586,6 +1601,106 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
     });
+  });
+  
+  // Feedback API routes
+  // Get all feedback - admin only
+  app.get('/api/feedback', requireAuthentication, async (req, res) => {
+    try {
+      if (req.user?.role !== UserRole.ADMIN) {
+        return res.status(403).json({ error: 'Access denied: Admin role required' });
+      }
+      
+      const allFeedback = await storage.getAllFeedback();
+      res.json(allFeedback);
+    } catch (error) {
+      console.error('Error fetching feedback:', error);
+      res.status(500).json({ error: 'Failed to fetch feedback' });
+    }
+  });
+
+  // Get user's feedback
+  app.get('/api/users/:userId/feedback', requireAuthentication, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      
+      // Only allow users to view their own feedback
+      if (req.user?.id !== userId) {
+        return res.status(403).json({ error: 'Forbidden: You can only view your own feedback' });
+      }
+      
+      const userFeedback = await storage.getFeedbackByUser(userId);
+      res.json(userFeedback);
+    } catch (error) {
+      console.error('Error fetching user feedback:', error);
+      res.status(500).json({ error: 'Failed to fetch feedback' });
+    }
+  });
+
+  // Submit feedback
+  app.post('/api/feedback', requireAuthentication, async (req, res) => {
+    try {
+      const feedbackData = feedbackSchema.parse(req.body);
+      
+      const feedback = await storage.createFeedback({
+        ...feedbackData,
+        userId: req.user!.id
+      });
+      
+      // Award points for providing feedback
+      const pointsForFeedback = 5;
+      await storage.updateUser(req.user!.id, {
+        sustainabilityScore: (req.user!.sustainabilityScore || 0) + pointsForFeedback
+      });
+      
+      // Create activity for submitting feedback
+      await storage.createActivity({
+        userId: req.user!.id,
+        activityType: 'feedback_submitted',
+        description: 'Provided feedback to improve PipaPal',
+        points: pointsForFeedback,
+        timestamp: new Date()
+      });
+      
+      // Send response with feedback and points
+      res.status(201).json({
+        feedback,
+        pointsAwarded: pointsForFeedback,
+        message: "Thank you for your feedback! You've earned 5 sustainability points."
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: 'Invalid feedback data', details: error.format() });
+      }
+      console.error('Error submitting feedback:', error);
+      res.status(500).json({ error: 'Failed to submit feedback' });
+    }
+  });
+  
+  // Update feedback status - admin only
+  app.patch('/api/feedback/:id', requireAuthentication, async (req, res) => {
+    try {
+      if (req.user?.role !== UserRole.ADMIN) {
+        return res.status(403).json({ error: 'Access denied: Admin role required' });
+      }
+      
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ error: 'Invalid feedback ID' });
+      
+      const { status } = req.body;
+      if (!status) return res.status(400).json({ error: 'Status is required' });
+      
+      const updatedFeedback = await storage.updateFeedbackStatus(id, status);
+      
+      if (!updatedFeedback) {
+        return res.status(404).json({ error: 'Feedback not found' });
+      }
+      
+      res.json(updatedFeedback);
+    } catch (error) {
+      console.error('Error updating feedback status:', error);
+      res.status(500).json({ error: 'Failed to update feedback status' });
+    }
   });
   
   // We no longer need to modify the route handlers after registration
