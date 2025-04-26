@@ -1,59 +1,63 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { Feedback, FeedbackFormValues, FeedbackSubmitResponse } from "@/types/feedback";
+import { useQuery, useMutation, UseMutationResult } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { Feedback } from "@shared/schema";
+import { FeedbackFormData } from "@/types/feedback";
 
 export function useFeedback() {
   const { toast } = useToast();
   const { user } = useAuth();
   
-  // Get user's feedback submissions
+  // Query to get all feedback for the current user
   const {
     data: userFeedback,
     isLoading: isLoadingFeedback,
     error: feedbackError,
+    refetch: refetchFeedback,
   } = useQuery<Feedback[]>({
-    queryKey: ['/api/users', user?.id, 'feedback'],
-    queryFn: async () => {
-      if (!user) return [];
-      const res = await apiRequest('GET', `/api/users/${user.id}/feedback`);
-      return await res.json();
-    },
+    queryKey: ['/api/feedback'],
     enabled: !!user,
   });
   
-  // Submit new feedback
-  const submitFeedbackMutation = useMutation({
-    mutationFn: async (values: FeedbackFormValues): Promise<FeedbackSubmitResponse> => {
-      const res = await apiRequest('POST', '/api/feedback', values);
-      return await res.json();
+  // Mutation to submit new feedback
+  const submitFeedback: UseMutationResult<
+    Feedback,
+    Error,
+    FeedbackFormData,
+    unknown
+  > = useMutation({
+    mutationFn: async (data: FeedbackFormData) => {
+      const response = await apiRequest('POST', '/api/feedback', data);
+      return response.json();
     },
-    onSuccess: (data) => {
-      // Invalidate the feedback query to fetch fresh data
-      queryClient.invalidateQueries({ queryKey: ['/api/users', user?.id, 'feedback'] });
-      
-      // Show success toast with points awarded
+    onSuccess: () => {
       toast({
-        title: "Feedback Submitted!",
-        description: data.message,
-        variant: "default",
+        title: "Feedback submitted",
+        description: "Thank you for your feedback! You've earned 5 sustainability points.",
+        variant: "success",
       });
+      // Invalidate feedback query to refresh the list
+      queryClient.invalidateQueries({ queryKey: ['/api/feedback'] });
+      // Invalidate user query to refresh sustainability score
+      queryClient.invalidateQueries({ queryKey: ['/api/user'] });
     },
-    onError: (error: Error) => {
+    onError: (error) => {
       toast({
         title: "Failed to submit feedback",
-        description: error.message,
+        description: error.message || "There was an error submitting your feedback. Please try again.",
         variant: "destructive",
       });
     },
   });
   
+  // Return everything needed by feedback components
   return {
-    userFeedback: userFeedback || [],
+    userFeedback,
     isLoadingFeedback,
     feedbackError,
-    submitFeedback: submitFeedbackMutation.mutate,
-    isSubmitting: submitFeedbackMutation.isPending,
+    submitFeedback,
+    refetchFeedback,
+    isSubmitting: submitFeedback.isPending,
   };
 }

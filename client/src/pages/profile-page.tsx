@@ -7,6 +7,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { WasteType } from "@shared/schema";
+import { FeedbackTab } from "@/components/feedback";
 
 // UI Components
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,7 +31,7 @@ import MobileNavigation from "@/components/shared/mobile-navigation";
 // Icons
 import { Check, Loader2, UserIcon, KeyIcon, MapPinIcon, PhoneIcon, AtSign, AlertCircle, 
   BriefcaseIcon, CheckCircleIcon, Building2Icon, Clock4Icon, MapIcon, Settings, BellIcon,
-  SunIcon, MoonIcon, LaptopIcon, BellOffIcon } from "lucide-react";
+  SunIcon, MoonIcon, LaptopIcon, BellOffIcon, MessageSquare } from "lucide-react";
 
 // Profile form schema
 const profileFormSchema = z.object({
@@ -310,7 +311,7 @@ export default function ProfilePage() {
         </div>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full max-w-3xl mx-auto">
-          <TabsList className={`grid w-full ${isBusinessUser ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-2 md:grid-cols-3'} mb-8 gap-2`}>
+          <TabsList className={`grid w-full ${isBusinessUser ? 'grid-cols-3 md:grid-cols-5' : 'grid-cols-3 md:grid-cols-4'} mb-8 gap-2`}>
             <TabsTrigger value="profile" className="flex items-center justify-center">
               <UserIcon className="mr-2 h-4 w-4" />
               <span className="sm:inline">Profile Information</span>
@@ -332,6 +333,11 @@ export default function ProfilePage() {
               <Settings className="mr-2 h-4 w-4" />
               <span className="sm:inline">Preferences</span>
               <span className="sm:hidden">Prefs</span>
+            </TabsTrigger>
+            <TabsTrigger value="feedback" className="flex items-center justify-center">
+              <MessageSquare className="mr-2 h-4 w-4" />
+              <span className="sm:inline">Feedback</span>
+              <span className="sm:hidden">Feedback</span>
             </TabsTrigger>
           </TabsList>
           

@@ -8,7 +8,8 @@ export const UserRole = {
   HOUSEHOLD: 'household',
   COLLECTOR: 'collector',
   RECYCLER: 'recycler',
-  ORGANIZATION: 'organization'
+  ORGANIZATION: 'organization',
+  ADMIN: 'admin'
 } as const;
 
 export type UserRoleType = typeof UserRole[keyof typeof UserRole];
