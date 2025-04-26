@@ -7,6 +7,7 @@ import {
   activities, type Activity, type InsertActivity,
   materialInterests, type MaterialInterest, type InsertMaterialInterest,
   chatMessages, type ChatMessage, type InsertChatMessage,
+  feedback, type Feedback, type InsertFeedback,
   CollectionStatus
 } from "@shared/schema";
 import session from "express-session";
@@ -87,6 +88,12 @@ export interface IStorage {
   getUnreadMessageCount(userId: number): Promise<number>;
   sendChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
   markMessagesAsRead(senderId: number, receiverId: number): Promise<void>;
+  
+  // Feedback
+  getAllFeedback(): Promise<Feedback[]>;
+  getFeedbackByUser(userId: number): Promise<Feedback[]>;
+  createFeedback(feedback: InsertFeedback): Promise<Feedback>;
+  updateFeedbackStatus(id: number, status: string): Promise<Feedback | undefined>;
   
   // Session store
   sessionStore: any;

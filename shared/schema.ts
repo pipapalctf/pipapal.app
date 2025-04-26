@@ -52,6 +52,17 @@ export const BadgeType = {
 
 export type BadgeTypeValue = typeof BadgeType[keyof typeof BadgeType];
 
+// Feedback categories
+export const FeedbackCategory = {
+  FEATURE_REQUEST: 'feature_request',
+  BUG_REPORT: 'bug_report',
+  USABILITY: 'usability',
+  SUGGESTION: 'suggestion',
+  GENERAL: 'general'
+} as const;
+
+export type FeedbackCategoryType = typeof FeedbackCategory[keyof typeof FeedbackCategory];
+
 // User table
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -264,6 +275,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   impacts: many(impacts),
   badges: many(badges),
   activities: many(activities),
+  feedback: many(feedback),
 }));
 
 export const collectionsRelations = relations(collections, ({ one }) => ({
@@ -345,6 +357,19 @@ export const chatMessages = pgTable("chat_messages", {
   timestamp: timestamp("timestamp").defaultNow(),
 });
 
+// User feedback table
+export const feedback = pgTable("feedback", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  category: text("category").notNull(), // feature_request, bug_report, usability, suggestion, general
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  status: text("status").default("pending"), // pending, in_review, implemented, rejected
+  rating: integer("rating"), // Optional rating 1-5
+  currentPage: text("current_page"), // The page from which feedback was submitted
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
   sender: one(users, {
     fields: [chatMessages.senderId],
@@ -356,10 +381,30 @@ export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
   }),
 }));
 
+export const feedbackRelations = relations(feedback, ({ one }) => ({
+  user: one(users, {
+    fields: [feedback.userId],
+    references: [users.id],
+  }),
+}));
+
 export const insertChatMessageSchema = createInsertSchema(chatMessages, {
   id: z.number().optional(),
   timestamp: z.date().optional(),
 });
 
+export const insertFeedbackSchema = createInsertSchema(feedback)
+  .pick({
+    userId: true,
+    category: true,
+    title: true,
+    content: true,
+    rating: true,
+    currentPage: true,
+  });
+
 export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
 export type ChatMessage = typeof chatMessages.$inferSelect;
+
+export type InsertFeedback = z.infer<typeof insertFeedbackSchema>;
+export type Feedback = typeof feedback.$inferSelect;
