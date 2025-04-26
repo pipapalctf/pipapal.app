@@ -239,7 +239,7 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
         <Link href="/schedule-pickup?tab=pickups#pickups-tab-content">
           <Button variant="outline" className="border-green-200 hover:bg-green-50 hover:text-green-700 dark:border-green-800 dark:hover:bg-green-900/20">
             <Truck className="h-4 w-4 mr-2" />
-            View All Collections
+            My Scheduled Pickups
           </Button>
         </Link>
       </div>
@@ -836,7 +836,7 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
             <Link href="/schedule-pickup?tab=pickups#pickups-tab-content">
               <Button variant="outline" size="sm" className="h-8 px-2 text-xs">
                 <CalendarCheck className="mr-1 h-3.5 w-3.5" />
-                View All
+                My Pickups
               </Button>
             </Link>
             <Link href="/schedule-pickup?tab=schedule#pickup-form-container">
