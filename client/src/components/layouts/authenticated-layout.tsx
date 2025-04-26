@@ -3,6 +3,7 @@ import Navbar from "@/components/shared/navbar";
 import Footer from "@/components/shared/footer";
 import MobileNavigation from "@/components/shared/mobile-navigation";
 import { EmailVerificationBanner } from "@/components/auth/email-verification-banner";
+import { FeedbackDialog } from "@/components/feedback";
 
 interface AuthenticatedLayoutProps {
   children: ReactNode;
@@ -24,6 +25,9 @@ export function AuthenticatedLayout({ children }: AuthenticatedLayoutProps) {
       
       <MobileNavigation />
       <Footer />
+      
+      {/* Feedback Dialog */}
+      <FeedbackDialog />
     </div>
   );
 }
