@@ -41,7 +41,7 @@ async function addMoreRecyclingCenters() {
       address: "Moi Avenue",
       city: "Mombasa",
       county: "Mombasa County",
-      poBox: "P.O Box 90123",
+      poBox: "P.O Box 33221",
       latitude: -4.0435,
       longitude: 39.6682
     },
