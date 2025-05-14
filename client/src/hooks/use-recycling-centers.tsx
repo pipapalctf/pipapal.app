@@ -14,6 +14,12 @@ export function useRecyclingCenters() {
     refetch,
   } = useQuery<RecyclingCenter[]>({
     queryKey: ["/api/recycling-centers"],
+    onSuccess: (data) => {
+      console.log("Successfully fetched recycling centers:", data);
+    },
+    onError: (err) => {
+      console.error("Error fetching recycling centers:", err);
+    }
   });
 
   // Fetch recycling centers by city

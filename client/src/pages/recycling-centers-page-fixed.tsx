@@ -1,5 +1,10 @@
 import { useState, useEffect } from "react";
-import { useRecyclingCenters } from "@/hooks/use-recycling-centers";
+import { useQuery } from "@tanstack/react-query";
+import { RecyclingCenter, WasteType } from "@shared/schema";
+import { UserRole } from "@shared/schema";
+import { useAuth } from "@/hooks/use-auth";
+
+// UI components
 import {
   Card,
   CardContent,
@@ -9,47 +14,50 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import {
   Map,
   MapPin,
-  Phone,
   Mail,
   Loader2,
   Filter,
   List,
   MapIcon,
 } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { WasteType } from "@shared/schema";
-import { Badge } from "@/components/ui/badge";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
-import { UserRole } from "@shared/schema";
-import { useAuth } from "@/hooks/use-auth";
 
-// Import Google Maps component
+// Google Maps components
 import { GoogleMap, Marker, LoadScript } from "@react-google-maps/api";
 
 export default function RecyclingCentersPage() {
   const { user } = useAuth();
-  const { recyclingCenters, isLoading, getRecyclingCentersNearby } = useRecyclingCenters();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterWasteType, setFilterWasteType] = useState<string | null>(null);
   const [filterCity, setFilterCity] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"list" | "map">("list");
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [nearbyCenters, setNearbyCenters] = useState(recyclingCenters);
+
+  // Fetch recycling centers
+  const {
+    data: recyclingCenters = [],
+    isLoading,
+    error,
+  } = useQuery<RecyclingCenter[]>({
+    queryKey: ["/api/recycling-centers"],
+  });
 
   // Get current location
   useEffect(() => {
@@ -70,26 +78,6 @@ export default function RecyclingCentersPage() {
     }
   }, []);
 
-  // Filter centers based on user's location
-  useEffect(() => {
-    if (recyclingCenters.length > 0) {
-      console.log("Recycling centers from API:", recyclingCenters);
-      if (userLocation) {
-        const centersByLocation = getRecyclingCentersNearby(
-          userLocation.lat,
-          userLocation.lng,
-          50 // 50km radius
-        );
-        console.log("Nearby centers:", centersByLocation);
-        setNearbyCenters(centersByLocation.length > 0 ? centersByLocation : recyclingCenters);
-      } else {
-        setNearbyCenters(recyclingCenters);
-      }
-    } else {
-      setNearbyCenters([]);
-    }
-  }, [userLocation, recyclingCenters, getRecyclingCentersNearby]);
-
   // Get unique cities for filtering
   const citiesMap: Record<string, boolean> = {};
   recyclingCenters.forEach(center => {
@@ -97,38 +85,62 @@ export default function RecyclingCentersPage() {
   });
   const cities = Object.keys(citiesMap);
 
+  // Calculate nearby centers
+  const getNearbyRecyclingCenters = () => {
+    if (!userLocation) return recyclingCenters;
+    
+    const radiusKm = 50; // 50km radius
+    return recyclingCenters.filter((center) => {
+      if (!center.latitude || !center.longitude) return true; // Include centers without coordinates
+      
+      // Calculate distance using Haversine formula
+      const R = 6371; // Radius of the Earth in km
+      const dLat = ((center.latitude - userLocation.lat) * Math.PI) / 180;
+      const dLon = ((center.longitude - userLocation.lng) * Math.PI) / 180;
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos((userLocation.lat * Math.PI) / 180) *
+          Math.cos((center.latitude * Math.PI) / 180) *
+          Math.sin(dLon / 2) *
+          Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      const distance = R * c; // Distance in km
+      
+      return distance <= radiusKm;
+    });
+  };
+
   // Filter centers based on search and filters
-  const filteredCenters = nearbyCenters.filter((center) => {
-    // Search by name or location
-    const matchesSearch =
-      !searchTerm ||
-      center.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      center.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (center.address && center.address.toLowerCase().includes(searchTerm.toLowerCase()));
+  const getFilteredCenters = () => {
+    const nearbyCenters = getNearbyRecyclingCenters();
+    
+    return nearbyCenters.filter((center) => {
+      // Search by name or location
+      const matchesSearch =
+        !searchTerm ||
+        center.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        center.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (center.address && center.address.toLowerCase().includes(searchTerm.toLowerCase()));
 
-    // Filter by waste type
-    const matchesWasteType =
-      !filterWasteType ||
-      (center.wasteTypes && center.wasteTypes.includes(filterWasteType));
+      // Filter by waste type
+      const matchesWasteType =
+        !filterWasteType ||
+        (center.wasteTypes && center.wasteTypes.includes(filterWasteType));
 
-    // Filter by city
-    const matchesCity = !filterCity || center.city === filterCity;
+      // Filter by city
+      const matchesCity = !filterCity || center.city === filterCity;
 
-    return matchesSearch && matchesWasteType && matchesCity;
-  });
+      return matchesSearch && matchesWasteType && matchesCity;
+    });
+  };
+
+  const filteredCenters = getFilteredCenters();
 
   const clearFilters = () => {
     setSearchTerm("");
     setFilterWasteType(null);
     setFilterCity(null);
   };
-
-  // Debug log for data
-  useEffect(() => {
-    console.log("RecyclingCenters:", recyclingCenters);
-    console.log("NearbyCenters:", nearbyCenters);
-    console.log("FilteredCenters:", filteredCenters);
-  }, [recyclingCenters, nearbyCenters, filteredCenters]);
 
   return (
     <div className="container mx-auto px-4 pb-20">
@@ -137,15 +149,15 @@ export default function RecyclingCentersPage() {
         Find recycling centers near you that accept specific types of waste.
       </p>
       <p className="text-sm text-gray-500 mb-4">
-        Found {recyclingCenters?.length || 0} centers, {nearbyCenters?.length || 0} nearby, {filteredCenters?.length || 0} filtered.
+        Found {recyclingCenters.length} centers, showing {filteredCenters.length} results.
       </p>
       
       {/* Debug data display */}
       {isLoading ? (
         <div className="text-sm p-2 mb-4 bg-gray-100 rounded">Loading recycling centers...</div>
       ) : error ? (
-        <div className="text-sm p-2 mb-4 bg-red-100 rounded">Error: {error.message}</div>
-      ) : recyclingCenters?.length === 0 ? (
+        <div className="text-sm p-2 mb-4 bg-red-100 rounded">Error: {String(error)}</div>
+      ) : recyclingCenters.length === 0 ? (
         <div className="text-sm p-2 mb-4 bg-yellow-100 rounded">No recycling centers found in the database.</div>
       ) : (
         <div className="text-sm p-2 mb-4 bg-green-100 rounded">
