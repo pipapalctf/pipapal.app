@@ -325,7 +325,7 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
                 </CardTitle>
               </CardHeader>
               <CardContent className="pb-3 md:pb-4">
-                <div className="h-[160px] md:h-[200px]">
+                <div className="h-[180px] md:h-[200px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
@@ -336,19 +336,32 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
                         fill="#8884d8"
                         dataKey="value"
                         nameKey="name"
+                        labelLine={false}
                         label={({ name, percent }) => {
+                          // Calculate the actual percentage based on total value
+                          const totalValue = wasteTypes.reduce((sum: number, item: any) => sum + item.value, 0);
+                          const currentValue = wasteTypes.find(w => w.name === name)?.value || 0;
+                          const actualPercent = totalValue > 0 ? (currentValue / totalValue) : 0;
+                          
                           // Show just percentages on mobile
                           const isMobile = window.innerWidth < 768;
                           return isMobile 
-                            ? `${(percent * 100).toFixed(0)}%` 
-                            : `${name}: ${(percent * 100).toFixed(0)}%`;
+                            ? `${Math.round(actualPercent * 100)}%` 
+                            : `${Math.round(actualPercent * 100)}%`;
                         }}
                       >
                         {wasteTypes.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Pie>
-                      <Tooltip />
+                      <Tooltip 
+                        formatter={(value: number, name: string) => {
+                          // Calculate percentage for tooltip
+                          const totalValue = wasteTypes.reduce((sum: number, item: any) => sum + item.value, 0);
+                          const percent = totalValue > 0 ? Math.round((value / totalValue) * 100) : 0;
+                          return [`${value}kg (${percent}%)`, name];
+                        }}
+                      />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
