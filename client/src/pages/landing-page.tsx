@@ -46,7 +46,20 @@ export default function LandingPage() {
                     <ChevronRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Link>
-                <a href="#user-types">
+                <a 
+                  href="#user-types" 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    const element = document.getElementById('user-types');
+                    if (element) {
+                      const offsetTop = element.getBoundingClientRect().top + window.pageYOffset;
+                      window.scrollTo({
+                        top: offsetTop,
+                        behavior: 'smooth'
+                      });
+                    }
+                  }}
+                >
                   <Button variant="outline" size="lg" className="w-full sm:w-auto">
                     Learn More
                   </Button>
@@ -397,7 +410,20 @@ export default function LandingPage() {
                   <ChevronRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
-              <a href="#user-types">
+              <a 
+                href="#user-types" 
+                onClick={(e) => {
+                  e.preventDefault();
+                  const element = document.getElementById('user-types');
+                  if (element) {
+                    const offsetTop = element.getBoundingClientRect().top + window.pageYOffset;
+                    window.scrollTo({
+                      top: offsetTop,
+                      behavior: 'smooth'
+                    });
+                  }
+                }}
+              >
                 <Button variant="outline" size="lg" className="px-8 w-full sm:w-auto">
                   Learn More
                 </Button>
