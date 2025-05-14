@@ -162,14 +162,14 @@ export default function RecyclingCentersPage() {
           </div>
           <div className="w-full md:w-48">
             <Select
-              value={filterWasteType || ""}
-              onValueChange={(value) => setFilterWasteType(value || null)}
+              value={filterWasteType || "all"}
+              onValueChange={(value) => setFilterWasteType(value === "all" ? null : value)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Waste Type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Types</SelectItem>
+                <SelectItem value="all">All Types</SelectItem>
                 {Object.values(WasteType).map((type) => (
                   <SelectItem key={type} value={type}>
                     {type.charAt(0).toUpperCase() + type.slice(1)}
@@ -180,14 +180,14 @@ export default function RecyclingCentersPage() {
           </div>
           <div className="w-full md:w-48">
             <Select
-              value={filterCity || ""}
-              onValueChange={(value) => setFilterCity(value || null)}
+              value={filterCity || "all"}
+              onValueChange={(value) => setFilterCity(value === "all" ? null : value)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="City" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Cities</SelectItem>
+                <SelectItem value="all">All Cities</SelectItem>
                 {cities.map((city) => (
                   <SelectItem key={city} value={city}>
                     {city}
