@@ -63,7 +63,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 
 const formSchema = z.object({
   wasteType: z.string({
@@ -128,9 +128,6 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
   // Form state
   const [currentStep, setCurrentStep] = useState<FormStep>(FormStep.WASTE_DETAILS);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  
-  // Create a reference to the form element for scrolling
-  const formRef = useRef<HTMLFormElement>(null);
   
   // Initialize form with default values or edit values
   const form = useForm<FormValues>({
@@ -242,13 +239,11 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
       return;
     }
     
-    // Scroll to the top of the form
-    if (formRef.current) {
-      formRef.current.scrollIntoView({ 
-        behavior: 'smooth', 
-        block: 'start' 
-      });
-    }
+    // Scroll to top of the page smoothly
+    window.scrollTo({ 
+      top: 0, 
+      behavior: 'smooth' 
+    });
     
     setIsSubmitting(true);
     createCollectionMutation.mutate(values);
@@ -283,13 +278,11 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
         if (currentStep < FormStep.REVIEW) {
           setCurrentStep(prevStep => (prevStep + 1) as FormStep);
           
-          // Scroll to the top of the form element
-          if (formRef.current) {
-            formRef.current.scrollIntoView({ 
-              behavior: 'smooth', 
-              block: 'start' 
-            });
-          }
+          // Scroll to top of the page smoothly
+          window.scrollTo({ 
+            top: 0, 
+            behavior: 'smooth' 
+          });
         }
       }
     });
@@ -300,13 +293,11 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
     if (currentStep > FormStep.WASTE_DETAILS) {
       setCurrentStep(prevStep => (prevStep - 1) as FormStep);
       
-      // Scroll to the top of the form element
-      if (formRef.current) {
-        formRef.current.scrollIntoView({ 
-          behavior: 'smooth', 
-          block: 'start' 
-        });
-      }
+      // Scroll to top of the page smoothly
+      window.scrollTo({ 
+        top: 0, 
+        behavior: 'smooth' 
+      });
     }
   };
   
@@ -868,7 +859,7 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
       </div>
       
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8" ref={formRef}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
           {renderStep()}
           
           <div className="flex justify-between pt-4 border-t">
