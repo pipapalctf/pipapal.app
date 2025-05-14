@@ -130,7 +130,7 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   
   // Create a reference to the form element for scrolling
-  const formRef = useRef<HTMLDivElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
   
   // Initialize form with default values or edit values
   const form = useForm<FormValues>({
@@ -242,6 +242,14 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
       return;
     }
     
+    // Scroll to the top of the form
+    if (formRef.current) {
+      formRef.current.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'start' 
+      });
+    }
+    
     setIsSubmitting(true);
     createCollectionMutation.mutate(values);
   };
@@ -274,6 +282,14 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
       if (isValid) {
         if (currentStep < FormStep.REVIEW) {
           setCurrentStep(prevStep => (prevStep + 1) as FormStep);
+          
+          // Scroll to the top of the form element
+          if (formRef.current) {
+            formRef.current.scrollIntoView({ 
+              behavior: 'smooth', 
+              block: 'start' 
+            });
+          }
         }
       }
     });
@@ -283,6 +299,14 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
   const prevStep = () => {
     if (currentStep > FormStep.WASTE_DETAILS) {
       setCurrentStep(prevStep => (prevStep - 1) as FormStep);
+      
+      // Scroll to the top of the form element
+      if (formRef.current) {
+        formRef.current.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'start' 
+        });
+      }
     }
   };
   
@@ -844,7 +868,7 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
       </div>
       
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8" ref={formRef}>
           {renderStep()}
           
           <div className="flex justify-between pt-4 border-t">
