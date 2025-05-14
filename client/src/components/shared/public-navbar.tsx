@@ -28,12 +28,13 @@ export default function PublicNavbar() {
     };
   }, []);
 
-  // Redirect to dashboard if user is already logged in
+  // Redirect to dashboard if user is already logged in and on the landing page
   useEffect(() => {
-    if (user && !isLoading) {
+    // Only redirect from the landing page, not from other public pages like recycling centers
+    if (user && !isLoading && location === "/") {
       setLocation("/dashboard");
     }
-  }, [user, isLoading, setLocation]);
+  }, [user, isLoading, setLocation, location]);
 
   return (
     <>
@@ -58,6 +59,9 @@ export default function PublicNavbar() {
           <div className="hidden md:flex items-center space-x-6">
             <Link href="/" className={`transition-colors font-medium ${location === '/' ? 'text-primary' : 'text-secondary hover:text-primary'}`}>
               Home
+            </Link>
+            <Link href="/recycling-centers" className={`transition-colors font-medium ${location === '/recycling-centers' ? 'text-primary' : 'text-secondary hover:text-primary'}`}>
+              Recycling Centers
             </Link>
             <Link href="/about" className={`transition-colors font-medium ${location === '/about' ? 'text-primary' : 'text-secondary hover:text-primary'}`}>
               About Us
