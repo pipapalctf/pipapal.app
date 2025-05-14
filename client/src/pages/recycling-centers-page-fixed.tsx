@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { RecyclingCenter, WasteType } from "@shared/schema";
+import { RecyclingCenter } from "@shared/schema";
 import { UserRole } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
+import { queryClient } from "@/lib/queryClient";
 
 // UI components
 import {
@@ -58,6 +59,16 @@ export default function RecyclingCentersPage() {
   } = useQuery<RecyclingCenter[]>({
     queryKey: ["/api/recycling-centers"],
   });
+  
+  // Manual prefetch to ensure data is available
+  useEffect(() => {
+    queryClient.prefetchQuery({ 
+      queryKey: ["/api/recycling-centers"],
+      staleTime: 1000 * 60 * 5 // 5 minutes 
+    });
+    
+    console.log("Available recycling centers:", recyclingCenters);
+  }, []);
 
   // Get current location
   useEffect(() => {
