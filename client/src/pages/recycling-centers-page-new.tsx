@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { RecyclingCenter } from "@shared/schema";
 import { UserRole } from "@shared/schema";
@@ -51,6 +51,9 @@ export default function RecyclingCentersPageNew() {
   } = useQuery<RecyclingCenter[]>({
     queryKey: ["/api/recycling-centers"],
   });
+  
+  // Reference to the Tabs component for programmatically changing tabs
+  const tabsRef = React.useRef<HTMLDivElement>(null);
   
   useEffect(() => {
     // Log data for debugging
@@ -134,6 +137,22 @@ export default function RecyclingCentersPageNew() {
     setFilterWasteType(null);
     setFilterCity(null);
   };
+  
+  // Handle View on Map button click
+  const handleViewOnMap = (center: RecyclingCenter) => {
+    console.log("Viewing center on map:", center.name);
+    
+    // Update the view mode to "map"
+    setViewMode("map");
+    
+    // Center the map on the recycling center's location if coordinates exist
+    if (center.latitude && center.longitude) {
+      setUserLocation({
+        lat: center.latitude,
+        lng: center.longitude
+      });
+    }
+  };
 
   return (
     <div className="container mx-auto px-4 pb-20">
@@ -163,6 +182,8 @@ export default function RecyclingCentersPageNew() {
 
           {/* View mode toggle */}
           <Tabs
+            ref={tabsRef}
+            value={viewMode}
             defaultValue="list"
             className="w-full mb-6"
             onValueChange={(value) => setViewMode(value as "list" | "map")}
@@ -302,16 +323,7 @@ export default function RecyclingCentersPageNew() {
                           variant="outline" 
                           size="sm" 
                           className="w-full"
-                          onClick={() => {
-                            setViewMode("map");
-                            // Center map on this recycling center if it has coordinates
-                            if (center.latitude && center.longitude) {
-                              setUserLocation({
-                                lat: center.latitude,
-                                lng: center.longitude
-                              });
-                            }
-                          }}
+                          onClick={() => handleViewOnMap(center)}
                         >
                           <Map className="h-4 w-4 mr-2" />
                           View on Map
@@ -354,11 +366,19 @@ export default function RecyclingCentersPageNew() {
                       
                       {filteredCenters.map((center) => {
                         if (center.latitude && center.longitude) {
+                          const isSelected = 
+                            userLocation && 
+                            userLocation.lat === center.latitude && 
+                            userLocation.lng === center.longitude;
+                          
                           return (
                             <Marker
                               key={center.id}
                               position={{ lat: center.latitude, lng: center.longitude }}
                               title={center.name}
+                              // Add animation to the selected marker
+                              animation={isSelected ? 1 : undefined}
+                              // 1 is BOUNCE in Google Maps API
                             />
                           );
                         }
