@@ -322,7 +322,16 @@ export default function LandingPage() {
                 </li>
               </ul>
               <Link href="/auth?tab=register&role=collector">
-                <Button className="w-full bg-blue-600 hover:bg-blue-700">
+                <Button 
+                  className="w-full bg-blue-600 hover:bg-blue-700"
+                  onClick={() => {
+                    // Scroll to top when navigating to the auth page
+                    window.scrollTo({
+                      top: 0,
+                      behavior: 'smooth'
+                    });
+                  }}
+                >
                   Register as a Collector
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
@@ -359,7 +368,16 @@ export default function LandingPage() {
                 </li>
               </ul>
               <Link href="/auth?tab=register&role=recycler">
-                <Button className="w-full bg-amber-600 hover:bg-amber-700">
+                <Button 
+                  className="w-full bg-amber-600 hover:bg-amber-700"
+                  onClick={() => {
+                    // Scroll to top when navigating to the auth page
+                    window.scrollTo({
+                      top: 0,
+                      behavior: 'smooth'
+                    });
+                  }}
+                >
                   Register as a Recycler
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
@@ -396,7 +414,16 @@ export default function LandingPage() {
                 </li>
               </ul>
               <Link href="/auth?tab=register&role=organization">
-                <Button className="w-full bg-purple-600 hover:bg-purple-700">
+                <Button 
+                  className="w-full bg-purple-600 hover:bg-purple-700"
+                  onClick={() => {
+                    // Scroll to top when navigating to the auth page
+                    window.scrollTo({
+                      top: 0,
+                      behavior: 'smooth'
+                    });
+                  }}
+                >
                   Register as an Organization
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
