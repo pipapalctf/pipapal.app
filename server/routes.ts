@@ -1470,6 +1470,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   );
 
+  // Recycling Centers
+  app.get("/api/recycling-centers", requireAuthentication, async (req, res) => {
+    try {
+      const allCenters = await storage.getAllRecyclingCenters();
+      res.json(allCenters);
+    } catch (error) {
+      console.error("Error fetching recycling centers:", error);
+      res.status(500).json({ error: "Failed to fetch recycling centers" });
+    }
+  });
+
+  app.get("/api/recycling-centers/city/:city", requireAuthentication, async (req, res) => {
+    try {
+      const city = req.params.city;
+      const centers = await storage.getRecyclingCentersByCity(city);
+      res.json(centers);
+    } catch (error) {
+      console.error(`Error fetching recycling centers for city ${req.params.city}:`, error);
+      res.status(500).json({ error: "Failed to fetch recycling centers" });
+    }
+  });
+
+  app.get("/api/recycling-centers/waste-type/:type", requireAuthentication, async (req, res) => {
+    try {
+      const wasteType = req.params.type;
+      const centers = await storage.getRecyclingCentersByWasteType(wasteType);
+      res.json(centers);
+    } catch (error) {
+      console.error(`Error fetching recycling centers for waste type ${req.params.type}:`, error);
+      res.status(500).json({ error: "Failed to fetch recycling centers" });
+    }
+  });
+
+  app.get("/api/recycling-centers/:id", requireAuthentication, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid center ID" });
+      }
+      
+      const center = await storage.getRecyclingCenterById(id);
+      if (!center) {
+        return res.status(404).json({ error: "Recycling center not found" });
+      }
+      
+      res.json(center);
+    } catch (error) {
+      console.error(`Error fetching recycling center ${req.params.id}:`, error);
+      res.status(500).json({ error: "Failed to fetch recycling center" });
+    }
+  });
+
+  // Only admin users can create recycling centers
+  app.post("/api/recycling-centers", requireAuthentication, requireRole([UserRole.ADMIN]), async (req, res) => {
+    try {
+      const centerData = req.body;
+      const center = await storage.createRecyclingCenter(centerData);
+      res.status(201).json(center);
+    } catch (error) {
+      console.error("Error creating recycling center:", error);
+      res.status(500).json({ error: "Failed to create recycling center" });
+    }
+  });
+
   const httpServer = createServer(app);
   
   // WebSocket server for real-time notifications
