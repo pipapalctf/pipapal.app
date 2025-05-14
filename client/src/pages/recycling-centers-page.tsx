@@ -265,7 +265,21 @@ export default function RecyclingCentersPage() {
                     )}
                   </CardContent>
                   <CardFooter>
-                    <Button variant="outline" size="sm" className="w-full">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full"
+                      onClick={() => {
+                        setViewMode("map");
+                        // Center map on this recycling center if it has coordinates
+                        if (center.latitude && center.longitude) {
+                          setUserLocation({
+                            lat: center.latitude,
+                            lng: center.longitude
+                          });
+                        }
+                      }}
+                    >
                       <Map className="h-4 w-4 mr-2" />
                       View on Map
                     </Button>
@@ -278,52 +292,44 @@ export default function RecyclingCentersPage() {
 
         {/* Map view */}
         <TabsContent value="map">
-          <div className="h-[500px] bg-gray-100 rounded-lg flex items-center justify-center">
-            {/* This would be replaced with actual Google Maps implementation */}
-            <div className="text-center">
-              <MapIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-500">
-                Map view showing {filteredCenters.length} recycling centers
-              </p>
-              <p className="text-sm text-gray-400">
-                Google Maps integration will be implemented here
-              </p>
-            </div>
-            
-            {/* Google Maps implementation - Requires API key */}
-            {/* Uncomment this section when Google Maps API key is available
-            <LoadScript googleMapsApiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}>
-              <GoogleMap
-                mapContainerStyle={{ width: '100%', height: '100%' }}
-                center={userLocation || { lat: -1.2921, lng: 36.8219 }}
-                zoom={10}
-              >
-                {userLocation && (
-                  <Marker 
-                    position={userLocation} 
-                    icon={{
-                      path: google.maps.SymbolPath.CIRCLE,
-                      scale: 7,
-                      fillColor: '#4285F4',
-                      fillOpacity: 1,
-                      strokeColor: '#ffffff',
-                      strokeWeight: 2,
-                    }}
-                  />
-                )}
-                
-                {filteredCenters.map(center => (
-                  center.latitude && center.longitude && (
-                    <Marker
-                      key={center.id}
-                      position={{ lat: center.latitude, lng: center.longitude }}
-                      title={center.name}
+          <div className="h-[500px] bg-gray-100 rounded-lg overflow-hidden">
+            {!import.meta.env.VITE_GOOGLE_MAPS_API_KEY ? (
+              <div className="flex h-full items-center justify-center">
+                <div className="text-center p-4">
+                  <MapIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-500">
+                    Map view showing {filteredCenters.length} recycling centers
+                  </p>
+                  <p className="text-sm text-gray-400">
+                    Google Maps API key is required for map view
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <LoadScript googleMapsApiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}>
+                <GoogleMap
+                  mapContainerStyle={{ width: '100%', height: '100%' }}
+                  center={userLocation || { lat: -1.2921, lng: 36.8219 }}
+                  zoom={10}
+                >
+                  {userLocation && (
+                    <Marker 
+                      position={userLocation} 
                     />
-                  )
-                ))}
-              </GoogleMap>
-            </LoadScript>
-            */}
+                  )}
+                  
+                  {filteredCenters.map(center => (
+                    center.latitude && center.longitude && (
+                      <Marker
+                        key={center.id}
+                        position={{ lat: center.latitude, lng: center.longitude }}
+                        title={center.name}
+                      />
+                    )
+                  ))}
+                </GoogleMap>
+              </LoadScript>
+            )}
           </div>
         </TabsContent>
       </Tabs>
