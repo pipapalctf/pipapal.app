@@ -1475,6 +1475,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const allCenters = await storage.getAllRecyclingCenters();
       console.log(`Serving ${allCenters.length} recycling centers`);
+      
+      // For debugging
+      if (allCenters.length > 0) {
+        console.log("First center:", allCenters[0].name);
+      }
+      
       res.json(allCenters);
     } catch (error) {
       console.error("Error fetching recycling centers:", error);

@@ -18,7 +18,7 @@ import AboutPage from "@/pages/about-page";
 import MissionPage from "@/pages/mission-page";
 import OnboardingPage from "@/pages/onboarding-page";
 import ChatPage from "@/pages/chat-page";
-import RecyclingCentersPage from "@/pages/recycling-centers-page-fixed";
+import RecyclingCentersPage from "@/pages/recycling-centers-page-new";
 import { AuthProvider } from "@/hooks/use-auth";
 import { WebSocketProvider } from "@/hooks/use-websocket";
 import { ProtectedRoute } from "@/lib/protected-route";
