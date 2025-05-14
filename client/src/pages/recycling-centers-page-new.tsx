@@ -41,7 +41,8 @@ import {
   Recycle, 
   Phone, 
   User, 
-  ExternalLink 
+  ExternalLink,
+  Search
 } from "lucide-react";
 
 // Google Maps components
@@ -197,10 +198,7 @@ export default function RecyclingCentersPageNew() {
         </div>
       ) : (
         <>
-          <p className="text-sm text-gray-500 mb-4">
-            Found {recyclingCenters.length} recycling centers{' '}
-            {filterCity || filterWasteType || searchTerm ? `(showing ${filteredCenters.length} results)` : ''}
-          </p>
+          {/* Results count is now displayed in the filter box */}
 
           {/* View mode toggle */}
           <Tabs
@@ -231,55 +229,83 @@ export default function RecyclingCentersPageNew() {
             </div>
 
             {/* Filters */}
-            <div className="flex flex-col md:flex-row gap-4 mb-6">
-              <div className="flex-1">
-                <Input
-                  placeholder="Search by name or location..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full"
-                />
+            <div className="bg-muted/30 p-4 rounded-lg border mb-6">
+              <div className="flex items-center mb-4">
+                <Filter className="h-5 w-5 text-primary mr-2" />
+                <h3 className="text-lg font-medium text-primary">Filter Recycling Centers</h3>
+                
+                {(filterCity || filterWasteType || searchTerm) && (
+                  <div className="ml-auto text-sm text-muted-foreground">
+                    Showing {filteredCenters.length} of {recyclingCenters.length} centers
+                  </div>
+                )}
               </div>
-              <div className="w-full md:w-48">
-                <Select
-                  value={filterWasteType || "all"}
-                  onValueChange={(value) => setFilterWasteType(value === "all" ? null : value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Waste Type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Types</SelectItem>
-                    {availableWasteTypes.map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {type.charAt(0).toUpperCase() + type.slice(1)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="md:col-span-1">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search by name or location..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full pl-9"
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <Select
+                    value={filterWasteType || "all"}
+                    onValueChange={(value) => setFilterWasteType(value === "all" ? null : value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Waste Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Types</SelectItem>
+                      {availableWasteTypes.map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {type.charAt(0).toUpperCase() + type.slice(1)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <Select
+                    value={filterCity || "all"}
+                    onValueChange={(value) => setFilterCity(value === "all" ? null : value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="City" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Cities</SelectItem>
+                      {cities.map((city) => (
+                        <SelectItem key={city} value={city}>
+                          {city}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div className="w-full md:w-48">
-                <Select
-                  value={filterCity || "all"}
-                  onValueChange={(value) => setFilterCity(value === "all" ? null : value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="City" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Cities</SelectItem>
-                    {cities.map((city) => (
-                      <SelectItem key={city} value={city}>
-                        {city}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button variant="outline" onClick={clearFilters} className="w-full md:w-auto">
-                <Filter className="mr-2 h-4 w-4" />
-                Clear Filters
-              </Button>
+              
+              {(filterCity || filterWasteType || searchTerm) && (
+                <div className="mt-4 flex justify-end">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={clearFilters} 
+                    className="text-sm"
+                  >
+                    <Filter className="mr-2 h-4 w-4" />
+                    Clear All Filters
+                  </Button>
+                </div>
+              )}
             </div>
 
             {/* List view */}
