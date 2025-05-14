@@ -11,7 +11,18 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Menu, Truck, Recycle, Calendar, MessageSquare, MapPin } from "lucide-react";
+import { 
+  Menu, 
+  Truck, 
+  Recycle, 
+  Calendar, 
+  MessageSquare, 
+  MapPin, 
+  LayoutDashboard, 
+  Lightbulb, 
+  BarChart, 
+  User
+} from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { NotificationBell } from "@/components/shared/notification-bell";
 import { UserRole } from "@shared/schema";
@@ -32,9 +43,24 @@ export default function Navbar() {
   // Dynamic navigation links based on user role
   const navLinks = useMemo<NavLink[]>(() => {
     const links: NavLink[] = [
-      { href: "/dashboard", label: "Dashboard", active: location === "/dashboard" },
-      { href: "/ecotips", label: "EcoTips", active: location === "/ecotips" },
-      { href: "/impact", label: "Impact", active: location === "/impact" },
+      { 
+        href: "/dashboard", 
+        label: "Dashboard", 
+        active: location === "/dashboard",
+        icon: <LayoutDashboard className="w-4 h-4 mr-1" />
+      },
+      { 
+        href: "/ecotips", 
+        label: "EcoTips", 
+        active: location === "/ecotips",
+        icon: <Lightbulb className="w-4 h-4 mr-1" />
+      },
+      { 
+        href: "/impact", 
+        label: "Impact", 
+        active: location === "/impact",
+        icon: <BarChart className="w-4 h-4 mr-1" />
+      },
       { 
         href: "/recycling-centers", 
         label: "Recycling Centers", 
@@ -185,10 +211,7 @@ export default function Navbar() {
               }`}
               onClick={() => setIsMobileMenuOpen(false)}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 mr-1">
-                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
-                <circle cx="12" cy="7" r="4"></circle>
-              </svg>
+              <User className="w-4 h-4 mr-1" />
               Profile
             </Link>
             <div className="flex items-center justify-between mt-2 border-t border-gray-100 pt-2">
