@@ -174,10 +174,14 @@ export default function RecyclingCentersPageNew() {
 
   return (
     <div className="container mx-auto px-4 pb-20">
-      <h1 className="text-3xl font-bold mb-6 mt-6">Recycling Centers</h1>
-      <p className="text-gray-600 mb-8">
-        Find recycling centers near you that accept specific types of waste.
-      </p>
+      <div className="bg-gradient-to-r from-primary/20 to-primary/5 p-6 rounded-lg mb-8 mt-6">
+        <h1 className="text-3xl font-bold mb-2 text-primary-foreground">Recycling Centers</h1>
+        <p className="text-muted-foreground max-w-3xl">
+          Find recycling centers across Kenya that accept various types of waste. Use the filters 
+          below to find centers that match your specific needs and location.
+        </p>
+      </div>
+      {/* Description is now in the header section */}
       
       {isLoading ? (
         <div className="py-8 flex justify-center">
@@ -319,13 +323,6 @@ export default function RecyclingCentersPageNew() {
                           </div>
                         )}
 
-                        {center.phone && (
-                          <div className="flex items-center">
-                            <Phone className="h-4 w-4 mr-2 text-primary flex-shrink-0" />
-                            <p className="text-sm">{center.phone}</p>
-                          </div>
-                        )}
-
                         {center.operator && (
                           <div className="flex items-center">
                             <User className="h-4 w-4 mr-2 text-primary flex-shrink-0" />
@@ -334,16 +331,18 @@ export default function RecyclingCentersPageNew() {
                             </p>
                           </div>
                         )}
+                        
+                        {/* Phone field removed as it's not part of the RecyclingCenter type */}
 
-                        {center.wasteTypes && center.wasteTypes.length > 0 && (
+                        {center.wasteTypes && Array.isArray(center.wasteTypes) && center.wasteTypes.length > 0 && (
                           <div className="pt-1">
                             <div className="flex items-start">
                               <Recycle className="h-4 w-4 mr-2 mt-1 text-primary flex-shrink-0" />
                               <div>
                                 <p className="text-sm font-medium mb-1.5">Accepted waste types:</p>
                                 <div className="flex flex-wrap gap-1.5">
-                                  {center.wasteTypes.map((type) => (
-                                    <Badge key={type} variant="secondary" className="capitalize text-xs font-normal">
+                                  {center.wasteTypes.map((type, idx) => (
+                                    <Badge key={idx} variant="secondary" className="capitalize text-xs font-normal">
                                       {type}
                                     </Badge>
                                   ))}
@@ -364,14 +363,6 @@ export default function RecyclingCentersPageNew() {
                             <Map className="h-4 w-4 mr-2" />
                             View on Map
                           </Button>
-                          
-                          {center.website && (
-                            <Button variant="outline" size="sm" className="flex-shrink-0" asChild>
-                              <a href={center.website} target="_blank" rel="noopener noreferrer">
-                                <ExternalLink className="h-4 w-4" />
-                              </a>
-                            </Button>
-                          )}
                         </div>
                       </CardFooter>
                     </Card>
