@@ -47,10 +47,10 @@ export default function Footer() {
         </div>
         
         <div className="border-t border-border mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
-          <p className="text-sm text-muted-foreground mb-4 md:mb-0">
+          <p className="text-sm text-muted-foreground mb-4 md:mb-0 text-center md:text-left">
             &copy; {currentYear} PipaPal. All rights reserved.
           </p>
-          <div className="flex space-x-4">
+          <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4 items-center">
             <Link href="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Privacy Policy</Link>
             <Link href="/terms" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Terms of Service</Link>
           </div>
