@@ -83,7 +83,18 @@ export default function RecyclingCentersPage() {
   recyclingCenters.forEach(center => {
     if (center.city) citiesMap[center.city] = true;
   });
-  const cities = Object.keys(citiesMap);
+  const cities = Object.keys(citiesMap).sort();
+  
+  // Get unique waste types for filtering
+  const wasteTypesMap: Record<string, boolean> = {};
+  recyclingCenters.forEach(center => {
+    if (center.wasteTypes) {
+      center.wasteTypes.forEach(type => {
+        wasteTypesMap[type] = true;
+      });
+    }
+  });
+  const availableWasteTypes = Object.keys(wasteTypesMap).sort();
 
   // Calculate nearby centers
   const getNearbyRecyclingCenters = () => {
@@ -112,9 +123,18 @@ export default function RecyclingCentersPage() {
 
   // Filter centers based on search and filters
   const getFilteredCenters = () => {
-    const nearbyCenters = getNearbyRecyclingCenters();
+    if (recyclingCenters.length === 0) {
+      return [];
+    }
     
-    return nearbyCenters.filter((center) => {
+    console.log("Available centers before filtering:", recyclingCenters);
+    
+    // Always show all centers if there are no filters
+    if (!searchTerm && !filterWasteType && !filterCity) {
+      return recyclingCenters;
+    }
+    
+    return recyclingCenters.filter((center) => {
       // Search by name or location
       const matchesSearch =
         !searchTerm ||
@@ -125,12 +145,17 @@ export default function RecyclingCentersPage() {
       // Filter by waste type
       const matchesWasteType =
         !filterWasteType ||
-        (center.wasteTypes && center.wasteTypes.includes(filterWasteType));
+        (center.wasteTypes && center.wasteTypes.some(type => 
+          type.toLowerCase() === filterWasteType.toLowerCase()
+        ));
 
       // Filter by city
       const matchesCity = !filterCity || center.city === filterCity;
 
-      return matchesSearch && matchesWasteType && matchesCity;
+      const result = matchesSearch && matchesWasteType && matchesCity;
+      console.log(`Center ${center.name}: search=${matchesSearch}, wasteType=${matchesWasteType}, city=${matchesCity}, result=${result}`);
+      
+      return result;
     });
   };
 
@@ -211,7 +236,7 @@ export default function RecyclingCentersPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Types</SelectItem>
-                {Object.values(WasteType).map((type) => (
+                {availableWasteTypes.map((type) => (
                   <SelectItem key={type} value={type}>
                     {type.charAt(0).toUpperCase() + type.slice(1)}
                   </SelectItem>
@@ -359,15 +384,16 @@ export default function RecyclingCentersPage() {
                     />
                   )}
                   
-                  {filteredCenters.map(center => (
-                    center.latitude && center.longitude && (
+                  {filteredCenters.map(center => {
+                    console.log("Rendering map marker for:", center.name, center.latitude, center.longitude);
+                    return center.latitude && center.longitude ? (
                       <Marker
                         key={center.id}
                         position={{ lat: center.latitude, lng: center.longitude }}
                         title={center.name}
                       />
-                    )
-                  ))}
+                    ) : null;
+                  })}
                 </GoogleMap>
               </LoadScript>
             )}

@@ -1470,10 +1470,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   );
 
-  // Recycling Centers
-  app.get("/api/recycling-centers", requireAuthentication, async (req, res) => {
+  // Recycling Centers - Public endpoint (no authentication required)
+  app.get("/api/recycling-centers", async (req, res) => {
     try {
       const allCenters = await storage.getAllRecyclingCenters();
+      console.log(`Serving ${allCenters.length} recycling centers`);
       res.json(allCenters);
     } catch (error) {
       console.error("Error fetching recycling centers:", error);
@@ -1481,7 +1482,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/recycling-centers/city/:city", requireAuthentication, async (req, res) => {
+  app.get("/api/recycling-centers/city/:city", async (req, res) => {
     try {
       const city = req.params.city;
       const centers = await storage.getRecyclingCentersByCity(city);
@@ -1492,7 +1493,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/recycling-centers/waste-type/:type", requireAuthentication, async (req, res) => {
+  app.get("/api/recycling-centers/waste-type/:type", async (req, res) => {
     try {
       const wasteType = req.params.type;
       const centers = await storage.getRecyclingCentersByWasteType(wasteType);
@@ -1503,7 +1504,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/recycling-centers/:id", requireAuthentication, async (req, res) => {
+  app.get("/api/recycling-centers/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
