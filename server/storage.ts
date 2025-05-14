@@ -138,6 +138,7 @@ export class MemStorage implements IStorage {
     this.ecoTips = new Map();
     this.activities = new Map();
     this.materialInterests = new Map();
+    this.recyclingCenters = new Map();
     this.chatMessages = new Map();
     this.feedback = new Map();
     this.sessionStore = new MemoryStore({
@@ -150,6 +151,7 @@ export class MemStorage implements IStorage {
     this.currentEcoTipId = 1;
     this.currentActivityId = 1;
     this.currentMaterialInterestId = 1;
+    this.currentRecyclingCenterId = 1;
     this.currentChatMessageId = 1;
     this.currentFeedbackId = 1;
     
@@ -592,6 +594,42 @@ export class MemStorage implements IStorage {
     const updatedInterest = { ...interest, ...updates };
     this.materialInterests.set(id, updatedInterest);
     return updatedInterest;
+  }
+  
+  // Recycling Centers
+  async getAllRecyclingCenters(): Promise<RecyclingCenter[]> {
+    return Array.from(this.recyclingCenters.values());
+  }
+  
+  async getRecyclingCentersByCity(city: string): Promise<RecyclingCenter[]> {
+    return Array.from(this.recyclingCenters.values())
+      .filter(center => center.city.toLowerCase() === city.toLowerCase());
+  }
+  
+  async getRecyclingCentersByWasteType(wasteType: string): Promise<RecyclingCenter[]> {
+    return Array.from(this.recyclingCenters.values())
+      .filter(center => {
+        if (!center.wasteTypes) return false;
+        return center.wasteTypes.some(type => type.toLowerCase().includes(wasteType.toLowerCase()));
+      });
+  }
+  
+  async getRecyclingCenterById(id: number): Promise<RecyclingCenter | undefined> {
+    return this.recyclingCenters.get(id);
+  }
+  
+  async createRecyclingCenter(insertCenter: InsertRecyclingCenter): Promise<RecyclingCenter> {
+    const id = this.currentRecyclingCenterId++;
+    const now = new Date();
+    
+    const recyclingCenter: RecyclingCenter = {
+      id,
+      createdAt: now,
+      ...insertCenter
+    };
+    
+    this.recyclingCenters.set(id, recyclingCenter);
+    return recyclingCenter;
   }
   
   // Chat functionality
