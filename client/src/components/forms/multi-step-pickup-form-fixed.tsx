@@ -63,7 +63,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
 const formSchema = z.object({
   wasteType: z.string({
@@ -128,6 +128,9 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
   // Form state
   const [currentStep, setCurrentStep] = useState<FormStep>(FormStep.WASTE_DETAILS);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  
+  // Create a reference to the form element for scrolling
+  const formRef = useRef<HTMLDivElement>(null);
   
   // Initialize form with default values or edit values
   const form = useForm<FormValues>({
