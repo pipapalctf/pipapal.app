@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { RecyclingCenter } from "@shared/schema";
 import { UserRole } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
+import PublicNavbar from "@/components/shared/public-navbar";
+import Footer from "@/components/shared/footer";
 
 // UI components
 import {
@@ -174,7 +176,9 @@ export default function RecyclingCentersPageNew() {
   };
 
   return (
-    <div className="container mx-auto px-4 pb-20">
+    <div className="min-h-screen flex flex-col bg-white">
+      <PublicNavbar />
+      <div className="container mx-auto px-4 pb-20 flex-grow">
       <div className="bg-gradient-to-r from-primary/20 to-primary/5 p-6 rounded-lg mb-8 mt-6">
         <h1 className="text-3xl font-bold mb-2 text-primary-foreground">Recycling Centers</h1>
         <p className="text-muted-foreground max-w-3xl">
@@ -461,6 +465,8 @@ export default function RecyclingCentersPageNew() {
           </Tabs>
         </>
       )}
+      </div>
+      <Footer />
     </div>
   );
 }
