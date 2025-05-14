@@ -1,5 +1,5 @@
 import { pool, db } from "../server/db";
-import { recyclingCenters } from "@shared/schema";
+import { recyclingCenters } from "../shared/schema";
 import fs from "fs";
 import path from "path";
 import { parse } from "csv-parse/sync";
@@ -32,8 +32,8 @@ async function main() {
     for (const record of records) {
       try {
         // Extract latitude and longitude from location data if available
-        let latitude = null;
-        let longitude = null;
+        let latitude: number | undefined = undefined;
+        let longitude: number | undefined = undefined;
         
         if (record.latitude && record.longitude) {
           latitude = parseFloat(record.latitude);
@@ -56,8 +56,8 @@ async function main() {
           facilityType: record.facilityType || null,
           wasteTypes: wasteTypes.length > 0 ? wasteTypes : null,
           poBox: record.poBox || null,
-          latitude: isNaN(latitude) ? null : latitude,
-          longitude: isNaN(longitude) ? null : longitude,
+          latitude: latitude && !isNaN(latitude) ? latitude : undefined,
+          longitude: longitude && !isNaN(longitude) ? longitude : undefined,
           createdAt: new Date()
         });
         
