@@ -11,6 +11,7 @@ export default function MobileNavigation() {
       { href: "/dashboard", label: "Home", icon: "home", active: location === "/dashboard" },
       { href: "/ecotips", label: "Tips", icon: "lightbulb", active: location === "/ecotips" },
       { href: "/impact", label: "Impact", icon: "chart-pie", active: location === "/impact" },
+      { href: "/recycling-centers", label: "Centers", icon: "map-marker-alt", active: location === "/recycling-centers" },
       // Profile button removed to avoid scrolling issues on mobile
     ];
     

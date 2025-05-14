@@ -29,9 +29,9 @@ export default function Footer() {
             <div>
               <h4 className="font-medium mb-3">Services</h4>
               <ul className="space-y-2">
-                <li><Link href="/collections"><a className="text-muted-foreground hover:text-foreground transition-colors">Waste Collection</a></Link></li>
-                <li><Link href="/recycling-centers"><a className="text-muted-foreground hover:text-foreground transition-colors">Recycling Centers</a></Link></li>
-                <li><Link href="/eco-tips"><a className="text-muted-foreground hover:text-foreground transition-colors">EcoTips</a></Link></li>
+                <li><Link href="/collections" className="text-muted-foreground hover:text-foreground transition-colors">Waste Collection</Link></li>
+                <li><Link href="/recycling-centers" className="text-muted-foreground hover:text-foreground transition-colors">Recycling Centers</Link></li>
+                <li><Link href="/eco-tips" className="text-muted-foreground hover:text-foreground transition-colors">EcoTips</Link></li>
               </ul>
             </div>
             
@@ -51,8 +51,8 @@ export default function Footer() {
             &copy; {currentYear} PipaPal. All rights reserved.
           </p>
           <div className="flex space-x-4">
-            <Link href="/privacy"><a className="text-sm text-muted-foreground hover:text-foreground transition-colors">Privacy Policy</a></Link>
-            <Link href="/terms"><a className="text-sm text-muted-foreground hover:text-foreground transition-colors">Terms of Service</a></Link>
+            <Link href="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Privacy Policy</Link>
+            <Link href="/terms" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Terms of Service</Link>
           </div>
         </div>
       </div>

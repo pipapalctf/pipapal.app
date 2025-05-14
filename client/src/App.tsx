@@ -18,6 +18,7 @@ import AboutPage from "@/pages/about-page";
 import MissionPage from "@/pages/mission-page";
 import OnboardingPage from "@/pages/onboarding-page";
 import ChatPage from "@/pages/chat-page";
+import RecyclingCentersPage from "@/pages/recycling-centers-page";
 import { AuthProvider } from "@/hooks/use-auth";
 import { WebSocketProvider } from "@/hooks/use-websocket";
 import { ProtectedRoute } from "@/lib/protected-route";
@@ -40,6 +41,7 @@ function Router() {
       <ProtectedRoute path="/materials" component={RecyclerMaterialsPage} roleCheck={UserRole.RECYCLER} />
       <ProtectedRoute path="/profile" component={ProfilePage} />
       <ProtectedRoute path="/onboarding" component={OnboardingPage} skipOnboardingCheck={true} />
+      <ProtectedRoute path="/recycling-centers" component={RecyclingCentersPage} />
       <Route path="/auth" component={AuthPage} />
       <Route path="/about" component={AboutPage} />
       <Route path="/mission" component={MissionPage} />

@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Menu, Truck, Recycle, Calendar, MessageSquare } from "lucide-react";
+import { Menu, Truck, Recycle, Calendar, MessageSquare, MapPin } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { NotificationBell } from "@/components/shared/notification-bell";
 import { UserRole } from "@shared/schema";
@@ -35,6 +35,12 @@ export default function Navbar() {
       { href: "/dashboard", label: "Dashboard", active: location === "/dashboard" },
       { href: "/ecotips", label: "EcoTips", active: location === "/ecotips" },
       { href: "/impact", label: "Impact", active: location === "/impact" },
+      { 
+        href: "/recycling-centers", 
+        label: "Recycling Centers", 
+        active: location === "/recycling-centers",
+        icon: <MapPin className="w-4 h-4 mr-1" />
+      },
     ];
     
     // Add collector-specific links
