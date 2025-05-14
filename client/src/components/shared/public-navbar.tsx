@@ -60,9 +60,6 @@ export default function PublicNavbar() {
             <Link href="/" className={`transition-colors font-medium ${location === '/' ? 'text-primary' : 'text-secondary hover:text-primary'}`}>
               Home
             </Link>
-            <Link href="/recycling-centers" className={`transition-colors font-medium ${location === '/recycling-centers' ? 'text-primary' : 'text-secondary hover:text-primary'}`}>
-              Recycling Centers
-            </Link>
             <Link href="/about" className={`transition-colors font-medium ${location === '/about' ? 'text-primary' : 'text-secondary hover:text-primary'}`}>
               About Us
             </Link>
