@@ -103,20 +103,20 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D', '#FF6B6B', '#6B66FF', '#FFA556', '#4CD790'];
 
   return (
-    <div className="space-y-6 p-2 md:p-6">
+    <div className="space-y-4 p-2 md:p-6">
       {/* User Welcome Section with Hero Banner */}
-      <div className="mb-6 bg-gradient-to-r from-green-50 to-teal-50 dark:from-green-950/30 dark:to-teal-900/20 p-6 rounded-lg border border-green-100 dark:border-green-800 shadow-sm">
+      <div className="mb-4 md:mb-6 bg-gradient-to-r from-green-50 to-teal-50 dark:from-green-950/30 dark:to-teal-900/20 p-4 md:p-6 rounded-lg border border-green-100 dark:border-green-800 shadow-sm">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100">My Environmental Dashboard</h1>
-            <h2 className="text-xl font-medium text-primary mt-2">
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-gray-100">My Environmental Dashboard</h1>
+            <h2 className="text-lg md:text-xl font-medium text-primary mt-2">
               Welcome back, {user?.fullName?.split(' ')[0] || user?.username || 'Eco Hero'}!
             </h2>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="text-xs md:text-sm text-muted-foreground mt-1">
               Your sustainability journey is making a difference. Keep up the good work!
             </p>
           </div>
-          <div className="mt-4 md:mt-0">
+          <div className="mt-3 md:mt-0">
             <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 dark:bg-green-800/60 text-green-800 dark:text-green-200">
               <Leaf className="h-4 w-4 mr-1" />
               Eco-Conscious Household
@@ -129,23 +129,23 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
       <RoleBasedCTA />
       
       {/* Key Stats Cards */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 md:gap-4 grid-cols-2 lg:grid-cols-4">
         {/* Total Pickups Card */}
         <Card className="overflow-hidden border-0 shadow-md">
-          <div className="h-2 bg-gradient-to-r from-blue-400 to-blue-600"></div>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Pickups</CardTitle>
+          <div className="h-1 md:h-2 bg-gradient-to-r from-blue-400 to-blue-600"></div>
+          <CardHeader className="pb-1 md:pb-2 px-3 md:px-6 pt-3 md:pt-6">
+            <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">Total Pickups</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-3 md:px-6 pb-3 md:pb-6">
             <div className="flex items-center">
-              <div className="p-2 rounded-full bg-blue-100 dark:bg-blue-900/40 mr-3">
-                <Truck className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <div className="p-1.5 md:p-2 rounded-full bg-blue-100 dark:bg-blue-900/40 mr-2 md:mr-3">
+                <Truck className="h-4 w-4 md:h-5 md:w-5 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
-                <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                <div className="text-2xl md:text-3xl font-bold text-blue-600 dark:text-blue-400">
                   {Array.isArray(collections) ? collections.length : 0}
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-[10px] md:text-xs text-muted-foreground">
                   {Array.isArray(collections) && collections.length > 0 
                     ? `${upcomingCollections.length} upcoming pickups` 
                     : "No collections scheduled yet"}
@@ -157,21 +157,21 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
         
         {/* Waste Collected Card */}
         <Card className="overflow-hidden border-0 shadow-md">
-          <div className="h-2 bg-gradient-to-r from-amber-400 to-amber-600"></div>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Waste Managed</CardTitle>
+          <div className="h-1 md:h-2 bg-gradient-to-r from-amber-400 to-amber-600"></div>
+          <CardHeader className="pb-1 md:pb-2 px-3 md:px-6 pt-3 md:pt-6">
+            <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">Waste Managed</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-3 md:px-6 pb-3 md:pb-6">
             <div className="flex items-center">
-              <div className="p-2 rounded-full bg-amber-100 dark:bg-amber-900/40 mr-3">
-                <Scale className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+              <div className="p-1.5 md:p-2 rounded-full bg-amber-100 dark:bg-amber-900/40 mr-2 md:mr-3">
+                <Scale className="h-4 w-4 md:h-5 md:w-5 text-amber-600 dark:text-amber-400" />
               </div>
               <div>
                 <div className="flex items-baseline">
-                  <span className="text-3xl font-bold text-amber-600 dark:text-amber-400">{formatNumber(totalWasteWeight || 0)}</span>
-                  <span className="text-sm ml-1 font-medium text-amber-500 dark:text-amber-400">kg</span>
+                  <span className="text-2xl md:text-3xl font-bold text-amber-600 dark:text-amber-400">{formatNumber(totalWasteWeight || 0)}</span>
+                  <span className="text-xs ml-1 font-medium text-amber-500 dark:text-amber-400">kg</span>
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-[10px] md:text-xs text-muted-foreground">
                   {recyclingRate}% recycling rate
                 </p>
               </div>
@@ -181,21 +181,21 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
         
         {/* CO₂ Reduced Card */}
         <Card className="overflow-hidden border-0 shadow-md">
-          <div className="h-2 bg-gradient-to-r from-green-400 to-green-600"></div>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">CO₂ Reduced</CardTitle>
+          <div className="h-1 md:h-2 bg-gradient-to-r from-green-400 to-green-600"></div>
+          <CardHeader className="pb-1 md:pb-2 px-3 md:px-6 pt-3 md:pt-6">
+            <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">CO₂ Reduced</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-3 md:px-6 pb-3 md:pb-6">
             <div className="flex items-center">
-              <div className="p-2 rounded-full bg-green-100 dark:bg-green-900/40 mr-3">
-                <Leaf className="h-5 w-5 text-green-600 dark:text-green-400" />
+              <div className="p-1.5 md:p-2 rounded-full bg-green-100 dark:bg-green-900/40 mr-2 md:mr-3">
+                <Leaf className="h-4 w-4 md:h-5 md:w-5 text-green-600 dark:text-green-400" />
               </div>
               <div>
                 <div className="flex items-baseline">
-                  <span className="text-3xl font-bold text-green-600 dark:text-green-400">{formatNumber(impact?.co2Reduced || 0)}</span>
-                  <span className="text-sm ml-1 font-medium text-green-500 dark:text-green-400">kg</span>
+                  <span className="text-2xl md:text-3xl font-bold text-green-600 dark:text-green-400">{formatNumber(impact?.co2Reduced || 0)}</span>
+                  <span className="text-xs ml-1 font-medium text-green-500 dark:text-green-400">kg</span>
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-[10px] md:text-xs text-muted-foreground">
                   carbon footprint reduction
                 </p>
               </div>
@@ -205,21 +205,21 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
         
         {/* Trees Equivalent Card */}
         <Card className="overflow-hidden border-0 shadow-md">
-          <div className="h-2 bg-gradient-to-r from-purple-400 to-purple-600"></div>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Trees Equivalent</CardTitle>
+          <div className="h-1 md:h-2 bg-gradient-to-r from-purple-400 to-purple-600"></div>
+          <CardHeader className="pb-1 md:pb-2 px-3 md:px-6 pt-3 md:pt-6">
+            <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">Trees Equivalent</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-3 md:px-6 pb-3 md:pb-6">
             <div className="flex items-center">
-              <div className="p-2 rounded-full bg-purple-100 dark:bg-purple-900/40 mr-3">
-                <TrendingUp className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+              <div className="p-1.5 md:p-2 rounded-full bg-purple-100 dark:bg-purple-900/40 mr-2 md:mr-3">
+                <TrendingUp className="h-4 w-4 md:h-5 md:w-5 text-purple-600 dark:text-purple-400" />
               </div>
               <div>
                 <div className="flex items-baseline">
-                  <span className="text-3xl font-bold text-purple-600 dark:text-purple-400">{formatNumber(impact?.treesEquivalent || 0, 1)}</span>
-                  <span className="text-sm ml-1 font-medium text-purple-500 dark:text-purple-400">trees</span>
+                  <span className="text-2xl md:text-3xl font-bold text-purple-600 dark:text-purple-400">{formatNumber(impact?.treesEquivalent || 0, 1)}</span>
+                  <span className="text-xs ml-1 font-medium text-purple-500 dark:text-purple-400">trees</span>
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-[10px] md:text-xs text-muted-foreground">
                   environmental impact
                 </p>
               </div>
@@ -229,58 +229,61 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
       </div>
       
       {/* Action Buttons */}
-      <div className="flex flex-wrap gap-3">
-        <Link href="/schedule-pickup?tab=schedule#pickup-form-container">
-          <Button className="bg-green-600 hover:bg-green-700 text-white">
+      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+        <Link href="/schedule-pickup?tab=schedule#pickup-form-container" className="w-full sm:w-auto">
+          <Button className="bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto">
             <CalendarPlus className="h-4 w-4 mr-2" />
             Schedule New Pickup
           </Button>
         </Link>
-        <Link href="/schedule-pickup?tab=pickups#pickups-tab-content">
-          <Button variant="outline" className="border-green-200 hover:bg-green-50 hover:text-green-700 dark:border-green-800 dark:hover:bg-green-900/20">
+        <Link href="/schedule-pickup?tab=pickups#pickups-tab-content" className="w-full sm:w-auto">
+          <Button variant="outline" className="border-green-200 hover:bg-green-50 hover:text-green-700 dark:border-green-800 dark:hover:bg-green-900/20 w-full sm:w-auto">
             <Truck className="h-4 w-4 mr-2" />
             My Scheduled Pickups
           </Button>
         </Link>
       </div>
       
-      <Tabs defaultValue="recycling" className="mt-6">
-        <TabsList className="grid w-full grid-cols-4 bg-muted/30 p-1">
-          <TabsTrigger value="recycling" className="data-[state=active]:bg-background data-[state=active]:shadow-sm" onClick={() => scrollToElement('recycling-tab-content', 80)}>
-            <Recycle className="h-4 w-4 mr-2" />
-            Recycling
+      <Tabs defaultValue="recycling" className="mt-4 md:mt-6">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 bg-muted/30 p-1">
+          <TabsTrigger value="recycling" className="data-[state=active]:bg-background data-[state=active]:shadow-sm text-xs md:text-sm" onClick={() => scrollToElement('recycling-tab-content', 80)}>
+            <Recycle className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1 md:mr-2" />
+            <span className="hidden sm:inline">Recycling</span>
+            <span className="sm:hidden">Recycle</span>
           </TabsTrigger>
-          <TabsTrigger value="timeline" className="data-[state=active]:bg-background data-[state=active]:shadow-sm" onClick={() => scrollToElement('timeline-tab-content', 80)}>
-            <TrendingUp className="h-4 w-4 mr-2" />
+          <TabsTrigger value="timeline" className="data-[state=active]:bg-background data-[state=active]:shadow-sm text-xs md:text-sm" onClick={() => scrollToElement('timeline-tab-content', 80)}>
+            <TrendingUp className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1 md:mr-2" />
             Impact
           </TabsTrigger>
-          <TabsTrigger value="achievements" className="data-[state=active]:bg-background data-[state=active]:shadow-sm" onClick={() => scrollToElement('achievements-tab-content', 80)}>
-            <Award className="h-4 w-4 mr-2" />
-            Achievements
+          <TabsTrigger value="achievements" className="data-[state=active]:bg-background data-[state=active]:shadow-sm text-xs md:text-sm" onClick={() => scrollToElement('achievements-tab-content', 80)}>
+            <Award className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1 md:mr-2" />
+            <span className="hidden sm:inline">Achievements</span>
+            <span className="sm:hidden">Badges</span>
           </TabsTrigger>
-          <TabsTrigger value="activities" className="data-[state=active]:bg-background data-[state=active]:shadow-sm" onClick={() => scrollToElement('activities-tab-content', 80)}>
-            <Star className="h-4 w-4 mr-2" />
-            Activities
+          <TabsTrigger value="activities" className="data-[state=active]:bg-background data-[state=active]:shadow-sm text-xs md:text-sm" onClick={() => scrollToElement('activities-tab-content', 80)}>
+            <Star className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1 md:mr-2" />
+            <span className="hidden sm:inline">Activities</span>
+            <span className="sm:hidden">Activity</span>
           </TabsTrigger>
         </TabsList>
         
         {/* Recycling Tab */}
-        <TabsContent value="recycling" className="space-y-4 mt-6" id="recycling-tab-content">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <TabsContent value="recycling" className="space-y-4 mt-4 md:mt-6" id="recycling-tab-content">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
             <Card className="overflow-hidden border-0 shadow-md">
               <div className="h-1 bg-gradient-to-r from-green-400 to-green-600"></div>
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center text-base">
-                  <Recycle className="mr-2 h-5 w-5 text-green-600" />
+              <CardHeader className="pb-1 md:pb-2 pt-3 md:pt-4">
+                <CardTitle className="flex items-center text-sm md:text-base">
+                  <Recycle className="mr-1.5 md:mr-2 h-4 w-4 md:h-5 md:w-5 text-green-600" />
                   Recycling Rate
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="text-center mb-4">
-                  <span className="text-4xl font-bold text-green-600 dark:text-green-400">{recyclingRate}%</span>
-                  <p className="text-sm text-muted-foreground">of your waste is recycled</p>
+              <CardContent className="pb-3 md:pb-4">
+                <div className="text-center mb-2 md:mb-4">
+                  <span className="text-3xl md:text-4xl font-bold text-green-600 dark:text-green-400">{recyclingRate}%</span>
+                  <p className="text-xs md:text-sm text-muted-foreground">of your waste is recycled</p>
                 </div>
-                <div className="h-[200px]">
+                <div className="h-[160px] md:h-[200px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
@@ -290,12 +293,18 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
                         ]}
                         cx="50%"
                         cy="50%"
-                        innerRadius={60}
-                        outerRadius={80}
+                        innerRadius={40}
+                        outerRadius={60}
                         fill="#8884d8"
                         paddingAngle={5}
                         dataKey="value"
-                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                        label={({ name, percent }) => {
+                          // Simplified labels for mobile
+                          const isMobile = window.innerWidth < 768;
+                          return isMobile 
+                            ? `${(percent * 100).toFixed(0)}%` 
+                            : `${name}: ${(percent * 100).toFixed(0)}%`;
+                        }}
                       >
                         <Cell fill="#4ade80" /> {/* Green for recycled */}
                         <Cell fill="#f87171" /> {/* Red for non-recycled */}
@@ -309,27 +318,31 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
             
             <Card className="overflow-hidden border-0 shadow-md">
               <div className="h-1 bg-gradient-to-r from-amber-400 to-amber-600"></div>
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center text-base">
-                  <Scale className="mr-2 h-5 w-5 text-amber-600" />
+              <CardHeader className="pb-1 md:pb-2 pt-3 md:pt-4">
+                <CardTitle className="flex items-center text-sm md:text-base">
+                  <Scale className="mr-1.5 md:mr-2 h-4 w-4 md:h-5 md:w-5 text-amber-600" />
                   Waste Types
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="h-[200px]">
+              <CardContent className="pb-3 md:pb-4">
+                <div className="h-[160px] md:h-[200px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
                         data={wasteTypes}
                         cx="50%"
                         cy="50%"
-                        outerRadius={80}
+                        outerRadius={60}
                         fill="#8884d8"
                         dataKey="value"
                         nameKey="name"
-                        label={({ name, percent }) => 
-                          `${name}: ${(percent * 100).toFixed(0)}%`
-                        }
+                        label={({ name, percent }) => {
+                          // Show just percentages on mobile
+                          const isMobile = window.innerWidth < 768;
+                          return isMobile 
+                            ? `${(percent * 100).toFixed(0)}%` 
+                            : `${name}: ${(percent * 100).toFixed(0)}%`;
+                        }}
                       >
                         {wasteTypes.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -339,14 +352,14 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
+                <div className="grid grid-cols-2 gap-1 md:gap-2 mt-1 md:mt-2 text-[10px] md:text-xs">
                   {wasteTypes.slice(0, 6).map((type, index) => (
                     <div key={type.name} className="flex items-center">
                       <div 
-                        className="w-3 h-3 rounded-full mr-2" 
+                        className="w-2 h-2 md:w-3 md:h-3 rounded-full mr-1 md:mr-2" 
                         style={{ backgroundColor: COLORS[index % COLORS.length] }}
                       />
-                      <span className="text-xs">{type.name}</span>
+                      <span>{type.name}</span>
                     </div>
                   ))}
                 </div>
