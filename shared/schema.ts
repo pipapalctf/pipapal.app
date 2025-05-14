@@ -348,6 +348,23 @@ export type Activity = typeof activities.$inferSelect;
 export type InsertMaterialInterest = z.infer<typeof insertMaterialInterestSchema>;
 export type MaterialInterest = typeof materialInterests.$inferSelect;
 
+// Recycling Centers
+export const recyclingCenters = pgTable("recycling_centers", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  operator: text("operator"),
+  location: text("location").notNull(),
+  facilityType: text("facility_type"),
+  wasteType: text("waste_type").notNull(),
+  address: text("address").notNull(),
+  city: text("city").notNull(),
+  county: text("county").notNull(),
+  poBox: text("po_box"),
+  latitude: real("latitude"),
+  longitude: real("longitude"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Chat Messages
 export const chatMessages = pgTable("chat_messages", {
   id: serial("id").primaryKey(),
@@ -409,3 +426,21 @@ export type ChatMessage = typeof chatMessages.$inferSelect;
 
 export type InsertFeedback = z.infer<typeof insertFeedbackSchema>;
 export type Feedback = typeof feedback.$inferSelect;
+
+export const insertRecyclingCenterSchema = createInsertSchema(recyclingCenters)
+  .pick({
+    name: true,
+    operator: true,
+    location: true,
+    facilityType: true,
+    wasteType: true,
+    address: true,
+    city: true,
+    county: true,
+    poBox: true,
+    latitude: true,
+    longitude: true,
+  });
+
+export type InsertRecyclingCenter = z.infer<typeof insertRecyclingCenterSchema>;
+export type RecyclingCenter = typeof recyclingCenters.$inferSelect;

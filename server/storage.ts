@@ -2,6 +2,7 @@ import {
   users, type User, type InsertUser,
   collections, type Collection, type InsertCollection,
   impacts, type Impact, type InsertImpact,
+  recyclingCenters, type RecyclingCenter, type InsertRecyclingCenter,
   badges, type Badge, type InsertBadge,
   ecoTips, type EcoTip, type InsertEcoTip,
   activities, type Activity, type InsertActivity,
@@ -82,6 +83,13 @@ export interface IStorage {
   getMaterialInterestsByUser(userId: number): Promise<MaterialInterest[]>;
   getMaterialInterestsByCollections(collectionIds: number[]): Promise<MaterialInterest[]>;
   
+  // Recycling Centers
+  getAllRecyclingCenters(): Promise<RecyclingCenter[]>;
+  getRecyclingCentersByCity(city: string): Promise<RecyclingCenter[]>;
+  getRecyclingCentersByWasteType(wasteType: string): Promise<RecyclingCenter[]>;
+  getRecyclingCenterById(id: number): Promise<RecyclingCenter | undefined>;
+  createRecyclingCenter(center: InsertRecyclingCenter): Promise<RecyclingCenter>;
+  
   // Chat Messages
   getChatMessages(userId1: number, userId2: number, limit?: number): Promise<ChatMessage[]>;
   getUsersWithChats(userId: number): Promise<User[]>;
@@ -107,6 +115,7 @@ export class MemStorage implements IStorage {
   private ecoTips: Map<number, EcoTip>;
   private activities: Map<number, Activity>;
   private materialInterests: Map<number, MaterialInterest>;
+  private recyclingCenters: Map<number, RecyclingCenter>;
   private chatMessages: Map<number, ChatMessage>;
   private feedback: Map<number, Feedback>;
   sessionStore: any; // Using any for express-session store type
@@ -117,6 +126,7 @@ export class MemStorage implements IStorage {
   currentEcoTipId: number;
   currentActivityId: number;
   currentMaterialInterestId: number;
+  currentRecyclingCenterId: number;
   currentChatMessageId: number;
   currentFeedbackId: number;
 
