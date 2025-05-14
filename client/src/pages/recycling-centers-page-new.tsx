@@ -29,7 +29,20 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Filter, List, MapIcon, MapPin, Mail, Map } from "lucide-react";
+import { 
+  Loader2, 
+  Filter, 
+  List, 
+  MapIcon, 
+  MapPin, 
+  Mail, 
+  Map, 
+  FolderX, 
+  Recycle, 
+  Phone, 
+  User, 
+  ExternalLink 
+} from "lucide-react";
 
 // Google Maps components
 import { GoogleMap, Marker, LoadScript } from "@react-google-maps/api";
@@ -279,60 +292,87 @@ export default function RecyclingCentersPageNew() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {filteredCenters.map((center) => (
-                    <Card key={center.id} className="h-full">
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-lg">{center.name}</CardTitle>
-                        <CardDescription>{center.facilityType}</CardDescription>
+                    <Card key={center.id} className="h-full overflow-hidden border-2 hover:border-primary/80 transition-all duration-300 shadow-sm hover:shadow-md">
+                      <CardHeader className="pb-2 bg-muted/30">
+                        <div className="flex justify-between items-start">
+                          <CardTitle className="text-lg font-semibold text-primary">{center.name}</CardTitle>
+                          <Badge variant="outline" className="bg-primary/10 text-xs font-normal">
+                            {center.facilityType || "Recycling Center"}
+                          </Badge>
+                        </div>
                       </CardHeader>
-                      <CardContent className="space-y-3">
+                      <CardContent className="space-y-3 py-4">
                         <div className="flex items-start">
-                          <MapPin className="h-4 w-4 mr-2 mt-1 text-gray-500" />
+                          <MapPin className="h-4 w-4 mr-2 mt-1 text-primary flex-shrink-0" />
                           <div>
                             <p className="text-sm">{center.address}</p>
-                            <p className="text-sm text-gray-500">
-                              {center.city}, {center.county}
+                            <p className="text-sm text-muted-foreground">
+                              {center.city}{center.county ? `, ${center.county}` : ''}
                             </p>
                           </div>
                         </div>
 
                         {center.poBox && (
                           <div className="flex items-center">
-                            <Mail className="h-4 w-4 mr-2 text-gray-500" />
+                            <Mail className="h-4 w-4 mr-2 text-primary flex-shrink-0" />
                             <p className="text-sm">{center.poBox}</p>
                           </div>
                         )}
 
+                        {center.phone && (
+                          <div className="flex items-center">
+                            <Phone className="h-4 w-4 mr-2 text-primary flex-shrink-0" />
+                            <p className="text-sm">{center.phone}</p>
+                          </div>
+                        )}
+
                         {center.operator && (
-                          <div>
-                            <p className="text-sm text-gray-500">
-                              Operated by: {center.operator}
+                          <div className="flex items-center">
+                            <User className="h-4 w-4 mr-2 text-primary flex-shrink-0" />
+                            <p className="text-sm">
+                              <span className="text-muted-foreground">Operated by:</span> {center.operator}
                             </p>
                           </div>
                         )}
 
                         {center.wasteTypes && center.wasteTypes.length > 0 && (
-                          <div>
-                            <p className="text-sm font-medium mb-1">Accepted waste types:</p>
-                            <div className="flex flex-wrap gap-1">
-                              {center.wasteTypes.map((type) => (
-                                <Badge key={type} variant="outline" className="capitalize">
-                                  {type}
-                                </Badge>
-                              ))}
+                          <div className="pt-1">
+                            <div className="flex items-start">
+                              <Recycle className="h-4 w-4 mr-2 mt-1 text-primary flex-shrink-0" />
+                              <div>
+                                <p className="text-sm font-medium mb-1.5">Accepted waste types:</p>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {center.wasteTypes.map((type) => (
+                                    <Badge key={type} variant="secondary" className="capitalize text-xs font-normal">
+                                      {type}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </div>
                             </div>
                           </div>
                         )}
                       </CardContent>
-                      <CardFooter>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="w-full"
-                          onClick={() => handleViewOnMap(center)}
-                        >
-                          <Map className="h-4 w-4 mr-2" />
-                          View on Map
-                        </Button>
+                      <CardFooter className="pt-0 pb-4">
+                        <div className="flex gap-2 w-full">
+                          <Button 
+                            variant="default" 
+                            size="sm" 
+                            className="w-full"
+                            onClick={() => handleViewOnMap(center)}
+                          >
+                            <Map className="h-4 w-4 mr-2" />
+                            View on Map
+                          </Button>
+                          
+                          {center.website && (
+                            <Button variant="outline" size="sm" className="flex-shrink-0" asChild>
+                              <a href={center.website} target="_blank" rel="noopener noreferrer">
+                                <ExternalLink className="h-4 w-4" />
+                              </a>
+                            </Button>
+                          )}
+                        </div>
                       </CardFooter>
                     </Card>
                   ))}
