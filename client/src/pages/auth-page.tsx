@@ -72,14 +72,20 @@ export default function AuthPage() {
   const [roleDialogOpen, setRoleDialogOpen] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   
-  // Check URL for tab parameter
-  const getTabFromUrl = () => {
+  // Check URL for tab and role parameters
+  const getParamsFromUrl = () => {
     const searchParams = new URLSearchParams(window.location.search);
     const tab = searchParams.get('tab');
-    return tab === 'register' ? 'register' : 'login';
+    const role = searchParams.get('role');
+    
+    return { 
+      tab: tab === 'register' ? 'register' : 'login',
+      role: role || UserRole.HOUSEHOLD
+    };
   };
   
-  const [activeTab, setActiveTab] = useState<string>(getTabFromUrl());
+  const urlParams = getParamsFromUrl();
+  const [activeTab, setActiveTab] = useState<string>(urlParams.tab);
   
   const handleGoogleSignIn = (isRegister: boolean) => {
     // Only show role selection dialog when registering a new account
@@ -112,7 +118,7 @@ export default function AuthPage() {
     },
   });
   
-  // Register form
+  // Register form with role from URL parameter
   const registerForm = useForm<RegisterFormValues>({
     resolver: zodResolver(registerFormSchema),
     defaultValues: {
@@ -121,11 +127,26 @@ export default function AuthPage() {
       confirmPassword: "",
       fullName: "",
       email: "",
-      role: UserRole.HOUSEHOLD,
+      role: getRoleFromUrlParam(urlParams.role),
       address: "",
       phone: "",
     },
   });
+  
+  // Helper function to convert URL param to valid UserRole
+  function getRoleFromUrlParam(roleParam: string): string {
+    switch(roleParam?.toLowerCase()) {
+      case 'collector':
+        return UserRole.COLLECTOR;
+      case 'recycler':
+        return UserRole.RECYCLER;
+      case 'organization':
+        return UserRole.ORGANIZATION;
+      case 'household':
+      default:
+        return UserRole.HOUSEHOLD;
+    }
+  }
   
   function onLoginSubmit(values: LoginFormValues) {
     loginMutation.mutate(values);
