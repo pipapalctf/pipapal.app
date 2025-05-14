@@ -805,15 +805,15 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
       </Tabs>
       
       {/* Achievement Badges */}
-      <Card className="mb-6">
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center text-base">
-            <Award className="mr-2 h-5 w-5" />
+      <Card className="mb-4 md:mb-6">
+        <CardHeader className="pb-1 md:pb-2 pt-3 md:pt-4">
+          <CardTitle className="flex items-center text-sm md:text-base">
+            <Award className="mr-1.5 md:mr-2 h-4 w-4 md:h-5 md:w-5" />
             Achievement Badges
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+        <CardContent className="pb-3 md:pb-4">
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-1 md:gap-2">
             {[
               { name: 'Eco Starter', achieved: (user?.sustainabilityScore || 0) >= 50, icon: '🌱' },
               { name: 'Recycling Pro', achieved: recyclingRate >= 60, icon: '♻️' },
@@ -824,14 +824,14 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
             ].map((badge, index) => (
               <div 
                 key={index} 
-                className={`flex flex-col items-center justify-center p-2 rounded-lg text-center ${
+                className={`flex flex-col items-center justify-center p-1.5 md:p-2 rounded-lg text-center ${
                   badge.achieved 
                     ? 'bg-green-100 dark:bg-green-900/20 text-green-900 dark:text-green-100' 
                     : 'bg-gray-100 dark:bg-gray-800/30 text-gray-400 dark:text-gray-500'
                 }`}
               >
-                <div className="text-xl mb-1">{badge.icon}</div>
-                <span className="text-xs font-medium">{badge.name}</span>
+                <div className="text-lg md:text-xl mb-0.5 md:mb-1">{badge.icon}</div>
+                <span className="text-[10px] md:text-xs font-medium">{badge.name}</span>
               </div>
             ))}
           </div>
@@ -840,42 +840,42 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
       
       {/* Upcoming Pickups */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="flex items-center">
-            <Truck className="mr-2 h-5 w-5" />
+        <CardHeader className="flex flex-row items-center justify-between pb-1 md:pb-2 pt-3 md:pt-4">
+          <CardTitle className="flex items-center text-sm md:text-base">
+            <Truck className="mr-1.5 md:mr-2 h-4 w-4 md:h-5 md:w-5" />
             Upcoming Pickups
           </CardTitle>
-          <div className="flex space-x-2">
+          <div className="flex space-x-1 md:space-x-2">
             <Link href="/schedule-pickup?tab=pickups#pickups-tab-content">
-              <Button variant="outline" size="sm" className="h-8 px-2 text-xs">
-                <CalendarCheck className="mr-1 h-3.5 w-3.5" />
+              <Button variant="outline" size="sm" className="h-7 md:h-8 px-1.5 md:px-2 text-[10px] md:text-xs">
+                <CalendarCheck className="mr-0.5 md:mr-1 h-3 w-3 md:h-3.5 md:w-3.5" />
                 My Pickups
               </Button>
             </Link>
             <Link href="/schedule-pickup?tab=schedule#pickup-form-container">
-              <Button size="sm" className="h-8 px-2 text-xs">
-                <PlusCircle className="mr-1 h-3.5 w-3.5" />
+              <Button size="sm" className="h-7 md:h-8 px-1.5 md:px-2 text-[10px] md:text-xs">
+                <PlusCircle className="mr-0.5 md:mr-1 h-3 w-3 md:h-3.5 md:w-3.5" />
                 Schedule
               </Button>
             </Link>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pb-3 md:pb-4">
           {upcomingCollections.length > 0 ? (
-            <div className="space-y-4">
+            <div className="space-y-2 md:space-y-4">
               {upcomingCollections.slice(0, 2).map((collection) => (
-                <div key={collection.id} className="flex items-center p-3 border rounded-lg">
-                  <div className="mr-4 p-2 rounded-full bg-primary/10">
-                    <Truck className="h-5 w-5 text-primary" />
+                <div key={collection.id} className="flex items-center p-2 md:p-3 border rounded-lg">
+                  <div className="mr-2 md:mr-4 p-1.5 md:p-2 rounded-full bg-primary/10">
+                    <Truck className="h-4 w-4 md:h-5 md:w-5 text-primary" />
                   </div>
-                  <div className="flex-1">
-                    <p className="font-medium capitalize">{collection.wasteType} Waste Pickup</p>
-                    <p className="text-sm text-muted-foreground">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium capitalize text-xs md:text-base truncate">{collection.wasteType} Waste Pickup</p>
+                    <p className="text-[10px] md:text-sm text-muted-foreground">
                       {new Date(collection.scheduledDate).toLocaleDateString()} at {' '}
                       {new Date(collection.scheduledDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </p>
                   </div>
-                  <div className="bg-primary/10 text-primary rounded-full px-3 py-1 text-xs font-medium">
+                  <div className="bg-primary/10 text-primary rounded-full px-2 md:px-3 py-0.5 md:py-1 text-[10px] md:text-xs font-medium whitespace-nowrap ml-1 md:ml-0">
                     {collection.status}
                   </div>
                 </div>
@@ -884,14 +884,14 @@ export default function HouseholdDashboard({ user: initialUser }: HouseholdDashb
               {/* Removed the "+X more scheduled pickups" link as requested */}
             </div>
           ) : (
-            <div className="text-center p-6">
-              <div className="inline-flex items-center justify-center rounded-full bg-primary/10 p-4 mb-4">
-                <CalendarPlus className="h-6 w-6 text-primary" />
+            <div className="text-center p-4 md:p-6">
+              <div className="inline-flex items-center justify-center rounded-full bg-primary/10 p-3 md:p-4 mb-3 md:mb-4">
+                <CalendarPlus className="h-5 w-5 md:h-6 md:w-6 text-primary" />
               </div>
-              <p className="text-muted-foreground mb-4">No upcoming pickups scheduled.</p>
+              <p className="text-xs md:text-sm text-muted-foreground mb-3 md:mb-4">No upcoming pickups scheduled.</p>
               <Link href="/schedule-pickup?tab=schedule#pickup-form-container">
-                <Button size="sm">
-                  <PlusCircle className="mr-1 h-3.5 w-3.5" />
+                <Button size="sm" className="text-[10px] md:text-xs">
+                  <PlusCircle className="mr-1 h-3 w-3 md:h-3.5 md:w-3.5" />
                   Schedule Your First Pickup
                 </Button>
               </Link>
