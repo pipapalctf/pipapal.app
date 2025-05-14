@@ -1523,7 +1523,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Only admin users can create recycling centers
-  app.post("/api/recycling-centers", requireAuthentication, requireRole([UserRole.ADMIN]), async (req, res) => {
+  app.post("/api/recycling-centers", requireAuthentication, requireRole(UserRole.ADMIN), async (req, res) => {
     try {
       const centerData = req.body;
       const center = await storage.createRecyclingCenter(centerData);

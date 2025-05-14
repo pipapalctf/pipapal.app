@@ -1,81 +1,58 @@
-import Logo from "@/components/logo";
-import { Link } from "wouter";
+import React from 'react';
+import { Link } from 'wouter';
 
 export default function Footer() {
+  const currentYear = new Date().getFullYear();
+  
   return (
-    <footer className="w-full py-12 bg-gray-900 text-gray-300">
-      <div className="container mx-auto px-4 md:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-          <div>
-            <div className="flex items-center mb-4">
-              <Logo variant="white" size="md" />
-              <span className="ml-2 text-2xl font-montserrat font-bold text-white">PipaPal</span>
+    <footer className="bg-muted py-8">
+      <div className="container mx-auto px-4">
+        <div className="flex flex-col md:flex-row justify-between">
+          <div className="mb-6 md:mb-0">
+            <h3 className="font-bold text-lg mb-4">PipaPal</h3>
+            <p className="text-muted-foreground max-w-md">
+              Your Waste Buddy - Connecting households with waste collectors and recyclers
+              to promote environmental sustainability across Kenya.
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
+            <div>
+              <h4 className="font-medium mb-3">Company</h4>
+              <ul className="space-y-2">
+                <li><Link href="/about" className="text-muted-foreground hover:text-foreground transition-colors">About</Link></li>
+                <li><Link href="/mission" className="text-muted-foreground hover:text-foreground transition-colors">Our Mission</Link></li>
+                <li><Link href="/contact" className="text-muted-foreground hover:text-foreground transition-colors">Contact</Link></li>
+              </ul>
             </div>
-            <p className="text-gray-400 mb-2">
-              Your Waste Buddy - Connecting households with waste collectors for a greener future.
-            </p>
-            <p className="text-gray-400">
-              <span className="font-semibold">Location:</span> Nyahururu, Kenya
-            </p>
-          </div>
-          
-          <div>
-            <h3 className="text-lg font-bold text-white mb-4">Company</h3>
-            <ul className="space-y-2">
-              <li><Link href="/about" className="hover:text-primary transition-colors">About Us</Link></li>
-              <li><Link href="/mission" className="hover:text-primary transition-colors">Our Mission</Link></li>
-              <li><Link href="#" className="hover:text-primary transition-colors">Careers</Link></li>
-              <li>
-                <a 
-                  href="mailto:info@pipapal.app" 
-                  className="hover:text-primary transition-colors"
-                >
-                  Email: info@pipapal.app
-                </a>
-              </li>
-              <li>
-                <a 
-                  href="https://wa.me/254116407400" 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
-                  className="hover:text-primary transition-colors"
-                >
-                  WhatsApp: +254-116407400
-                </a>
-              </li>
-            </ul>
-          </div>
-          
-          <div>
-            <h3 className="text-lg font-bold text-white mb-4">Services</h3>
-            <ul className="space-y-2">
-              <li><Link href="/schedule-pickup" className="hover:text-primary transition-colors">Waste Collection</Link></li>
-              <li><Link href="#" className="hover:text-primary transition-colors">Recycling</Link></li>
-              <li><Link href="/impact" className="hover:text-primary transition-colors">Impact Tracking</Link></li>
-              <li><Link href="/ecotips" className="hover:text-primary transition-colors">Educational Resources</Link></li>
-            </ul>
-          </div>
-          
-          <div>
-            <h3 className="text-lg font-bold text-white mb-4">Connect</h3>
-            <ul className="space-y-2">
-              <li><Link href="#" className="hover:text-primary transition-colors">Twitter</Link></li>
-              <li><Link href="#" className="hover:text-primary transition-colors">Facebook</Link></li>
-              <li><Link href="#" className="hover:text-primary transition-colors">Instagram</Link></li>
-              <li><Link href="#" className="hover:text-primary transition-colors">LinkedIn</Link></li>
-            </ul>
+            
+            <div>
+              <h4 className="font-medium mb-3">Services</h4>
+              <ul className="space-y-2">
+                <li><Link href="/collections"><a className="text-muted-foreground hover:text-foreground transition-colors">Waste Collection</a></Link></li>
+                <li><Link href="/recycling-centers"><a className="text-muted-foreground hover:text-foreground transition-colors">Recycling Centers</a></Link></li>
+                <li><Link href="/eco-tips"><a className="text-muted-foreground hover:text-foreground transition-colors">EcoTips</a></Link></li>
+              </ul>
+            </div>
+            
+            <div>
+              <h4 className="font-medium mb-3">Connect</h4>
+              <ul className="space-y-2">
+                <li><a href="mailto:info@pipapal.app" className="text-muted-foreground hover:text-foreground transition-colors">info@pipapal.app</a></li>
+                <li><a href="https://wa.me/254116407400" className="text-muted-foreground hover:text-foreground transition-colors">WhatsApp: +254-116407400</a></li>
+                <li><a href="https://pipapal.app" className="text-muted-foreground hover:text-foreground transition-colors">pipapal.app</a></li>
+              </ul>
+            </div>
           </div>
         </div>
         
-        <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center">
-          <p className="text-gray-500 text-sm">
-            &copy; {new Date().getFullYear()} PipaPal. All rights reserved. | <a href="https://pipapal.app" className="hover:text-primary">pipapal.app</a>
+        <div className="border-t border-border mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
+          <p className="text-sm text-muted-foreground mb-4 md:mb-0">
+            &copy; {currentYear} PipaPal. All rights reserved.
           </p>
-          <div className="flex space-x-4 mt-4 md:mt-0">
-            <Link href="/about" className="text-gray-500 text-sm hover:text-primary transition-colors">About Us</Link>
-            <Link href="/mission" className="text-gray-500 text-sm hover:text-primary transition-colors">Our Mission</Link>
-            <Link href="#" className="text-gray-500 text-sm hover:text-primary transition-colors">Privacy Policy</Link>
-            <Link href="#" className="text-gray-500 text-sm hover:text-primary transition-colors">Terms of Service</Link>
+          <div className="flex space-x-4">
+            <Link href="/privacy"><a className="text-sm text-muted-foreground hover:text-foreground transition-colors">Privacy Policy</a></Link>
+            <Link href="/terms"><a className="text-sm text-muted-foreground hover:text-foreground transition-colors">Terms of Service</a></Link>
           </div>
         </div>
       </div>

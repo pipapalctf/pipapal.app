@@ -1493,6 +1493,69 @@ export class DatabaseStorage implements IStorage {
       return undefined;
     }
   }
+  
+  // Recycling Centers
+  async getAllRecyclingCenters(): Promise<RecyclingCenter[]> {
+    try {
+      return await db.select().from(recyclingCenters);
+    } catch (error) {
+      console.error('Error fetching recycling centers:', error);
+      return [];
+    }
+  }
+  
+  async getRecyclingCentersByCity(city: string): Promise<RecyclingCenter[]> {
+    try {
+      return await db
+        .select()
+        .from(recyclingCenters)
+        .where(eq(recyclingCenters.city, city));
+    } catch (error) {
+      console.error('Error fetching recycling centers by city:', error);
+      return [];
+    }
+  }
+  
+  async getRecyclingCentersByWasteType(wasteType: string): Promise<RecyclingCenter[]> {
+    try {
+      // Using SQL for array contains operation
+      return await db
+        .select()
+        .from(recyclingCenters)
+        .where(sql`${recyclingCenters.wasteTypes} @> ARRAY[${wasteType}]::text[]`);
+    } catch (error) {
+      console.error('Error fetching recycling centers by waste type:', error);
+      return [];
+    }
+  }
+  
+  async getRecyclingCenterById(id: number): Promise<RecyclingCenter | undefined> {
+    try {
+      const [center] = await db
+        .select()
+        .from(recyclingCenters)
+        .where(eq(recyclingCenters.id, id));
+      
+      return center;
+    } catch (error) {
+      console.error('Error fetching recycling center by ID:', error);
+      return undefined;
+    }
+  }
+  
+  async createRecyclingCenter(insertCenter: InsertRecyclingCenter): Promise<RecyclingCenter> {
+    try {
+      const [center] = await db
+        .insert(recyclingCenters)
+        .values(insertCenter)
+        .returning();
+      
+      return center;
+    } catch (error) {
+      console.error('Error creating recycling center:', error);
+      throw error;
+    }
+  }
 }
 
 export const storage = new DatabaseStorage();
