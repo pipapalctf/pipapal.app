@@ -138,6 +138,9 @@ export default function RecyclingCentersPageNew() {
     setFilterCity(null);
   };
   
+  // State for map zoom level
+  const [mapZoom, setMapZoom] = useState(10);
+
   // Handle View on Map button click
   const handleViewOnMap = (center: RecyclingCenter) => {
     console.log("Viewing center on map:", center.name);
@@ -151,6 +154,8 @@ export default function RecyclingCentersPageNew() {
         lat: center.latitude,
         lng: center.longitude
       });
+      // Set a closer zoom level for better visibility
+      setMapZoom(14);
     }
   };
 
@@ -337,7 +342,7 @@ export default function RecyclingCentersPageNew() {
 
             {/* Map view */}
             <TabsContent value="map">
-              <div className="h-[500px] bg-gray-100 rounded-lg overflow-hidden">
+              <div className="h-[500px] bg-gray-100 rounded-lg overflow-hidden transition-all duration-300">
                 {!import.meta.env.VITE_GOOGLE_MAPS_API_KEY ? (
                   <div className="flex h-full items-center justify-center">
                     <div className="text-center p-4">
@@ -355,12 +360,19 @@ export default function RecyclingCentersPageNew() {
                     <GoogleMap
                       mapContainerStyle={{ width: '100%', height: '100%' }}
                       center={userLocation || { lat: -1.2921, lng: 36.8219 }}
-                      zoom={10}
+                      zoom={mapZoom}
+                      options={{
+                        streetViewControl: false,
+                        mapTypeControl: true,
+                        fullscreenControl: true
+                      }}
                     >
+                      {/* User location marker with custom icon */}
                       {userLocation && (
                         <Marker 
                           position={userLocation} 
                           title="Your location"
+                          // Default is blue marker
                         />
                       )}
                       
