@@ -28,7 +28,7 @@ async function addMoreRecyclingCenters() {
       address: "Uganda Road",
       city: "Eldoret", 
       county: "Uasin Gishu County",
-      poBox: "P.O Box 56789",
+      poBox: "P.O Box 66778",
       latitude: 0.5143,
       longitude: 35.2698
     },
@@ -54,7 +54,7 @@ async function addMoreRecyclingCenters() {
       address: "Kenyatta Highway",
       city: "Thika",
       county: "Kiambu County",
-      poBox: "P.O Box 45678",
+      poBox: "P.O Box 44556",
       latitude: -1.0396,
       longitude: 37.0834
     },
@@ -67,7 +67,7 @@ async function addMoreRecyclingCenters() {
       address: "Machakos-Kitui Road",
       city: "Machakos",
       county: "Machakos County",
-      poBox: "P.O Box 67890",
+      poBox: "P.O Box 00112",
       latitude: -1.5176,
       longitude: 37.2634
     },
@@ -80,7 +80,7 @@ async function addMoreRecyclingCenters() {
       address: "Moi South Lake Road",
       city: "Naivasha",
       county: "Nakuru County",
-      poBox: "P.O Box 12345",
+      poBox: "P.O Box 88990",
       latitude: -0.7172,
       longitude: 36.4393
     },
@@ -93,7 +93,7 @@ async function addMoreRecyclingCenters() {
       address: "Kitui-Machakos Road",
       city: "Kitui",
       county: "Kitui County",
-      poBox: "P.O Box 23456",
+      poBox: "P.O Box 99001",
       latitude: -1.3683,
       longitude: 38.0133
     },
@@ -119,7 +119,7 @@ async function addMoreRecyclingCenters() {
       address: "Kakamega-Kisumu Road",
       city: "Kakamega",
       county: "Kakamega County",
-      poBox: "P.O Box 45678",
+      poBox: "P.O Box 55667",
       latitude: 0.2827,
       longitude: 34.7519
     },
@@ -132,7 +132,7 @@ async function addMoreRecyclingCenters() {
       address: "Nyeri-Karatina Road",
       city: "Nyeri",
       county: "Nyeri County",
-      poBox: "P.O Box 56789",
+      poBox: "P.O Box 77889",
       latitude: -0.4246,
       longitude: 36.9428
     }
