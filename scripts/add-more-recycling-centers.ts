@@ -15,7 +15,7 @@ async function addMoreRecyclingCenters() {
       address: "Jomo Kenyatta Highway",
       city: "Kisumu",
       county: "Kisumu County",
-      poBox: "P.O Box 34567",
+      poBox: "P.O Box 11223",
       latitude: -0.1022,
       longitude: 34.7617
     },
@@ -106,7 +106,7 @@ async function addMoreRecyclingCenters() {
       address: "Malindi-Mombasa Highway",
       city: "Malindi",
       county: "Kilifi County",
-      poBox: "P.O Box 34567",
+      poBox: "P.O Box 33445",
       latitude: -3.2138,
       longitude: 40.1169
     },
