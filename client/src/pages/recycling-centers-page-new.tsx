@@ -58,6 +58,7 @@ export default function RecyclingCentersPageNew() {
   const [filterCity, setFilterCity] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"list" | "map">("list");
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [mapError, setMapError] = useState<string | null>(null);
 
   // Fetch recycling centers - no authentication required
   const {
@@ -402,26 +403,58 @@ export default function RecyclingCentersPageNew() {
                   <div className="flex h-full items-center justify-center">
                     <div className="text-center p-4">
                       <MapIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-500">
-                        Map view showing {filteredCenters.length} recycling centers
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">Map Configuration Issue</h3>
+                      <p className="text-gray-500 mb-2">
+                        The map service is temporarily unavailable
                       </p>
-                      <p className="text-sm text-gray-400">
-                        Google Maps API key is required for interactive map view
+                      <p className="text-sm text-gray-400 mb-4">
+                        Please use the list view to find recycling centers, or contact support if this issue persists
                       </p>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setViewMode("list")}
+                        className="text-sm"
+                      >
+                        Switch to List View
+                      </Button>
                     </div>
                   </div>
                 ) : (
-                  <LoadScript googleMapsApiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}>
-                    <GoogleMap
-                      mapContainerStyle={{ width: '100%', height: '100%' }}
-                      center={userLocation || { lat: -1.2921, lng: 36.8219 }}
-                      zoom={mapZoom}
-                      options={{
-                        streetViewControl: false,
-                        mapTypeControl: true,
-                        fullscreenControl: true
-                      }}
-                    >
+                  <LoadScript 
+                    googleMapsApiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}
+                    onLoad={() => setMapError(null)}
+                    onError={() => setMapError("Failed to load Google Maps. Please check your internet connection or try again later.")}
+                  >
+                    {mapError ? (
+                      <div className="w-full h-full flex items-center justify-center bg-gray-100 rounded-lg">
+                        <div className="text-center p-8">
+                          <MapIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                          <h3 className="text-lg font-medium text-gray-900 mb-2">Map Unavailable</h3>
+                          <p className="text-gray-500 mb-4">{mapError}</p>
+                          <Button 
+                            variant="outline" 
+                            onClick={() => {
+                              setMapError(null);
+                              window.location.reload();
+                            }}
+                          >
+                            Try Again
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <GoogleMap
+                        mapContainerStyle={{ width: '100%', height: '100%' }}
+                        center={userLocation || { lat: -1.2921, lng: 36.8219 }}
+                        zoom={mapZoom}
+                        options={{
+                          streetViewControl: false,
+                          mapTypeControl: true,
+                          fullscreenControl: true
+                        }}
+                        onLoad={() => setMapError(null)}
+                        onError={() => setMapError("Google Maps failed to load properly. The service may be temporarily unavailable.")}
+                      >
                       {/* User location marker with custom icon */}
                       {userLocation && (
                         <Marker 
@@ -431,27 +464,28 @@ export default function RecyclingCentersPageNew() {
                         />
                       )}
                       
-                      {filteredCenters.map((center) => {
-                        if (center.latitude && center.longitude) {
-                          const isSelected = 
-                            userLocation && 
-                            userLocation.lat === center.latitude && 
-                            userLocation.lng === center.longitude;
-                          
-                          return (
-                            <Marker
-                              key={center.id}
-                              position={{ lat: center.latitude, lng: center.longitude }}
-                              title={center.name}
-                              // Add animation to the selected marker
-                              animation={isSelected ? 1 : undefined}
-                              // 1 is BOUNCE in Google Maps API
-                            />
-                          );
-                        }
-                        return null;
-                      })}
-                    </GoogleMap>
+                        {filteredCenters.map((center) => {
+                          if (center.latitude && center.longitude) {
+                            const isSelected = 
+                              userLocation && 
+                              userLocation.lat === center.latitude && 
+                              userLocation.lng === center.longitude;
+                            
+                            return (
+                              <Marker
+                                key={center.id}
+                                position={{ lat: center.latitude, lng: center.longitude }}
+                                title={center.name}
+                                // Add animation to the selected marker
+                                animation={isSelected ? 1 : undefined}
+                                // 1 is BOUNCE in Google Maps API
+                              />
+                            );
+                          }
+                          return null;
+                        })}
+                      </GoogleMap>
+                    )}
                   </LoadScript>
                 )}
               </div>
