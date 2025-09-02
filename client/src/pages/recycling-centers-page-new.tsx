@@ -403,43 +403,70 @@ export default function RecyclingCentersPageNew() {
                   <div className="flex h-full items-center justify-center">
                     <div className="text-center p-4">
                       <MapIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">Map Configuration Issue</h3>
-                      <p className="text-gray-500 mb-2">
-                        The map service is temporarily unavailable
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">Google Maps Configuration Needed</h3>
+                      <p className="text-gray-500 mb-3">
+                        The map requires domain authorization in Google Cloud Console
                       </p>
-                      <p className="text-sm text-gray-400 mb-4">
-                        Please use the list view to find recycling centers, or contact support if this issue persists
-                      </p>
-                      <Button 
-                        variant="outline" 
-                        onClick={() => setViewMode("list")}
-                        className="text-sm"
-                      >
-                        Switch to List View
-                      </Button>
+                      <div className="text-sm text-gray-600 mb-4 space-y-1">
+                        <p><strong>To fix this:</strong></p>
+                        <p>1. Go to Google Cloud Console → APIs & Services → Credentials</p>
+                        <p>2. Edit your Maps API key restrictions</p>
+                        <p>3. Add: <code className="bg-gray-100 px-1 rounded">https://*.replit.app/*</code></p>
+                        <p>4. Wait 5-10 minutes for changes to take effect</p>
+                      </div>
+                      <div className="space-y-2">
+                        <Button 
+                          variant="outline" 
+                          onClick={() => setViewMode("list")}
+                          className="text-sm w-full"
+                        >
+                          Use List View Instead
+                        </Button>
+                        <p className="text-xs text-gray-400 text-center">
+                          All location details are available in list view
+                        </p>
+                      </div>
                     </div>
                   </div>
                 ) : (
                   <LoadScript 
                     googleMapsApiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}
                     onLoad={() => setMapError(null)}
-                    onError={() => setMapError("Failed to load Google Maps. Please check your internet connection or try again later.")}
+                    onError={() => setMapError("Google Maps API domain restriction error. The deployed domain needs to be added to your Google Cloud Console API key restrictions.")}
                   >
                     {mapError ? (
                       <div className="w-full h-full flex items-center justify-center bg-gray-100 rounded-lg">
                         <div className="text-center p-8">
                           <MapIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                          <h3 className="text-lg font-medium text-gray-900 mb-2">Map Unavailable</h3>
-                          <p className="text-gray-500 mb-4">{mapError}</p>
-                          <Button 
-                            variant="outline" 
-                            onClick={() => {
-                              setMapError(null);
-                              window.location.reload();
-                            }}
-                          >
-                            Try Again
-                          </Button>
+                          <h3 className="text-lg font-medium text-gray-900 mb-2">Google Maps Restriction Error</h3>
+                          <p className="text-gray-500 mb-3 text-sm leading-relaxed">{mapError}</p>
+                          <div className="text-xs text-gray-600 mb-4 space-y-1 text-left max-w-sm mx-auto">
+                            <p><strong>Quick Fix:</strong></p>
+                            <p>1. Open <a href="https://console.cloud.google.com/apis/credentials" target="_blank" className="text-blue-600 hover:underline">Google Cloud Console</a></p>
+                            <p>2. Edit your Maps API key restrictions</p>
+                            <p>3. Add: <code className="bg-gray-100 px-1 rounded text-xs">https://*.replit.app/*</code></p>
+                            <p>4. Wait 5-10 minutes for changes to apply</p>
+                          </div>
+                          <div className="space-y-2">
+                            <Button 
+                              variant="outline" 
+                              onClick={() => setViewMode("list")}
+                              className="text-sm"
+                            >
+                              Switch to List View
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => {
+                                setMapError(null);
+                                window.location.reload();
+                              }}
+                              className="text-xs text-gray-500"
+                            >
+                              Try Again After Fix
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     ) : (
