@@ -480,7 +480,6 @@ export default function RecyclingCentersPageNew() {
                           fullscreenControl: true
                         }}
                         onLoad={() => setMapError(null)}
-                        onError={() => setMapError("Google Maps failed to load properly. The service may be temporarily unavailable.")}
                       >
                       {/* User location marker with custom icon */}
                       {userLocation && (
