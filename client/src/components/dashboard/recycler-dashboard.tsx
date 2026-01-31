@@ -4,10 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import { Recycle, Leaf, Package, TrendingUp, FileText, Scale, Truck, ShoppingBag, MapPin, Star, Calendar, ChevronRight, Clock, Users, Activity, Award } from 'lucide-react';
-import { User, CollectionStatus, Collection, Impact } from '@shared/schema';
+import { User, CollectionStatus, Collection, Impact, MaterialInterest } from '@shared/schema';
 import { formatNumber } from '@/lib/utils';
 import RoleBasedCTA from './role-based-cta';
 import RecentActivity from './recent-activity';
+
+interface EnhancedMaterialInterest extends MaterialInterest {
+  collection?: Collection;
+}
 
 interface RecyclerDashboardProps {
   user: User;
@@ -15,19 +19,23 @@ interface RecyclerDashboardProps {
 
 /**
  * Dashboard for Recycler users
- * Focused on materials sourcing and recycling stats
+ * Focused on materials sourcing and recycling stats based on completed transactions
  */
 export default function RecyclerDashboard({ user }: RecyclerDashboardProps) {
-  // In a real app, we would fetch data specific to recycler operations
-  // For now, we'll use the general collections data to simulate recycler activity
-  const { data: collections = [] } = useQuery({
-    queryKey: ['/api/collections'],
+  // Fetch the recycler's material interests (their actual transactions)
+  const { data: materialInterests = [] } = useQuery<EnhancedMaterialInterest[]>({
+    queryKey: ['/api/materials/interests'],
   });
 
-  // Assume all completed collections are materials bought by recyclers
-  const purchasedMaterials = collections.filter(
-    (collection) => collection.status === CollectionStatus.COMPLETED
+  // Only count completed transactions - these are the materials the recycler has actually purchased
+  const completedInterests = materialInterests.filter(
+    (interest) => interest.status === 'completed'
   );
+
+  // Extract the collection data from completed interests
+  const purchasedMaterials = completedInterests
+    .filter((interest) => interest.collection)
+    .map((interest) => interest.collection as Collection);
 
   // Calculate total materials purchased
   const totalPurchased = purchasedMaterials.reduce(
