@@ -1,0 +1,39 @@
+<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="400" height="300" fill="#f5f9f5" rx="10" ry="10"/>
+  
+  <!-- Recycling Bins -->
+  <g transform="translate(50, 100)">
+    <!-- Green Bin -->
+    <rect x="0" y="0" width="60" height="80" fill="#2ECC71" rx="5" ry="5"/>
+    <rect x="0" y="-10" width="60" height="15" fill="#27AE60" rx="3" ry="3"/>
+    <text x="30" y="50" font-family="Arial" font-size="14" fill="white" text-anchor="middle">Paper</text>
+  </g>
+  
+  <g transform="translate(170, 100)">
+    <!-- Blue Bin -->
+    <rect x="0" y="0" width="60" height="80" fill="#3498DB" rx="5" ry="5"/>
+    <rect x="0" y="-10" width="60" height="15" fill="#2980B9" rx="3" ry="3"/>
+    <text x="30" y="50" font-family="Arial" font-size="14" fill="white" text-anchor="middle">Plastic</text>
+  </g>
+  
+  <g transform="translate(290, 100)">
+    <!-- Yellow Bin -->
+    <rect x="0" y="0" width="60" height="80" fill="#F1C40F" rx="5" ry="5"/>
+    <rect x="0" y="-10" width="60" height="15" fill="#F39C12" rx="3" ry="3"/>
+    <text x="30" y="50" font-family="Arial" font-size="14" fill="white" text-anchor="middle">Glass</text>
+  </g>
+  
+  <!-- Recycling Symbol -->
+  <g transform="translate(200, 40) scale(0.6)">
+    <path d="M30,70 L70,70 L50,30 Z" fill="#3498DB" transform="rotate(0 50 50)"/>
+    <path d="M30,70 L70,70 L50,30 Z" fill="#F1C40F" transform="rotate(120 50 50)"/>
+    <path d="M30,70 L70,70 L50,30 Z" fill="#2ECC71" transform="rotate(240 50 50)"/>
+  </g>
+  
+  <!-- Ground -->
+  <rect x="20" y="185" width="360" height="10" fill="#E0E0E0" rx="5" ry="5"/>
+  
+  <!-- Labels -->
+  <text x="200" y="230" font-family="Arial" font-weight="bold" font-size="18" fill="#34495E" text-anchor="middle">Waste Segregation</text>
+</svg>

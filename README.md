@@ -1,7 +1,4 @@
-# pipapal.app
-PipaPal is a tech-enabled waste management platform that helps communities schedule waste pickup, access eco-tips, and locate recycling centers while promoting responsible waste management and climate action in Kenya.
-
-# PipaPal - Your Waste Buddy - Waste Management Platform
+# Waste Wise (PipaPal) - Waste Management Platform
 
 A comprehensive waste management platform built for Kenya that connects households, waste collectors, recyclers, and organizations through a modern web application. The platform facilitates waste collection scheduling, recycling coordination, and environmental impact tracking.
 

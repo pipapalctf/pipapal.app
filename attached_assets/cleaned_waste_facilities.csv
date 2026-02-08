@@ -1,0 +1,11 @@
+name,address,city,county,location,operator,facilityType,wasteTypes,poBox,latitude,longitude
+Taka Smart Recycling Center,Waiyaki Way,Nairobi,Nairobi County,Westlands Nairobi,Taka Smart Ltd,Recycling Facility,"plastic,metal,paper,glass",P.O Box 12345,-1.2651,36.8065
+EcoRecycle Kenya,Thika Road,Nairobi,Nairobi County,Roysambu Nairobi,EcoRecycle Kenya,Recycling Facility,"electronic,plastic,metal",P.O Box 54321,-1.2252,36.8856
+GreenWaste Solutions,Mombasa Road,Nairobi,Nairobi County,South B Nairobi,GreenWaste Ltd,Waste Processing,"organic,general,cardboard",P.O Box 67890,-1.3187,36.8513
+Nyahururu Metal Recyclers,Nyahururu-Nyeri Road,Nyahururu,Laikipia County,Nyahururu Town,Nyahururu Metals,Metal Recycling,"metal,electronic",P.O Box 23456,0.0394,36.3694
+Nakuru Waste Management,Nakuru-Nairobi Highway,Nakuru,Nakuru County,Industrial Area Nakuru,Nakuru County,Waste Management,"general,hazardous,plastic",P.O Box 78901,-0.3031,36.0800
+Mombasa Marine Recycling,Port Reitz Road,Mombasa,Mombasa County,Changamwe Mombasa,Marine Conservancy,Marine Recycling,"plastic,glass,metal",P.O Box 34567,-4.0435,39.6682
+Kisumu Lake Basin Recyclers,Kisumu-Kakamega Road,Kisumu,Kisumu County,Kondele Kisumu,Lake Basin Authority,Recycling Facility,"plastic,paper,organic",P.O Box 45678,-0.1022,34.7617
+Eldoret Green Solutions,Uganda Road,Eldoret,Uasin Gishu County,Pioneer Eldoret,Eldoret Green Ltd,Waste Solutions,"plastic,metal,paper,cardboard",P.O Box 56789,0.5143,35.2698
+Machakos Eco Center,Machakos-Nairobi Road,Machakos,Machakos County,Machakos Town,Machakos County,Recycling Center,"general,plastic,glass",P.O Box 89012,-1.5176,37.2675
+Kitale Agricultural Recycling,Kitale-Kapenguria Road,Kitale,Trans-Nzoia County,Kitale Town,Agricultural Recyclers,Organic Recycling,"organic,general",P.O Box 90123,1.0187,35.0062

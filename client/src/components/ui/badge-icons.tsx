@@ -1,0 +1,1 @@
+// File can be safely deleted now, as we're using the icon-badge.tsx component instead
