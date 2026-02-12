@@ -9,7 +9,7 @@ A comprehensive waste management platform built for Kenya that connects househol
 - **Real-time Status Updates** - Live tracking of collection status via WebSocket notifications
 - **Environmental Impact Tracking** - Automatic calculation and display of metrics like CO2 reduction, water saved, and trees equivalent
 - **AI-Powered Eco-Tips** - Personalized sustainability tips generated using AI
-- **Recycling Center Directory** - Browse and locate recycling facilities with Google Maps integration
+- **Recycling Center Directory** - Browse and locate recycling facilities with interactive Leaflet maps
 - **In-App Messaging** - Real-time chat system between all user types
 
 ### Multi-Role System
@@ -35,6 +35,7 @@ A comprehensive waste management platform built for Kenya that connects househol
 - **Wouter** for lightweight client-side routing
 - **Framer Motion** for animations
 - **Recharts** for data visualization
+- **Leaflet / React-Leaflet** for interactive maps
 - **Lucide React** for icons
 
 ### Backend
@@ -49,7 +50,7 @@ A comprehensive waste management platform built for Kenya that connects househol
 - **Firebase** - Authentication and email verification
 - **Anthropic AI** - AI-powered eco-tip generation
 - **SendGrid** - Email notifications
-- **Google Maps API** - Location services and mapping
+- **Leaflet / OpenStreetMap** - Interactive maps and location services (free, no API key required)
 
 ## Getting Started
 
@@ -57,7 +58,7 @@ A comprehensive waste management platform built for Kenya that connects househol
 - Node.js 18+
 - PostgreSQL database (or Neon Database account)
 - Firebase project for authentication
-- API keys for external services (Anthropic, SendGrid, Google Maps)
+- API keys for external services (Anthropic, SendGrid)
 
 ### Environment Variables
 
@@ -77,9 +78,6 @@ VITE_FIREBASE_PROJECT_ID=your_firebase_project_id
 VITE_FIREBASE_STORAGE_BUCKET=your_firebase_storage_bucket
 VITE_FIREBASE_MESSAGING_SENDER_ID=your_firebase_messaging_sender_id
 VITE_FIREBASE_APP_ID=your_firebase_app_id
-
-# Google Maps
-VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
 
 # External APIs
 ANTHROPIC_API_KEY=your_anthropic_api_key

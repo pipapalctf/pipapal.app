@@ -1,17 +1,12 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import { 
-  GoogleMap, 
-  useJsApiLoader, 
-  Marker, 
-  DirectionsRenderer, 
-  InfoWindow 
-} from '@react-google-maps/api';
-import { 
-  Loader2, 
-  AlertTriangle, 
-  MapPin, 
-  Navigation, 
-  Clock, 
+import { useState, useCallback, useEffect } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
+import L from 'leaflet';
+import {
+  Loader2,
+  AlertTriangle,
+  MapPin,
+  Navigation,
+  Clock,
   Fuel,
   Truck
 } from 'lucide-react';
@@ -28,20 +23,44 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import 'leaflet/dist/leaflet.css';
 
-// Define the libraries to load for Google Maps
-const libraries = ['places'] as Array<'places'>;
+const defaultCenter: [number, number] = [-1.2921, 36.8219];
 
-// Default map settings
-const containerStyle = {
-  width: '100%',
-  height: '500px'
+function createIcon(color: string, size = 14) {
+  return L.divIcon({
+    className: 'custom-marker',
+    html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;font-size:9px;color:white;font-weight:bold"></div>`,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+  });
+}
+
+function createNumberedIcon(color: string, number: number) {
+  return L.divIcon({
+    className: 'custom-marker',
+    html: `<div style="width:24px;height:24px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;font-size:11px;color:white;font-weight:bold">${number}</div>`,
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
+  });
+}
+
+const statusColors: Record<string, string> = {
+  scheduled: '#3b82f6',
+  in_progress: '#eab308',
+  completed: '#22c55e',
+  default: '#ef4444',
 };
 
-const defaultCenter = {
-  lat: -1.2921, // Default to Nairobi, Kenya
-  lng: 36.8219
-};
+const collectorBaseIcon = createIcon('#a855f7', 20);
+
+function MapUpdater({ center }: { center: [number, number] }) {
+  const map = useMap();
+  useEffect(() => {
+    map.setView(center, map.getZoom());
+  }, [center, map]);
+  return null;
+}
 
 interface RouteOptimizationMapProps {
   collections: Collection[];
@@ -49,319 +68,129 @@ interface RouteOptimizationMapProps {
 }
 
 export function RouteOptimizationMap({ collections, collectorAddress }: RouteOptimizationMapProps) {
-  const [center, setCenter] = useState(defaultCenter);
-  const [mapRef, setMapRef] = useState<google.maps.Map | null>(null);
+  const [center] = useState<[number, number]>(defaultCenter);
   const [activeCollections, setActiveCollections] = useState<Collection[]>([]);
-  const [directions, setDirections] = useState<google.maps.DirectionsResult | null>(null);
-  const [selectedMarker, setSelectedMarker] = useState<Collection | null>(null);
+  const [routePoints, setRoutePoints] = useState<[number, number][]>([]);
   const [routeStats, setRouteStats] = useState({
     totalDistance: '',
     totalDuration: '',
     etaTime: '',
-    fuelEstimate: ''
+    fuelEstimate: '',
   });
   const [routeType, setRouteType] = useState<'optimal' | 'byWasteType'>('optimal');
   const [selectedWasteType, setSelectedWasteType] = useState<string>('all');
   const [availableWasteTypes, setAvailableWasteTypes] = useState<string[]>([]);
+  const [hasRoute, setHasRoute] = useState(false);
 
-  // Load Google Maps API
-  const { isLoaded, loadError } = useJsApiLoader({
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string,
-    libraries
-  });
-
-  // Get active collections (in progress or scheduled)
   useEffect(() => {
-    const filteredCollections = collections.filter(c => 
-      c.status === 'scheduled' || c.status === 'in_progress'
+    const filteredCollections = collections.filter(
+      c => c.status === 'scheduled' || c.status === 'in_progress'
     );
     setActiveCollections(filteredCollections);
-    
-    // Extract unique waste types
-    const wasteTypes = Array.from(new Set(
-      filteredCollections.map(c => c.wasteType)
-    )).filter(Boolean) as string[];
-    
+    const wasteTypes = Array.from(new Set(filteredCollections.map(c => c.wasteType))).filter(Boolean) as string[];
     setAvailableWasteTypes(wasteTypes);
-    
-    // Set center to Nairobi or collector's address if available
-    if (collectorAddress) {
-      // If we had geocoding we'd convert address to coordinates here
-      // For now we'll use the default center
-    }
-  }, [collections, collectorAddress]);
+  }, [collections]);
 
-  // Get filtered collections based on waste type selection
   const getFilteredCollections = () => {
-    if (selectedWasteType === 'all') {
-      return activeCollections;
-    }
+    if (selectedWasteType === 'all') return activeCollections;
     return activeCollections.filter(c => c.wasteType === selectedWasteType);
   };
 
-  // Function to calculate and display the route
-  const calculateRoute = useCallback(async () => {
-    if (!isLoaded || !mapRef) return;
-    
-    // Get filtered collections
-    const filteredCollections = getFilteredCollections();
-    if (filteredCollections.length === 0) return;
-    
-    // Convert collections to waypoints
-    const waypoints = filteredCollections.map(collection => {
-      // Use location if available, otherwise try to get coordinates from address
-      // For demo purposes, we'll use a slight offset from center for each point
-      const randomLat = center.lat + (Math.random() - 0.5) * 0.05;
-      const randomLng = center.lng + (Math.random() - 0.5) * 0.05;
-      
-      return {
-        location: new google.maps.LatLng(
-          // If collection has location use it, otherwise use random offset
-          collection.location ? 
-            (collection.location as any).lat : 
-            randomLat,
-          collection.location ? 
-            (collection.location as any).lng : 
-            randomLng
-        ),
-        stopover: true
-      };
-    });
-    
-    // Need at least one waypoint for directions
-    if (waypoints.length === 0) return;
-    
-    // Create DirectionsService
-    const directionsService = new google.maps.DirectionsService();
-    
-    try {
-      // Request optimized route or route by waste type
-      const request: google.maps.DirectionsRequest = {
-        origin: center, // Start from collector's address or center
-        destination: center, // Return to origin
-        waypoints: waypoints,
-        optimizeWaypoints: routeType === 'optimal',
-        travelMode: google.maps.TravelMode.DRIVING
-      };
-      
-      const result = await directionsService.route(request);
-      setDirections(result);
-      
-      // Calculate route statistics
-      if (result.routes.length > 0) {
-        const route = result.routes[0];
-        let totalDistance = 0;
-        let totalDuration = 0;
-        
-        route.legs.forEach(leg => {
-          if (leg.distance && leg.duration) {
-            totalDistance += leg.distance.value;
-            totalDuration += leg.duration.value;
+  const getCollectionPosition = (collection: Collection): [number, number] => {
+    if (collection.location && typeof collection.location === 'object' && collection.location !== null) {
+      const loc = collection.location as any;
+      if (typeof loc.lat === 'number' && typeof loc.lng === 'number') {
+        return [loc.lat, loc.lng];
+      }
+    }
+    return [
+      center[0] + (Math.random() - 0.5) * 0.05,
+      center[1] + (Math.random() - 0.5) * 0.05,
+    ];
+  };
+
+  function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
+    const R = 6371;
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  const calculateRoute = useCallback(() => {
+    const filtered = getFilteredCollections();
+    if (filtered.length === 0) return;
+
+    const points: [number, number][] = [center];
+    const collectionPoints = filtered.map(c => getCollectionPosition(c));
+
+    if (routeType === 'optimal') {
+      const remaining = [...collectionPoints];
+      let current = center;
+      while (remaining.length > 0) {
+        let nearestIdx = 0;
+        let nearestDist = Infinity;
+        remaining.forEach((p, i) => {
+          const d = getDistanceKm(current[0], current[1], p[0], p[1]);
+          if (d < nearestDist) {
+            nearestDist = d;
+            nearestIdx = i;
           }
         });
-        
-        // Convert to km and minutes
-        const distanceKm = totalDistance / 1000;
-        const durationMin = totalDuration / 60;
-        
-        // Calculate ETA
-        const now = new Date();
-        const eta = new Date(now.getTime() + totalDuration * 1000);
-        
-        // Estimate fuel usage (rough estimate: 10L/100km)
-        const fuelLiters = (distanceKm / 100) * 10;
-        
-        setRouteStats({
-          totalDistance: `${distanceKm.toFixed(1)} km`,
-          totalDuration: `${Math.round(durationMin)} min`,
-          etaTime: eta.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          fuelEstimate: `${fuelLiters.toFixed(1)} L`
-        });
+        current = remaining.splice(nearestIdx, 1)[0];
+        points.push(current);
       }
-    } catch (error) {
-      console.error("Error calculating route:", error);
+    } else {
+      collectionPoints.forEach(p => points.push(p));
     }
-  }, [isLoaded, mapRef, center, activeCollections, routeType, selectedWasteType]);
 
-  // Callback when the map is loaded
-  const onLoad = useCallback((map: google.maps.Map) => {
-    setMapRef(map);
-  }, []);
+    points.push(center);
+    setRoutePoints(points);
+    setHasRoute(true);
 
-  const onUnmount = useCallback(() => {
-    setMapRef(null);
-  }, []);
+    let totalDistance = 0;
+    for (let i = 0; i < points.length - 1; i++) {
+      totalDistance += getDistanceKm(points[i][0], points[i][1], points[i + 1][0], points[i + 1][1]);
+    }
 
-  // Handle waste type change
+    const avgSpeedKmh = 30;
+    const durationMin = (totalDistance / avgSpeedKmh) * 60;
+    const now = new Date();
+    const eta = new Date(now.getTime() + durationMin * 60 * 1000);
+    const fuelLiters = (totalDistance / 100) * 10;
+
+    setRouteStats({
+      totalDistance: `${totalDistance.toFixed(1)} km`,
+      totalDuration: `${Math.round(durationMin)} min`,
+      etaTime: eta.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      fuelEstimate: `${fuelLiters.toFixed(1)} L`,
+    });
+  }, [activeCollections, routeType, selectedWasteType, center]);
+
   const handleWasteTypeChange = (value: string) => {
     setSelectedWasteType(value);
-    setDirections(null); // Reset directions when filter changes
+    setRoutePoints([]);
+    setHasRoute(false);
   };
 
-  // Handle route type change
   const handleRouteTypeChange = (value: 'optimal' | 'byWasteType') => {
     setRouteType(value);
-    setDirections(null); // Reset directions when route type changes
+    setRoutePoints([]);
+    setHasRoute(false);
   };
-
-  // Set the marker color based on collection status and waste type
-  const getMarkerIcon = (collection: Collection) => {
-    // Basic colors by status
-    const statusColors = {
-      'scheduled': 'blue',
-      'in_progress': 'yellow',
-      'completed': 'green',
-      'default': 'red'
-    };
-    
-    const status = collection.status || 'default';
-    return `http://maps.google.com/mapfiles/ms/icons/${statusColors[status as keyof typeof statusColors]}-dot.png`;
-  };
-
-  // Handle loading error
-  if (loadError) {
-    console.error("Google Maps API loading error:", loadError);
-    
-    // Fallback display - Simple visual representation of collections
-    return (
-      <div className="space-y-4">
-        <div className="flex flex-col items-center justify-center py-4 bg-muted rounded-lg">
-          <AlertTriangle className="h-8 w-8 text-amber-600 mb-2" />
-          <h3 className="text-lg font-medium">Map Loading Error</h3>
-          <p className="text-sm text-muted-foreground text-center max-w-md mt-1">
-            Failed to load Google Maps. Using simplified visualization instead.
-          </p>
-          <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-md text-xs text-amber-800">
-            <p>To enable the full Google Maps experience:</p>
-            <ol className="list-decimal pl-4 mt-1 space-y-1">
-              <li>Ensure the API key has Directions API enabled</li>
-              <li>Check if billing is enabled for your Google Maps account</li>
-            </ol>
-          </div>
-        </div>
-        
-        {/* Fallback visualization */}
-        <div className="border rounded-lg p-4 bg-gray-50">
-          <h3 className="font-medium mb-4">Collection Points (Simplified View)</h3>
-          
-          <div className="relative w-full h-[300px] border border-dashed rounded-lg bg-white">
-            {/* Collector base in center */}
-            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-              <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-white">
-                <Truck className="h-4 w-4" />
-              </div>
-              <div className="text-xs text-center mt-1 font-medium">Base</div>
-            </div>
-            
-            {/* Collection points */}
-            {activeCollections.map((collection, index) => {
-              // Position points in a circle around the base
-              const angle = (index / activeCollections.length) * Math.PI * 2;
-              const radius = 120; // Pixels from center
-              const top = `calc(50% + ${Math.sin(angle) * radius}px)`;
-              const left = `calc(50% + ${Math.cos(angle) * radius}px)`;
-              
-              // Determine color based on collection status
-              const colors = {
-                'scheduled': 'bg-blue-500',
-                'in_progress': 'bg-yellow-500',
-                'completed': 'bg-green-500',
-                'default': 'bg-gray-500'
-              };
-              
-              const status = collection.status || 'default';
-              const bgColor = colors[status as keyof typeof colors];
-              
-              return (
-                <div 
-                  key={collection.id}
-                  className="absolute transform -translate-x-1/2 -translate-y-1/2"
-                  style={{ top, left }}
-                >
-                  <div className={`w-6 h-6 ${bgColor} rounded-full flex items-center justify-center text-white`}>
-                    {index + 1}
-                  </div>
-                  <div className="text-xs text-center mt-1">
-                    {(collection.address || '').split(',')[0]}
-                  </div>
-                </div>
-              );
-            })}
-            
-            {/* Show connections */}
-            <svg className="absolute inset-0 w-full h-full pointer-events-none">
-              {activeCollections.map((_, index) => {
-                const angle = (index / activeCollections.length) * Math.PI * 2;
-                const radius = 120;
-                const x = 150 + Math.cos(angle) * radius;
-                const y = 150 + Math.sin(angle) * radius;
-                
-                return (
-                  <line 
-                    key={index}
-                    x1="50%"
-                    y1="50%"
-                    x2={x}
-                    y2={y}
-                    stroke="#9333ea"
-                    strokeWidth="2"
-                    strokeDasharray="5,5"
-                    strokeOpacity="0.6"
-                  />
-                );
-              })}
-            </svg>
-          </div>
-          
-          <div className="mt-4">
-            <h4 className="text-sm font-medium mb-2">Collection Sequence</h4>
-            <div className="space-y-2">
-              {activeCollections.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No active collections to route</p>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {activeCollections.map((collection, index) => (
-                    <div key={collection.id} className="flex items-center border rounded p-2 bg-white">
-                      <div className="mr-3 w-6 h-6 rounded-full bg-primary flex items-center justify-center text-white text-sm font-medium">
-                        {index + 1}
-                      </div>
-                      <div className="flex-1">
-                        <div className="font-medium capitalize text-sm">{collection.wasteType}</div>
-                        <div className="text-xs text-muted-foreground truncate">{collection.address}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Loading state
-  if (!isLoaded) {
-    return (
-      <div className="flex flex-col items-center justify-center h-[500px] bg-muted rounded-lg">
-        <Loader2 className="h-12 w-12 text-primary animate-spin mb-2" />
-        <h3 className="text-lg font-medium">Loading Map</h3>
-        <p className="text-sm text-muted-foreground">
-          Please wait while we load the route optimization map...
-        </p>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-4">
       <div className="flex flex-col md:flex-row justify-between gap-4 mb-4">
         <Card className="p-4 flex-1">
           <h3 className="font-medium mb-3">Route Options</h3>
-          
           <div className="space-y-4">
-            <RadioGroup 
-              defaultValue="optimal" 
+            <RadioGroup
+              defaultValue="optimal"
               value={routeType}
               onValueChange={(value) => handleRouteTypeChange(value as 'optimal' | 'byWasteType')}
               className="flex flex-col space-y-1"
@@ -375,13 +204,10 @@ export function RouteOptimizationMap({ collections, collectorAddress }: RouteOpt
                 <Label htmlFor="byWasteType">Group By Waste Type</Label>
               </div>
             </RadioGroup>
-            
+
             <div className="space-y-2">
               <Label htmlFor="wasteType">Filter by Waste Type</Label>
-              <Select
-                value={selectedWasteType}
-                onValueChange={handleWasteTypeChange}
-              >
+              <Select value={selectedWasteType} onValueChange={handleWasteTypeChange}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select Waste Type" />
                 </SelectTrigger>
@@ -395,22 +221,17 @@ export function RouteOptimizationMap({ collections, collectorAddress }: RouteOpt
                 </SelectContent>
               </Select>
             </div>
-            
-            <Button 
-              onClick={calculateRoute} 
-              disabled={activeCollections.length === 0}
-              className="w-full"
-            >
+
+            <Button onClick={calculateRoute} disabled={activeCollections.length === 0} className="w-full">
               <Navigation className="mr-2 h-4 w-4" />
               Calculate Route
             </Button>
           </div>
         </Card>
-        
+
         <Card className="p-4 flex-1">
           <h3 className="font-medium mb-3">Route Statistics</h3>
-          
-          {directions ? (
+          {hasRoute ? (
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
                 <div className="text-sm text-muted-foreground">Total Distance</div>
@@ -419,7 +240,6 @@ export function RouteOptimizationMap({ collections, collectorAddress }: RouteOpt
                   {routeStats.totalDistance}
                 </div>
               </div>
-              
               <div className="space-y-1">
                 <div className="text-sm text-muted-foreground">Total Duration</div>
                 <div className="font-medium flex items-center">
@@ -427,7 +247,6 @@ export function RouteOptimizationMap({ collections, collectorAddress }: RouteOpt
                   {routeStats.totalDuration}
                 </div>
               </div>
-              
               <div className="space-y-1">
                 <div className="text-sm text-muted-foreground">Estimated Arrival</div>
                 <div className="font-medium flex items-center">
@@ -435,7 +254,6 @@ export function RouteOptimizationMap({ collections, collectorAddress }: RouteOpt
                   {routeStats.etaTime}
                 </div>
               </div>
-              
               <div className="space-y-1">
                 <div className="text-sm text-muted-foreground">Est. Fuel Usage</div>
                 <div className="font-medium flex items-center">
@@ -455,90 +273,56 @@ export function RouteOptimizationMap({ collections, collectorAddress }: RouteOpt
           )}
         </Card>
       </div>
-      
+
       <div className="relative rounded-lg overflow-hidden border">
-        <GoogleMap
-          mapContainerStyle={containerStyle}
+        <MapContainer
           center={center}
           zoom={12}
-          onLoad={onLoad}
-          onUnmount={onUnmount}
-          options={{
-            streetViewControl: false,
-            mapTypeControl: true,
-            fullscreenControl: true,
-            zoomControl: true,
-          }}
+          style={{ width: '100%', height: '500px' }}
+          className="z-0"
         >
-          {/* Collector's base marker */}
-          <Marker
-            position={center}
-            icon={{
-              url: 'http://maps.google.com/mapfiles/ms/icons/purple-dot.png',
-              scaledSize: new google.maps.Size(40, 40)
-            }}
-            title="Collector Base"
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
-          
-          {/* Collection point markers */}
-          {!directions && getFilteredCollections().map(collection => (
-            <Marker
-              key={collection.id}
-              position={{
-                lat: collection.location ? (collection.location as any).lat as number : 
-                  (center.lat + (Math.random() - 0.5) * 0.05),
-                lng: collection.location ? (collection.location as any).lng as number : 
-                  (center.lng + (Math.random() - 0.5) * 0.05)
-              }}
-              icon={getMarkerIcon(collection)}
-              title={`${collection.wasteType} collection at ${collection.address}`}
-              onClick={() => setSelectedMarker(collection)}
-            />
-          ))}
-          
-          {/* Selected marker info window */}
-          {selectedMarker && (
-            <InfoWindow
-              position={{
-                lat: selectedMarker.location ? (selectedMarker.location as any).lat as number : 
-                  (center.lat + (Math.random() - 0.5) * 0.05),
-                lng: selectedMarker.location ? (selectedMarker.location as any).lng as number : 
-                  (center.lng + (Math.random() - 0.5) * 0.05)
-              }}
-              onCloseClick={() => setSelectedMarker(null)}
-            >
-              <div className="p-2 max-w-xs">
-                <h4 className="font-medium capitalize">{selectedMarker.wasteType} Collection</h4>
-                <p className="text-sm">{selectedMarker.address}</p>
-                {selectedMarker.wasteAmount && (
-                  <p className="text-sm">Amount: {formatNumber(selectedMarker.wasteAmount)} kg</p>
-                )}
-                <p className="text-sm capitalize">Status: {selectedMarker.status}</p>
-                {selectedMarker.notes && (
-                  <p className="text-sm mt-1">Notes: {selectedMarker.notes}</p>
-                )}
-              </div>
-            </InfoWindow>
-          )}
-          
-          {/* Directions renderer */}
-          {directions && (
-            <DirectionsRenderer
-              directions={directions}
-              options={{
-                suppressMarkers: false,
-                polylineOptions: {
-                  strokeColor: '#4CAF50',
-                  strokeWeight: 5,
-                  strokeOpacity: 0.7
-                }
-              }}
+
+          <Marker position={center} icon={collectorBaseIcon}>
+            <Popup>Collector Base</Popup>
+          </Marker>
+
+          {getFilteredCollections().map((collection, index) => {
+            const pos = getCollectionPosition(collection);
+            const color = statusColors[collection.status] || statusColors.default;
+            return (
+              <Marker
+                key={collection.id}
+                position={pos}
+                icon={createNumberedIcon(color, index + 1)}
+              >
+                <Popup>
+                  <div className="p-1 max-w-xs">
+                    <h4 className="font-medium capitalize">{collection.wasteType} Collection</h4>
+                    <p className="text-sm">{collection.address}</p>
+                    {collection.wasteAmount && (
+                      <p className="text-sm">Amount: {formatNumber(collection.wasteAmount)} kg</p>
+                    )}
+                    <p className="text-sm capitalize">Status: {collection.status}</p>
+                    {collection.notes && <p className="text-sm mt-1">Notes: {collection.notes}</p>}
+                  </div>
+                </Popup>
+              </Marker>
+            );
+          })}
+
+          {hasRoute && routePoints.length > 1 && (
+            <Polyline
+              positions={routePoints}
+              pathOptions={{ color: '#4CAF50', weight: 5, opacity: 0.7 }}
             />
           )}
-        </GoogleMap>
-        
-        {/* Map Legend */}
-        <div className="absolute bottom-3 left-3 bg-background/90 p-2 rounded-md shadow-md border border-border text-xs">
+        </MapContainer>
+
+        <div className="absolute bottom-3 left-3 bg-background/90 p-2 rounded-md shadow-md border border-border text-xs z-[1000]">
           <div className="font-semibold mb-1">Map Legend:</div>
           <div className="flex items-center mb-1">
             <div className="w-3 h-3 rounded-full bg-blue-500 mr-1"></div>
@@ -552,7 +336,7 @@ export function RouteOptimizationMap({ collections, collectorAddress }: RouteOpt
             <div className="w-3 h-3 rounded-full bg-purple-500 mr-1"></div>
             <span>Collector Base</span>
           </div>
-          {directions && (
+          {hasRoute && (
             <div className="flex items-center">
               <div className="w-3 h-3 bg-green-500 mr-1"></div>
               <span>Optimized Route</span>
@@ -560,7 +344,7 @@ export function RouteOptimizationMap({ collections, collectorAddress }: RouteOpt
           )}
         </div>
       </div>
-      
+
       {activeCollections.length === 0 && (
         <div className="bg-amber-50 border-amber-200 border p-4 rounded-lg text-amber-800">
           <h4 className="font-medium flex items-center">
@@ -568,7 +352,7 @@ export function RouteOptimizationMap({ collections, collectorAddress }: RouteOpt
             No Active Collections
           </h4>
           <p className="text-sm mt-1">
-            There are no scheduled or in-progress collections to route. 
+            There are no scheduled or in-progress collections to route.
             When you have active collections, you can use this tool to plan your pickup routes.
           </p>
         </div>

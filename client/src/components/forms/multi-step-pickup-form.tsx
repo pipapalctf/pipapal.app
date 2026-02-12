@@ -62,7 +62,6 @@ import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { useState, useEffect } from "react";
 import LocationPicker from "./location-picker";
-import { GoogleMap, useJsApiLoader, MarkerF } from "@react-google-maps/api";
 
 // Define location type
 type LocationType = { lat: number; lng: number };
@@ -104,38 +103,17 @@ enum FormStep {
   REVIEW = 3
 }
 
-const libraries = ['places'] as Array<'places'>;
-
 export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: MultiStepPickupFormProps) {
   const { toast } = useToast();
   const { user } = useAuth();
   const [location, navigate] = useLocation();
   
-  // Form step state
   const [currentStep, setCurrentStep] = useState<FormStep>(FormStep.WASTE_DETAILS);
-  // Form states
   const [isRescheduling, setIsRescheduling] = useState<boolean>(false);
   
-  // Map state
-  const [mapCenter, setMapCenter] = useState<LocationType>({ lat: -1.2921, lng: 36.8219 }); // Default to Nairobi
+  const [mapCenter, setMapCenter] = useState<LocationType>({ lat: -1.2921, lng: 36.8219 });
   
-  // Load Google Maps API
-  // Check if Google Maps API key exists
-  const mapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string;
-  console.log("Google Maps API key available:", !!mapsApiKey);
-  
-  // Load Google Maps API if key is available
-  const { isLoaded: isMapsLoaded, loadError } = useJsApiLoader({
-    googleMapsApiKey: mapsApiKey || "", // Provide empty string if key is missing
-    libraries
-  });
-  
-  // Log any errors loading Google Maps
-  useEffect(() => {
-    if (loadError) {
-      console.error("Error loading Google Maps API:", loadError);
-    }
-  }, [loadError]);
+  const isMapsLoaded = false;
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -622,86 +600,16 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
             }
           }
           
-          // If Google Maps API is loaded, try to get precise address
-          if (isMapsLoaded) {
-            try {
-              const geocoder = new google.maps.Geocoder();
-              
-              // Using promises for more modern approach
-              geocoder.geocode({ location: { lat: userLat, lng: userLng } })
-                .then((response) => {
-                  setIsDetecting(false);
-                  
-                  if (response.results && response.results[0]) {
-                    const fullAddress = response.results[0].formatted_address;
-                    console.log("Geocoded address:", fullAddress);
-                    
-                    // Update form with detected location
-                    form.setValue('location', { lat: userLat, lng: userLng });
-                    form.setValue('address', fullAddress);
-                    form.setValue('citySelection', closestCity.value);
-                    setMapCenter({ lat: userLat, lng: userLng });
-                    
-                    toast({
-                      title: "Location Detected",
-                      description: `Found your location: ${fullAddress}`,
-                    });
-                  } else {
-                    // Fallback to closest city if geocoding fails
-                    form.setValue('location', { lat: closestCity.lat, lng: closestCity.lng });
-                    form.setValue('address', closestCity.name + ", Kenya");
-                    form.setValue('citySelection', closestCity.value);
-                    setMapCenter({ lat: closestCity.lat, lng: closestCity.lng });
-                    
-                    toast({
-                      title: "Location Detected",
-                      description: `Using nearest city: ${closestCity.name}, Kenya`,
-                    });
-                  }
-                })
-                .catch((error) => {
-                  console.error("Geocoding error:", error);
-                  setIsDetecting(false);
-                  
-                  // Fallback to closest city if geocoding fails
-                  form.setValue('location', { lat: closestCity.lat, lng: closestCity.lng });
-                  form.setValue('address', closestCity.name + ", Kenya");
-                  form.setValue('citySelection', closestCity.value);
-                  setMapCenter({ lat: closestCity.lat, lng: closestCity.lng });
-                  
-                  toast({
-                    title: "Location Detected",
-                    description: `Using nearest city: ${closestCity.name}, Kenya`,
-                  });
-                });
-            } catch (error) {
-              console.error("Error creating geocoder:", error);
-              setIsDetecting(false);
-              
-              // Fallback to closest city
-              form.setValue('location', { lat: closestCity.lat, lng: closestCity.lng });
-              form.setValue('address', closestCity.name + ", Kenya");
-              form.setValue('citySelection', closestCity.value);
-              setMapCenter({ lat: closestCity.lat, lng: closestCity.lng });
-              
-              toast({
-                title: "Location Detected",
-                description: `Using nearest city: ${closestCity.name}, Kenya`,
-              });
-            }
-          } else {
-            // If Maps API not loaded, just use closest city
-            setIsDetecting(false);
-            form.setValue('location', { lat: closestCity.lat, lng: closestCity.lng });
-            form.setValue('address', closestCity.name + ", Kenya");
-            form.setValue('citySelection', closestCity.value);
-            setMapCenter({ lat: closestCity.lat, lng: closestCity.lng });
-            
-            toast({
-              title: "Location Detected",
-              description: `Using nearest city: ${closestCity.name}, Kenya`,
-            });
-          }
+          setIsDetecting(false);
+          form.setValue('location', { lat: closestCity.lat, lng: closestCity.lng });
+          form.setValue('address', closestCity.name + ", Kenya");
+          form.setValue('citySelection', closestCity.value);
+          setMapCenter({ lat: closestCity.lat, lng: closestCity.lng });
+          
+          toast({
+            title: "Location Detected",
+            description: `Using nearest city: ${closestCity.name}, Kenya`,
+          });
         },
         // Error handler
         (error) => {
@@ -912,28 +820,6 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
                   {watchedValues.address}
                 </p>
                 
-                {/* Show map if coordinates are available and Maps API is loaded */}
-                {watchedValues.location && isMapsLoaded && (
-                  <div className="mt-3 rounded-md overflow-hidden border border-border">
-                    <GoogleMap
-                      mapContainerStyle={{
-                        width: '100%',
-                        height: '200px'
-                      }}
-                      center={mapCenter}
-                      zoom={13}
-                      options={{
-                        disableDefaultUI: true,
-                        zoomControl: true,
-                      }}
-                    >
-                      <MarkerF
-                        position={mapCenter}
-                        title={watchedValues.address}
-                      />
-                    </GoogleMap>
-                  </div>
-                )}
               </div>
             </div>
           </div>

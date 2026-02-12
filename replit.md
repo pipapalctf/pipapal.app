@@ -54,7 +54,7 @@ The application uses a comprehensive PostgreSQL schema with the following core e
 - **Firebase**: Authentication and email verification
 - **Anthropic AI**: Eco-tip generation (with fallback content)
 - **SendGrid**: Email notifications and communication
-- **Google Maps**: Location services and route optimization
+- **Leaflet / OpenStreetMap**: Interactive maps and location services (free, no API key required)
 - **Neon Database**: Serverless PostgreSQL hosting
 
 ## Data Flow
@@ -72,7 +72,7 @@ The application uses a comprehensive PostgreSQL schema with the following core e
 - **drizzle-orm**: Type-safe database operations
 - **firebase**: Authentication services
 - **@anthropic-ai/sdk**: AI-powered eco-tip generation
-- **@react-google-maps/api**: Google Maps integration
+- **react-leaflet**: Interactive maps with OpenStreetMap (free, no API key)
 - **@sendgrid/mail**: Email service integration
 - **ws**: WebSocket server implementation
 

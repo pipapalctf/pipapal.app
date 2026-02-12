@@ -7,7 +7,6 @@ import PublicNavbar from "@/components/shared/public-navbar";
 import Footer from "@/components/shared/footer";
 import { AuthenticatedLayout } from "@/components/layouts/authenticated-layout";
 
-// UI components
 import {
   Card,
   CardContent,
@@ -48,8 +47,32 @@ import {
   Search
 } from "lucide-react";
 
-// Google Maps components
-import { GoogleMap, Marker, LoadScript } from "@react-google-maps/api";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+
+const defaultMapCenter: [number, number] = [-1.2921, 36.8219];
+
+function createMarkerIcon(color: string) {
+  return L.divIcon({
+    className: 'custom-marker',
+    html: `<div style="width:14px;height:14px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,0.4)"></div>`,
+    iconSize: [14, 14],
+    iconAnchor: [7, 7],
+  });
+}
+
+const recyclingCenterIcon = createMarkerIcon('#22c55e');
+const userLocationIcon = createMarkerIcon('#3b82f6');
+const selectedCenterIcon = createMarkerIcon('#ef4444');
+
+function MapViewUpdater({ center, zoom }: { center: [number, number]; zoom: number }) {
+  const map = useMap();
+  useEffect(() => {
+    map.setView(center, zoom);
+  }, [center, zoom, map]);
+  return null;
+}
 
 export default function RecyclingCentersPageNew() {
   const { user } = useAuth();
@@ -58,7 +81,7 @@ export default function RecyclingCentersPageNew() {
   const [filterCity, setFilterCity] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"list" | "map">("list");
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [mapError, setMapError] = useState<string | null>(null);
+  const [mapZoom, setMapZoom] = useState(10);
 
   // Fetch recycling centers - no authentication required
   const {
@@ -156,9 +179,6 @@ export default function RecyclingCentersPageNew() {
     setFilterCity(null);
   };
   
-  // State for map zoom level
-  const [mapZoom, setMapZoom] = useState(10);
-
   // Handle View on Map button click
   const handleViewOnMap = (center: RecyclingCenter) => {
     console.log("Viewing center on map:", center.name);
@@ -399,121 +419,56 @@ export default function RecyclingCentersPageNew() {
             {/* Map view */}
             <TabsContent value="map">
               <div className="h-[500px] bg-gray-100 rounded-lg overflow-hidden transition-all duration-300">
-                {!import.meta.env.VITE_GOOGLE_MAPS_API_KEY ? (
-                  <div className="flex h-full items-center justify-center">
-                    <div className="text-center p-4">
-                      <MapIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">Google Maps Configuration Needed</h3>
-                      <p className="text-gray-500 mb-3">
-                        The map requires domain authorization in Google Cloud Console
-                      </p>
-                      <div className="text-sm text-gray-600 mb-4 space-y-1">
-                        <p><strong>To fix this:</strong></p>
-                        <p>1. Go to Google Cloud Console → APIs & Services → Credentials</p>
-                        <p>2. Edit your Maps API key restrictions</p>
-                        <p>3. Add: <code className="bg-gray-100 px-1 rounded">https://*.replit.app/*</code></p>
-                        <p>4. Wait 5-10 minutes for changes to take effect</p>
-                      </div>
-                      <div className="space-y-2">
-                        <Button 
-                          variant="outline" 
-                          onClick={() => setViewMode("list")}
-                          className="text-sm w-full"
+                <MapContainer
+                  center={userLocation ? [userLocation.lat, userLocation.lng] : defaultMapCenter}
+                  zoom={mapZoom}
+                  style={{ width: '100%', height: '100%' }}
+                  className="z-0"
+                >
+                  <TileLayer
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  />
+                  <MapViewUpdater
+                    center={userLocation ? [userLocation.lat, userLocation.lng] : defaultMapCenter}
+                    zoom={mapZoom}
+                  />
+
+                  {userLocation && (
+                    <Marker
+                      position={[userLocation.lat, userLocation.lng]}
+                      icon={userLocationIcon}
+                    >
+                      <Popup>Your location</Popup>
+                    </Marker>
+                  )}
+
+                  {filteredCenters.map((center) => {
+                    if (center.latitude && center.longitude) {
+                      const isSelected =
+                        userLocation &&
+                        userLocation.lat === center.latitude &&
+                        userLocation.lng === center.longitude;
+
+                      return (
+                        <Marker
+                          key={center.id}
+                          position={[center.latitude, center.longitude]}
+                          icon={isSelected ? selectedCenterIcon : recyclingCenterIcon}
                         >
-                          Use List View Instead
-                        </Button>
-                        <p className="text-xs text-gray-400 text-center">
-                          All location details are available in list view
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <LoadScript 
-                    googleMapsApiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}
-                    onLoad={() => setMapError(null)}
-                    onError={() => setMapError("Google Maps API domain restriction error. The deployed domain needs to be added to your Google Cloud Console API key restrictions.")}
-                  >
-                    {mapError ? (
-                      <div className="w-full h-full flex items-center justify-center bg-gray-100 rounded-lg">
-                        <div className="text-center p-8">
-                          <MapIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                          <h3 className="text-lg font-medium text-gray-900 mb-2">Google Maps Restriction Error</h3>
-                          <p className="text-gray-500 mb-3 text-sm leading-relaxed">{mapError}</p>
-                          <div className="text-xs text-gray-600 mb-4 space-y-1 text-left max-w-sm mx-auto">
-                            <p><strong>Quick Fix:</strong></p>
-                            <p>1. Open <a href="https://console.cloud.google.com/apis/credentials" target="_blank" className="text-blue-600 hover:underline">Google Cloud Console</a></p>
-                            <p>2. Edit your Maps API key restrictions</p>
-                            <p>3. Add: <code className="bg-gray-100 px-1 rounded text-xs">https://*.replit.app/*</code></p>
-                            <p>4. Wait 5-10 minutes for changes to apply</p>
-                          </div>
-                          <div className="space-y-2">
-                            <Button 
-                              variant="outline" 
-                              onClick={() => setViewMode("list")}
-                              className="text-sm"
-                            >
-                              Switch to List View
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => {
-                                setMapError(null);
-                                window.location.reload();
-                              }}
-                              className="text-xs text-gray-500"
-                            >
-                              Try Again After Fix
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <GoogleMap
-                        mapContainerStyle={{ width: '100%', height: '100%' }}
-                        center={userLocation || { lat: -1.2921, lng: 36.8219 }}
-                        zoom={mapZoom}
-                        options={{
-                          streetViewControl: false,
-                          mapTypeControl: true,
-                          fullscreenControl: true
-                        }}
-                        onLoad={() => setMapError(null)}
-                      >
-                      {/* User location marker with custom icon */}
-                      {userLocation && (
-                        <Marker 
-                          position={userLocation} 
-                          title="Your location"
-                          // Default is blue marker
-                        />
-                      )}
-                      
-                        {filteredCenters.map((center) => {
-                          if (center.latitude && center.longitude) {
-                            const isSelected = 
-                              userLocation && 
-                              userLocation.lat === center.latitude && 
-                              userLocation.lng === center.longitude;
-                            
-                            return (
-                              <Marker
-                                key={center.id}
-                                position={{ lat: center.latitude, lng: center.longitude }}
-                                title={center.name}
-                                // Add animation to the selected marker
-                                animation={isSelected ? 1 : undefined}
-                                // 1 is BOUNCE in Google Maps API
-                              />
-                            );
-                          }
-                          return null;
-                        })}
-                      </GoogleMap>
-                    )}
-                  </LoadScript>
-                )}
+                          <Popup>
+                            <div className="p-1">
+                              <strong>{center.name}</strong>
+                              <p className="text-sm">{center.address}</p>
+                              <p className="text-sm text-gray-500">{center.city}</p>
+                            </div>
+                          </Popup>
+                        </Marker>
+                      );
+                    }
+                    return null;
+                  })}
+                </MapContainer>
               </div>
             </TabsContent>
           </Tabs>
