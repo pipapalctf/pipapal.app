@@ -240,6 +240,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         title: "Logout successful",
         description: "You have been logged out successfully",
       });
+      window.location.href = "/";
     },
     onError: (error: Error) => {
       toast({
