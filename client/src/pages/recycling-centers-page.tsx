@@ -38,8 +38,23 @@ import {
 import { UserRole } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
 
-// Import Google Maps component
-import { GoogleMap, Marker, LoadScript } from "@react-google-maps/api";
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+
+const markerIcon = L.divIcon({
+  className: 'custom-marker',
+  html: `<div style="width:12px;height:12px;border-radius:50%;background:#22c55e;border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,0.4)"></div>`,
+  iconSize: [12, 12],
+  iconAnchor: [6, 6],
+});
+
+const userMarkerIcon = L.divIcon({
+  className: 'custom-marker',
+  html: `<div style="width:14px;height:14px;border-radius:50%;background:#3b82f6;border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,0.4)"></div>`,
+  iconSize: [14, 14],
+  iconAnchor: [7, 7],
+});
 
 export default function RecyclingCentersPage() {
   const { user } = useAuth();
@@ -143,8 +158,6 @@ export default function RecyclingCentersPage() {
       {/* Debug data display */}
       {isLoading ? (
         <div className="text-sm p-2 mb-4 bg-gray-100 rounded">Loading recycling centers...</div>
-      ) : error ? (
-        <div className="text-sm p-2 mb-4 bg-red-100 rounded">Error: {error.message}</div>
       ) : recyclingCenters?.length === 0 ? (
         <div className="text-sm p-2 mb-4 bg-yellow-100 rounded">No recycling centers found in the database.</div>
       ) : (
@@ -322,43 +335,33 @@ export default function RecyclingCentersPage() {
         {/* Map view */}
         <TabsContent value="map">
           <div className="h-[500px] bg-gray-100 rounded-lg overflow-hidden">
-            {!import.meta.env.VITE_GOOGLE_MAPS_API_KEY ? (
-              <div className="flex h-full items-center justify-center">
-                <div className="text-center p-4">
-                  <MapIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500">
-                    Map view showing {filteredCenters.length} recycling centers
-                  </p>
-                  <p className="text-sm text-gray-400">
-                    Google Maps API key is required for map view
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <LoadScript googleMapsApiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}>
-                <GoogleMap
-                  mapContainerStyle={{ width: '100%', height: '100%' }}
-                  center={userLocation || { lat: -1.2921, lng: 36.8219 }}
-                  zoom={10}
-                >
-                  {userLocation && (
-                    <Marker 
-                      position={userLocation} 
-                    />
-                  )}
-                  
-                  {filteredCenters.map(center => (
-                    center.latitude && center.longitude && (
-                      <Marker
-                        key={center.id}
-                        position={{ lat: center.latitude, lng: center.longitude }}
-                        title={center.name}
-                      />
-                    )
-                  ))}
-                </GoogleMap>
-              </LoadScript>
-            )}
+            <MapContainer
+              center={[userLocation?.lat ?? -1.2921, userLocation?.lng ?? 36.8219]}
+              zoom={10}
+              style={{ width: '100%', height: '100%' }}
+              className="z-0"
+            >
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+              {userLocation && (
+                <Marker position={[userLocation.lat, userLocation.lng]} icon={userMarkerIcon}>
+                  <Popup>Your location</Popup>
+                </Marker>
+              )}
+              {filteredCenters.map(center => (
+                center.latitude && center.longitude ? (
+                  <Marker
+                    key={center.id}
+                    position={[center.latitude, center.longitude]}
+                    icon={markerIcon}
+                  >
+                    <Popup>{center.name}</Popup>
+                  </Marker>
+                ) : null
+              ))}
+            </MapContainer>
           </div>
         </TabsContent>
       </Tabs>
