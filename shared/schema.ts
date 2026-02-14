@@ -444,3 +444,41 @@ export const insertRecyclingCenterSchema = createInsertSchema(recyclingCenters)
 
 export type InsertRecyclingCenter = z.infer<typeof insertRecyclingCenterSchema>;
 export type RecyclingCenter = typeof recyclingCenters.$inferSelect;
+
+// User-to-user ratings table
+export const userRatings = pgTable("user_ratings", {
+  id: serial("id").primaryKey(),
+  collectionId: integer("collection_id").notNull().references(() => collections.id),
+  raterId: integer("rater_id").notNull().references(() => users.id),
+  rateeId: integer("ratee_id").notNull().references(() => users.id),
+  rating: integer("rating").notNull(), // 1-5 stars
+  comment: text("comment"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const userRatingsRelations = relations(userRatings, ({ one }) => ({
+  rater: one(users, {
+    fields: [userRatings.raterId],
+    references: [users.id],
+  }),
+  ratee: one(users, {
+    fields: [userRatings.rateeId],
+    references: [users.id],
+  }),
+  collection: one(collections, {
+    fields: [userRatings.collectionId],
+    references: [collections.id],
+  }),
+}));
+
+export const insertUserRatingSchema = createInsertSchema(userRatings)
+  .pick({
+    collectionId: true,
+    raterId: true,
+    rateeId: true,
+    rating: true,
+    comment: true,
+  });
+
+export type InsertUserRating = z.infer<typeof insertUserRatingSchema>;
+export type UserRating = typeof userRatings.$inferSelect;

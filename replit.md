@@ -42,6 +42,7 @@ The application uses a comprehensive PostgreSQL schema with the following core e
 - **Impact Tracking**: Environmental impact metrics and calculations
 - **Activities**: User action logging and gamification
 - **Feedback**: User feedback and support system
+- **User Ratings**: User-to-user rating system (1-5 stars with optional comments, tied to collections, unique constraint on collectionId+raterId+rateeId)
 
 ### User Roles and Permissions
 - **Households**: Schedule pickups, track impact, view recycling centers

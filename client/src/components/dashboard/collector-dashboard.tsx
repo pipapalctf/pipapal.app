@@ -112,8 +112,12 @@ export default function CollectorDashboard({ user }: CollectorDashboardProps) {
   
   const impact: Impact | undefined = impactData;
   
-  // User rating based on ratings from customers
-  const userRating = 4.7; // This would ideally come from the database
+  const { data: ratingData } = useQuery<{ average: number; count: number }>({
+    queryKey: [`/api/ratings/user/${user.id}/average`],
+    enabled: !!user.id,
+  });
+  const userRating = ratingData?.average || 0;
+  const ratingCount = ratingData?.count || 0;
 
   return (
     <div className="space-y-6 p-2 md:p-4">
@@ -421,12 +425,14 @@ export default function CollectorDashboard({ user }: CollectorDashboardProps) {
                     {[1, 2, 3, 4, 5].map((star) => (
                       <Star 
                         key={star} 
-                        className={`h-8 w-8 ${star <= 4.5 ? 'text-yellow-400 fill-yellow-400' : 'text-muted'}`} 
+                        className={`h-8 w-8 ${star <= Math.round(userRating) ? 'text-yellow-400 fill-yellow-400' : 'text-muted'}`} 
                       />
                     ))}
                   </div>
-                  <p className="text-2xl font-bold mt-2">4.5</p>
-                  <p className="text-sm text-muted-foreground">Based on job completion and timeliness</p>
+                  <p className="text-2xl font-bold mt-2">{userRating > 0 ? userRating.toFixed(1) : 'N/A'}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {ratingCount > 0 ? `Based on ${ratingCount} rating${ratingCount !== 1 ? 's' : ''}` : 'No ratings yet'}
+                  </p>
                 </div>
                 
                 <div className="space-y-2 mt-4">

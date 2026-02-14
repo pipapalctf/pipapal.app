@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams, useLocation } from "wouter";
-import { Collection, WasteType, CollectionStatus, WasteTypeValue, CollectionStatusType } from "@shared/schema";
+import { Collection, WasteType, CollectionStatus, WasteTypeValue, CollectionStatusType, User } from "@shared/schema";
 import { format } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { wasteTypeConfig, collectionStatusConfig } from "@/lib/types";
@@ -13,15 +13,19 @@ import {
   Clipboard, 
   Loader2, 
   CalendarClock, 
-  X 
+  X,
+  Star
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { IconBadge } from "@/components/ui/icon-badge";
+import { useAuth } from "@/hooks/use-auth";
+import RatingDialog from "@/components/rating-dialog";
 
 export default function CollectionDetailsPage() {
   const params = useParams<{ id: string }>();
   const [_, navigate] = useLocation();
+  const { user } = useAuth();
   const collectionId = parseInt(params.id);
   
   const { data: collection, isLoading, error } = useQuery<Collection>({
@@ -180,7 +184,7 @@ export default function CollectionDetailsPage() {
           </div>
         </div>
         
-        <div>
+        <div className="space-y-6">
           <Card>
             <CardHeader className="border-b border-gray-100">
               <CardTitle>Status Timeline</CardTitle>
@@ -215,6 +219,50 @@ export default function CollectionDetailsPage() {
               </div>
             </CardContent>
           </Card>
+
+          {collection.status === 'completed' && user && (
+            <Card>
+              <CardHeader className="border-b border-gray-100">
+                <CardTitle className="flex items-center gap-2">
+                  <Star className="h-5 w-5 text-yellow-400" />
+                  Rate This Collection
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <p className="text-sm text-muted-foreground mb-4">
+                  Share your experience to help improve our community.
+                </p>
+                <div className="space-y-3">
+                  {user.id === collection.userId && collection.collectorId && (
+                    <RatingDialog
+                      collectionId={collection.id}
+                      rateeId={collection.collectorId}
+                      rateeName="Collector"
+                      trigger={
+                        <Button variant="outline" className="w-full justify-start">
+                          <Star className="mr-2 h-4 w-4" />
+                          Rate Collector
+                        </Button>
+                      }
+                    />
+                  )}
+                  {user.id === collection.collectorId && (
+                    <RatingDialog
+                      collectionId={collection.id}
+                      rateeId={collection.userId}
+                      rateeName="Household"
+                      trigger={
+                        <Button variant="outline" className="w-full justify-start">
+                          <Star className="mr-2 h-4 w-4" />
+                          Rate Household
+                        </Button>
+                      }
+                    />
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>
