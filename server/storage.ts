@@ -9,6 +9,7 @@ import {
   materialInterests, type MaterialInterest, type InsertMaterialInterest,
   chatMessages, type ChatMessage, type InsertChatMessage,
   feedback, type Feedback, type InsertFeedback,
+  userRatings, type UserRating, type InsertUserRating,
   CollectionStatus
 } from "@shared/schema";
 import session from "express-session";
@@ -103,6 +104,14 @@ export interface IStorage {
   createFeedback(feedback: InsertFeedback): Promise<Feedback>;
   updateFeedbackStatus(id: number, status: string): Promise<Feedback | undefined>;
   
+  // User Ratings
+  createUserRating(rating: InsertUserRating): Promise<UserRating>;
+  getRatingsByUser(userId: number): Promise<UserRating[]>;
+  getRatingsForUser(userId: number): Promise<UserRating[]>;
+  getRatingsByCollection(collectionId: number): Promise<UserRating[]>;
+  getAverageRatingForUser(userId: number): Promise<{ average: number; count: number }>;
+  hasUserRatedCollection(raterId: number, rateeId: number, collectionId: number): Promise<boolean>;
+  
   // Session store
   sessionStore: any;
 }
@@ -118,7 +127,8 @@ export class MemStorage implements IStorage {
   private recyclingCenters: Map<number, RecyclingCenter>;
   private chatMessages: Map<number, ChatMessage>;
   private feedback: Map<number, Feedback>;
-  sessionStore: any; // Using any for express-session store type
+  private userRatingsMap: Map<number, UserRating>;
+  sessionStore: any;
   currentUserId: number;
   currentCollectionId: number;
   currentImpactId: number;
@@ -129,6 +139,7 @@ export class MemStorage implements IStorage {
   currentRecyclingCenterId: number;
   currentChatMessageId: number;
   currentFeedbackId: number;
+  currentUserRatingId: number;
 
   constructor() {
     this.users = new Map();
@@ -141,6 +152,7 @@ export class MemStorage implements IStorage {
     this.recyclingCenters = new Map();
     this.chatMessages = new Map();
     this.feedback = new Map();
+    this.userRatingsMap = new Map();
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000,
     });
@@ -154,6 +166,7 @@ export class MemStorage implements IStorage {
     this.currentRecyclingCenterId = 1;
     this.currentChatMessageId = 1;
     this.currentFeedbackId = 1;
+    this.currentUserRatingId = 1;
     
     // Seed eco-tips
     this.seedEcoTips();
@@ -747,6 +760,49 @@ export class MemStorage implements IStorage {
     return updatedFeedback;
   }
   
+  // User Ratings
+  async createUserRating(insertRating: InsertUserRating): Promise<UserRating> {
+    const id = this.currentUserRatingId++;
+    const now = new Date();
+    const rating: UserRating = {
+      ...insertRating,
+      id,
+      createdAt: now
+    };
+    this.userRatingsMap.set(id, rating);
+    return rating;
+  }
+
+  async getRatingsByUser(userId: number): Promise<UserRating[]> {
+    return Array.from(this.userRatingsMap.values())
+      .filter(r => r.raterId === userId)
+      .sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime());
+  }
+
+  async getRatingsForUser(userId: number): Promise<UserRating[]> {
+    return Array.from(this.userRatingsMap.values())
+      .filter(r => r.rateeId === userId)
+      .sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime());
+  }
+
+  async getRatingsByCollection(collectionId: number): Promise<UserRating[]> {
+    return Array.from(this.userRatingsMap.values())
+      .filter(r => r.collectionId === collectionId);
+  }
+
+  async getAverageRatingForUser(userId: number): Promise<{ average: number; count: number }> {
+    const ratings = await this.getRatingsForUser(userId);
+    if (ratings.length === 0) return { average: 0, count: 0 };
+    const sum = ratings.reduce((acc, r) => acc + r.rating, 0);
+    return { average: sum / ratings.length, count: ratings.length };
+  }
+
+  async hasUserRatedCollection(raterId: number, rateeId: number, collectionId: number): Promise<boolean> {
+    return Array.from(this.userRatingsMap.values()).some(
+      r => r.raterId === raterId && r.rateeId === rateeId && r.collectionId === collectionId
+    );
+  }
+
   // Seed initial data
   private async seedEcoTips() {
     const tips = [
@@ -1555,6 +1611,51 @@ export class DatabaseStorage implements IStorage {
       console.error('Error creating recycling center:', error);
       throw error;
     }
+  }
+
+  // User Ratings
+  async createUserRating(insertRating: InsertUserRating): Promise<UserRating> {
+    const [rating] = await db.insert(userRatings)
+      .values(insertRating)
+      .returning();
+    return rating;
+  }
+
+  async getRatingsByUser(userId: number): Promise<UserRating[]> {
+    return db.select().from(userRatings)
+      .where(eq(userRatings.raterId, userId))
+      .orderBy(desc(userRatings.createdAt));
+  }
+
+  async getRatingsForUser(userId: number): Promise<UserRating[]> {
+    return db.select().from(userRatings)
+      .where(eq(userRatings.rateeId, userId))
+      .orderBy(desc(userRatings.createdAt));
+  }
+
+  async getRatingsByCollection(collectionId: number): Promise<UserRating[]> {
+    return db.select().from(userRatings)
+      .where(eq(userRatings.collectionId, collectionId));
+  }
+
+  async getAverageRatingForUser(userId: number): Promise<{ average: number; count: number }> {
+    const result = await db.select({
+      average: sql<number>`COALESCE(AVG(${userRatings.rating}), 0)`,
+      count: sql<number>`COUNT(*)::int`
+    }).from(userRatings)
+      .where(eq(userRatings.rateeId, userId));
+    return { average: Number(result[0]?.average || 0), count: Number(result[0]?.count || 0) };
+  }
+
+  async hasUserRatedCollection(raterId: number, rateeId: number, collectionId: number): Promise<boolean> {
+    const result = await db.select({ id: userRatings.id }).from(userRatings)
+      .where(and(
+        eq(userRatings.raterId, raterId),
+        eq(userRatings.rateeId, rateeId),
+        eq(userRatings.collectionId, collectionId)
+      ))
+      .limit(1);
+    return result.length > 0;
   }
 }
 

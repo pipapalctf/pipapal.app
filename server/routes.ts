@@ -1774,8 +1774,113 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // We no longer need to modify the route handlers after registration
-  // since we've integrated the notification logic directly into our PATCH handler
+  // User Ratings
+  app.post('/api/ratings', requireAuthentication, async (req, res) => {
+    try {
+      const { collectionId, rateeId, rating, comment } = req.body;
+      const raterId = req.user!.id;
+
+      if (!collectionId || !rateeId || !rating) {
+        return res.status(400).json({ error: 'collectionId, rateeId, and rating are required' });
+      }
+      if (rating < 1 || rating > 5) {
+        return res.status(400).json({ error: 'Rating must be between 1 and 5' });
+      }
+      if (raterId === rateeId) {
+        return res.status(400).json({ error: 'You cannot rate yourself' });
+      }
+
+      const collection = await storage.getCollection(collectionId);
+      if (!collection || collection.status !== 'completed') {
+        return res.status(400).json({ error: 'Rating is only allowed for completed collections' });
+      }
+
+      const isHousehold = raterId === collection.userId;
+      const isCollector = raterId === collection.collectorId;
+      if (!isHousehold && !isCollector) {
+        return res.status(403).json({ error: 'You can only rate users from your own collections' });
+      }
+
+      const rateeIsHousehold = rateeId === collection.userId;
+      const rateeIsCollector = rateeId === collection.collectorId;
+      if (!rateeIsHousehold && !rateeIsCollector) {
+        return res.status(400).json({ error: 'You can only rate participants of this collection' });
+      }
+
+      const alreadyRated = await storage.hasUserRatedCollection(raterId, rateeId, collectionId);
+      if (alreadyRated) {
+        return res.status(409).json({ error: 'You have already rated this user for this collection' });
+      }
+
+      const newRating = await storage.createUserRating({
+        collectionId,
+        raterId,
+        rateeId,
+        rating,
+        comment: comment || null
+      });
+
+      res.status(201).json(newRating);
+    } catch (error) {
+      console.error('Error creating rating:', error);
+      res.status(500).json({ error: 'Failed to submit rating' });
+    }
+  });
+
+  app.get('/api/ratings/user/:userId', async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      if (isNaN(userId)) return res.status(400).json({ error: 'Invalid user ID' });
+
+      const ratings = await storage.getRatingsForUser(userId);
+      res.json(ratings);
+    } catch (error) {
+      console.error('Error fetching ratings:', error);
+      res.status(500).json({ error: 'Failed to fetch ratings' });
+    }
+  });
+
+  app.get('/api/ratings/user/:userId/average', async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      if (isNaN(userId)) return res.status(400).json({ error: 'Invalid user ID' });
+
+      const result = await storage.getAverageRatingForUser(userId);
+      res.json(result);
+    } catch (error) {
+      console.error('Error fetching average rating:', error);
+      res.status(500).json({ error: 'Failed to fetch average rating' });
+    }
+  });
+
+  app.get('/api/ratings/collection/:collectionId', requireAuthentication, async (req, res) => {
+    try {
+      const collectionId = parseInt(req.params.collectionId);
+      if (isNaN(collectionId)) return res.status(400).json({ error: 'Invalid collection ID' });
+
+      const ratings = await storage.getRatingsByCollection(collectionId);
+      res.json(ratings);
+    } catch (error) {
+      console.error('Error fetching collection ratings:', error);
+      res.status(500).json({ error: 'Failed to fetch collection ratings' });
+    }
+  });
+
+  app.get('/api/ratings/check/:collectionId/:rateeId', requireAuthentication, async (req, res) => {
+    try {
+      const collectionId = parseInt(req.params.collectionId);
+      const rateeId = parseInt(req.params.rateeId);
+      if (isNaN(collectionId) || isNaN(rateeId)) {
+        return res.status(400).json({ error: 'Invalid parameters' });
+      }
+
+      const hasRated = await storage.hasUserRatedCollection(req.user!.id, rateeId, collectionId);
+      res.json({ hasRated });
+    } catch (error) {
+      console.error('Error checking rating:', error);
+      res.status(500).json({ error: 'Failed to check rating status' });
+    }
+  });
 
   return httpServer;
 }
