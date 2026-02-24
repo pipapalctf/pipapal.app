@@ -8,6 +8,8 @@ import MultiStepPickupForm from "@/components/forms/multi-step-pickup-form-fixed
 import { useQuery } from "@tanstack/react-query";
 import { Collection, CollectionStatus } from "@shared/schema";
 import { CollectionDetailsDialog } from "@/components/modals/collection-details-dialog";
+import PaymentDialog from "@/components/payment-dialog";
+import { Payment } from "@shared/schema";
 import { 
   CalendarCheck, 
   CalendarPlus, 
@@ -31,7 +33,9 @@ import {
   SortAsc,
   ArrowUpDown,
   FileText,
-  AlertCircle
+  AlertCircle,
+  Smartphone,
+  CheckCircle
 } from "lucide-react";
 import { 
   DropdownMenu, 
@@ -116,6 +120,10 @@ export default function SchedulePickupPage() {
   // Fetch upcoming collections
   const { data: upcomingCollections = [] } = useQuery<Collection[]>({
     queryKey: ['/api/collections/upcoming'],
+  });
+
+  const { data: userPayments = [] } = useQuery<Payment[]>({
+    queryKey: ['/api/payments/user'],
   });
   
   // Cancel collection mutation
@@ -500,12 +508,16 @@ export default function SchedulePickupPage() {
                                   {getSortIcon('status')}
                                 </button>
                               </TableHead>
+                              <TableHead>Payment</TableHead>
                               <TableHead className="w-[80px]">Actions</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
                             {paginatedUpcomingCollections.map((collection) => {
                               const scheduledDate = new Date(collection.scheduledDate);
+                              const collectionPayments = userPayments.filter(p => p.collectionId === collection.id);
+                              const hasPaid = collectionPayments.some(p => p.status === 'success');
+                              const paidPayment = collectionPayments.find(p => p.status === 'success');
                               return (
                                 <TableRow key={collection.id}>
                                   <TableCell className="font-medium capitalize">
@@ -550,6 +562,27 @@ export default function SchedulePickupPage() {
                                   </TableCell>
                                   <TableCell>
                                     {getStatusBadge(collection.status)}
+                                  </TableCell>
+                                  <TableCell>
+                                    {hasPaid ? (
+                                      <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200">
+                                        <CheckCircle className="h-3 w-3 mr-1" />
+                                        Paid{paidPayment ? ` KES ${paidPayment.amount}` : ''}
+                                      </Badge>
+                                    ) : collection.status !== 'cancelled' ? (
+                                      <PaymentDialog
+                                        collectionId={collection.id}
+                                        suggestedAmount={collection.wasteAmount ? Math.round(collection.wasteAmount * 50) : 500}
+                                        trigger={
+                                          <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white">
+                                            <Smartphone className="h-3 w-3 mr-1" />
+                                            Pay Now
+                                          </Button>
+                                        }
+                                      />
+                                    ) : (
+                                      <span className="text-muted-foreground text-sm">—</span>
+                                    )}
                                   </TableCell>
                                   <TableCell>
                                     <DropdownMenu>
