@@ -3,10 +3,11 @@ import { Button } from "@/components/ui/button";
 import { IconBadge } from "@/components/ui/icon-badge";
 import { Collection, WasteTypeValue, CollectionStatusType } from "@shared/schema";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { EllipsisVertical, Eye, CalendarClock, X, Loader2, Plus } from "lucide-react";
+import { EllipsisVertical, Eye, CalendarClock, X, Loader2, Plus, Smartphone } from "lucide-react";
 import { collectionStatusConfig, wasteTypeConfig } from "@/lib/types";
 import { format } from "date-fns";
 import { Link, useLocation } from "wouter";
+import PaymentDialog from "@/components/payment-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -279,6 +280,22 @@ export default function UpcomingCollections() {
               </div>
             </div>
             
+            {selectedCollection.status !== 'cancelled' && (
+              <div className="border-t pt-4">
+                <h4 className="text-sm font-medium mb-2">Payment</h4>
+                <PaymentDialog
+                  collectionId={selectedCollection.id}
+                  suggestedAmount={selectedCollection.wasteAmount ? Math.round(selectedCollection.wasteAmount * 50) : 500}
+                  trigger={
+                    <Button className="w-full bg-green-600 hover:bg-green-700">
+                      <Smartphone className="mr-2 h-4 w-4" />
+                      Pay with M-Pesa
+                    </Button>
+                  }
+                />
+              </div>
+            )}
+
             <DialogFooter className="flex gap-2">
               <Button variant="outline" onClick={() => setShowDetailsDialog(false)}>
                 Close
