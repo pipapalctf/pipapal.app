@@ -57,6 +57,7 @@ The application uses a comprehensive PostgreSQL schema with the following core e
 - **SendGrid**: Email notifications and communication
 - **Leaflet / OpenStreetMap**: Interactive maps and location services (free, no API key required)
 - **Neon Database**: Serverless PostgreSQL hosting
+- **M-Pesa Daraja API**: Mobile money payments via Safaricom STK Push (sandbox mode)
 
 ## Data Flow
 
