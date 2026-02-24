@@ -482,3 +482,53 @@ export const insertUserRatingSchema = createInsertSchema(userRatings)
 
 export type InsertUserRating = z.infer<typeof insertUserRatingSchema>;
 export type UserRating = typeof userRatings.$inferSelect;
+
+export const PaymentStatus = {
+  PENDING: 'pending',
+  SUCCESS: 'success',
+  FAILED: 'failed',
+  CANCELLED: 'cancelled',
+} as const;
+
+export type PaymentStatusType = typeof PaymentStatus[keyof typeof PaymentStatus];
+
+export const payments = pgTable("payments", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  collectionId: integer("collection_id").references(() => collections.id),
+  amount: real("amount").notNull(),
+  phoneNumber: text("phone_number").notNull(),
+  status: text("status").notNull().default(PaymentStatus.PENDING),
+  merchantRequestId: text("merchant_request_id"),
+  checkoutRequestId: text("checkout_request_id"),
+  mpesaReceiptNumber: text("mpesa_receipt_number"),
+  resultCode: integer("result_code"),
+  resultDesc: text("result_desc"),
+  transactionDate: text("transaction_date"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const paymentsRelations = relations(payments, ({ one }) => ({
+  user: one(users, {
+    fields: [payments.userId],
+    references: [users.id],
+  }),
+  collection: one(collections, {
+    fields: [payments.collectionId],
+    references: [collections.id],
+  }),
+}));
+
+export const insertPaymentSchema = createInsertSchema(payments)
+  .pick({
+    userId: true,
+    collectionId: true,
+    amount: true,
+    phoneNumber: true,
+    status: true,
+    merchantRequestId: true,
+    checkoutRequestId: true,
+  });
+
+export type InsertPayment = z.infer<typeof insertPaymentSchema>;
+export type Payment = typeof payments.$inferSelect;

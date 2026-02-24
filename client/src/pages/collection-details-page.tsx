@@ -14,13 +14,15 @@ import {
   Loader2, 
   CalendarClock, 
   X,
-  Star
+  Star,
+  Smartphone
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { IconBadge } from "@/components/ui/icon-badge";
 import { useAuth } from "@/hooks/use-auth";
 import RatingDialog from "@/components/rating-dialog";
+import PaymentDialog from "@/components/payment-dialog";
 
 export default function CollectionDetailsPage() {
   const params = useParams<{ id: string }>();
@@ -219,6 +221,32 @@ export default function CollectionDetailsPage() {
               </div>
             </CardContent>
           </Card>
+
+          {user && user.id === collection.userId && collection.status !== 'cancelled' && (
+            <Card>
+              <CardHeader className="border-b border-gray-100">
+                <CardTitle className="flex items-center gap-2">
+                  <Smartphone className="h-5 w-5 text-green-600" />
+                  Payment
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <p className="text-sm text-muted-foreground mb-4">
+                  Pay for this collection using M-Pesa mobile money.
+                </p>
+                <PaymentDialog
+                  collectionId={collection.id}
+                  suggestedAmount={collection.wasteAmount ? Math.round(collection.wasteAmount * 50) : 500}
+                  trigger={
+                    <Button className="w-full bg-green-600 hover:bg-green-700">
+                      <Smartphone className="mr-2 h-4 w-4" />
+                      Pay with M-Pesa
+                    </Button>
+                  }
+                />
+              </CardContent>
+            </Card>
+          )}
 
           {collection.status === 'completed' && user && (
             <Card>

@@ -44,3 +44,9 @@ waitForPort = 5000
 
 [agent]
 integrations = ["firebase_barebones_javascript:1.0.0", "javascript_sendgrid:1.0.0", "javascript_anthropic:1.0.0", "javascript_openai:1.0.0", "javascript_websocket:1.0.0", "perplexity_v0:1.0.0"]
+
+[userenv]
+
+[userenv.shared]
+MPESA_SHORTCODE = "174379"
+MPESA_PASSKEY = "bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919"

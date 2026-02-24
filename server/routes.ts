@@ -12,7 +12,8 @@ import {
   Collection,
   UserRole,
   ChatMessage,
-  FeedbackCategory
+  FeedbackCategory,
+  PaymentStatus
 } from "@shared/schema";
 import { z } from "zod";
 import { setupAuth } from "./auth";
@@ -1879,6 +1880,227 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error checking rating:', error);
       res.status(500).json({ error: 'Failed to check rating status' });
+    }
+  });
+
+  // ==================== M-Pesa Payment Routes ====================
+
+  async function getMpesaAccessToken(): Promise<string> {
+    const consumerKey = process.env.MPESA_CONSUMER_KEY;
+    const consumerSecret = process.env.MPESA_CONSUMER_SECRET;
+    if (!consumerKey || !consumerSecret) {
+      throw new Error('M-Pesa credentials not configured');
+    }
+    const auth = Buffer.from(`${consumerKey}:${consumerSecret}`).toString('base64');
+    const response = await fetch(
+      'https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials',
+      { headers: { Authorization: `Basic ${auth}` } }
+    );
+    if (!response.ok) throw new Error('Failed to get M-Pesa access token');
+    const data = await response.json() as { access_token: string };
+    return data.access_token;
+  }
+
+  function generateMpesaTimestamp(): string {
+    const date = new Date();
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+    return `${year}${month}${day}${hours}${minutes}${seconds}`;
+  }
+
+  function formatPhoneNumber(phone: string): string {
+    let cleaned = phone.replace(/\s+/g, '').replace(/[^0-9+]/g, '');
+    if (cleaned.startsWith('+254')) {
+      cleaned = cleaned.substring(1);
+    } else if (cleaned.startsWith('0')) {
+      cleaned = '254' + cleaned.substring(1);
+    } else if (!cleaned.startsWith('254')) {
+      cleaned = '254' + cleaned;
+    }
+    return cleaned;
+  }
+
+  const stkPushSchema = z.object({
+    collectionId: z.number().optional(),
+    amount: z.number().min(1),
+    phoneNumber: z.string().min(9),
+  });
+
+  app.post('/api/payments/stk-push', requireAuthentication, async (req, res) => {
+    try {
+      const parsed = stkPushSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: 'Invalid payment data', details: parsed.error.errors });
+      }
+
+      const { collectionId, amount, phoneNumber } = parsed.data;
+      const userId = req.user!.id;
+
+      if (collectionId) {
+        const collection = await storage.getCollection(collectionId);
+        if (!collection) {
+          return res.status(404).json({ error: 'Collection not found' });
+        }
+        if (collection.userId !== userId) {
+          return res.status(403).json({ error: 'You can only pay for your own collections' });
+        }
+      }
+
+      const formattedPhone = formatPhoneNumber(phoneNumber);
+      if (!/^254\d{9}$/.test(formattedPhone)) {
+        return res.status(400).json({ error: 'Invalid phone number. Please enter a valid Safaricom number.' });
+      }
+
+      const shortCode = process.env.MPESA_SHORTCODE;
+      const passkey = process.env.MPESA_PASSKEY;
+      if (!shortCode || !passkey) {
+        return res.status(500).json({ error: 'M-Pesa payment is not configured yet. Please set up your credentials.' });
+      }
+
+      const token = await getMpesaAccessToken();
+      const timestamp = generateMpesaTimestamp();
+      const password = Buffer.from(shortCode + passkey + timestamp).toString('base64');
+
+      const callbackUrl = process.env.MPESA_CALLBACK_URL || `${req.protocol}://${req.get('host')}/api/payments/callback`;
+
+      const stkPayload = {
+        BusinessShortCode: shortCode,
+        Password: password,
+        Timestamp: timestamp,
+        TransactionType: 'CustomerPayBillOnline',
+        Amount: Math.round(amount),
+        PartyA: formattedPhone,
+        PartyB: shortCode,
+        PhoneNumber: formattedPhone,
+        CallBackURL: callbackUrl,
+        AccountReference: collectionId ? `COL${collectionId}` : `PAY${userId}`,
+        TransactionDesc: collectionId ? `Payment for waste collection #${collectionId}` : 'PipaPal payment',
+      };
+
+      const stkResponse = await fetch(
+        'https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest',
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(stkPayload),
+        }
+      );
+
+      const stkData = await stkResponse.json() as any;
+
+      if (stkData.ResponseCode !== '0') {
+        return res.status(400).json({ 
+          error: 'STK Push failed', 
+          details: stkData.ResponseDescription || stkData.errorMessage 
+        });
+      }
+
+      const payment = await storage.createPayment({
+        userId,
+        collectionId: collectionId ?? null,
+        amount,
+        phoneNumber: formattedPhone,
+        status: PaymentStatus.PENDING,
+        merchantRequestId: stkData.MerchantRequestID,
+        checkoutRequestId: stkData.CheckoutRequestID,
+      });
+
+      res.json({
+        success: true,
+        message: 'Payment prompt sent to your phone. Please enter your M-Pesa PIN.',
+        paymentId: payment.id,
+        checkoutRequestId: stkData.CheckoutRequestID,
+      });
+    } catch (error: any) {
+      console.error('STK Push error:', error);
+      res.status(500).json({ error: error.message || 'Failed to initiate payment' });
+    }
+  });
+
+  app.post('/api/payments/callback', async (req, res) => {
+    try {
+      console.log('M-Pesa callback received:', JSON.stringify(req.body, null, 2));
+
+      const { Body } = req.body;
+      if (!Body?.stkCallback) {
+        return res.status(200).json({ ResultCode: 0, ResultDesc: 'Accepted' });
+      }
+
+      const { ResultCode, ResultDesc, CheckoutRequestID } = Body.stkCallback;
+      const payment = await storage.getPaymentByCheckoutRequestId(CheckoutRequestID);
+
+      if (!payment || payment.status !== PaymentStatus.PENDING) {
+        console.error('Payment not found or not pending for CheckoutRequestID:', CheckoutRequestID);
+        return res.status(200).json({ ResultCode: 0, ResultDesc: 'Accepted' });
+      }
+
+      if (ResultCode === 0) {
+        const callbackMetadata = Body.stkCallback.CallbackMetadata?.Item || [];
+        const mpesaReceiptNumber = callbackMetadata.find((item: any) => item.Name === 'MpesaReceiptNumber')?.Value;
+        const transactionDate = callbackMetadata.find((item: any) => item.Name === 'TransactionDate')?.Value;
+
+        await storage.updatePayment(payment.id, {
+          status: PaymentStatus.SUCCESS,
+          resultCode: ResultCode,
+          resultDesc: ResultDesc,
+          mpesaReceiptNumber: mpesaReceiptNumber || null,
+          transactionDate: transactionDate ? String(transactionDate) : null,
+        });
+
+        if (payment.collectionId) {
+          await storage.updateCollection(payment.collectionId, { status: CollectionStatus.CONFIRMED });
+        }
+      } else {
+        await storage.updatePayment(payment.id, {
+          status: ResultCode === 1032 ? PaymentStatus.CANCELLED : PaymentStatus.FAILED,
+          resultCode: ResultCode,
+          resultDesc: ResultDesc,
+        });
+      }
+
+      res.status(200).json({ ResultCode: 0, ResultDesc: 'Accepted' });
+    } catch (error) {
+      console.error('M-Pesa callback error:', error);
+      res.status(200).json({ ResultCode: 0, ResultDesc: 'Accepted' });
+    }
+  });
+
+  app.get('/api/payments/collection/:collectionId', requireAuthentication, async (req, res) => {
+    try {
+      const collectionId = parseInt(req.params.collectionId);
+      if (isNaN(collectionId)) {
+        return res.status(400).json({ error: 'Invalid collection ID' });
+      }
+      const collection = await storage.getCollection(collectionId);
+      if (!collection) {
+        return res.status(404).json({ error: 'Collection not found' });
+      }
+      const userId = req.user!.id;
+      if (collection.userId !== userId && collection.collectorId !== userId && req.user!.role !== 'admin') {
+        return res.status(403).json({ error: 'Not authorized to view these payments' });
+      }
+      const paymentsList = await storage.getPaymentsByCollection(collectionId);
+      res.json(paymentsList);
+    } catch (error) {
+      console.error('Error fetching collection payments:', error);
+      res.status(500).json({ error: 'Failed to fetch payments' });
+    }
+  });
+
+  app.get('/api/payments/user', requireAuthentication, async (req, res) => {
+    try {
+      const payments = await storage.getPaymentsByUser(req.user!.id);
+      res.json(payments);
+    } catch (error) {
+      console.error('Error fetching user payments:', error);
+      res.status(500).json({ error: 'Failed to fetch payments' });
     }
   });
 

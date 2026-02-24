@@ -10,6 +10,7 @@ import {
   chatMessages, type ChatMessage, type InsertChatMessage,
   feedback, type Feedback, type InsertFeedback,
   userRatings, type UserRating, type InsertUserRating,
+  payments, type Payment, type InsertPayment,
   CollectionStatus
 } from "@shared/schema";
 import session from "express-session";
@@ -112,6 +113,13 @@ export interface IStorage {
   getAverageRatingForUser(userId: number): Promise<{ average: number; count: number }>;
   hasUserRatedCollection(raterId: number, rateeId: number, collectionId: number): Promise<boolean>;
   
+  // Payments
+  createPayment(payment: InsertPayment): Promise<Payment>;
+  updatePayment(id: number, updates: Partial<Payment>): Promise<Payment | undefined>;
+  getPaymentByCheckoutRequestId(checkoutRequestId: string): Promise<Payment | undefined>;
+  getPaymentsByUser(userId: number): Promise<Payment[]>;
+  getPaymentsByCollection(collectionId: number): Promise<Payment[]>;
+  
   // Session store
   sessionStore: any;
 }
@@ -128,6 +136,7 @@ export class MemStorage implements IStorage {
   private chatMessages: Map<number, ChatMessage>;
   private feedback: Map<number, Feedback>;
   private userRatingsMap: Map<number, UserRating>;
+  private paymentsMap: Map<number, Payment>;
   sessionStore: any;
   currentUserId: number;
   currentCollectionId: number;
@@ -140,6 +149,7 @@ export class MemStorage implements IStorage {
   currentChatMessageId: number;
   currentFeedbackId: number;
   currentUserRatingId: number;
+  currentPaymentId: number;
 
   constructor() {
     this.users = new Map();
@@ -153,6 +163,7 @@ export class MemStorage implements IStorage {
     this.chatMessages = new Map();
     this.feedback = new Map();
     this.userRatingsMap = new Map();
+    this.paymentsMap = new Map();
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000,
     });
@@ -167,6 +178,7 @@ export class MemStorage implements IStorage {
     this.currentChatMessageId = 1;
     this.currentFeedbackId = 1;
     this.currentUserRatingId = 1;
+    this.currentPaymentId = 1;
     
     // Seed eco-tips
     this.seedEcoTips();
@@ -801,6 +813,51 @@ export class MemStorage implements IStorage {
     return Array.from(this.userRatingsMap.values()).some(
       r => r.raterId === raterId && r.rateeId === rateeId && r.collectionId === collectionId
     );
+  }
+
+  async createPayment(payment: InsertPayment): Promise<Payment> {
+    const id = this.currentPaymentId++;
+    const newPayment: Payment = {
+      id,
+      userId: payment.userId,
+      collectionId: payment.collectionId ?? null,
+      amount: payment.amount,
+      phoneNumber: payment.phoneNumber,
+      status: payment.status || 'pending',
+      merchantRequestId: payment.merchantRequestId ?? null,
+      checkoutRequestId: payment.checkoutRequestId ?? null,
+      mpesaReceiptNumber: null,
+      resultCode: null,
+      resultDesc: null,
+      transactionDate: null,
+      createdAt: new Date(),
+    };
+    this.paymentsMap.set(id, newPayment);
+    return newPayment;
+  }
+
+  async updatePayment(id: number, updates: Partial<Payment>): Promise<Payment | undefined> {
+    const payment = this.paymentsMap.get(id);
+    if (!payment) return undefined;
+    const updated = { ...payment, ...updates };
+    this.paymentsMap.set(id, updated);
+    return updated;
+  }
+
+  async getPaymentByCheckoutRequestId(checkoutRequestId: string): Promise<Payment | undefined> {
+    return Array.from(this.paymentsMap.values()).find(p => p.checkoutRequestId === checkoutRequestId);
+  }
+
+  async getPaymentsByUser(userId: number): Promise<Payment[]> {
+    return Array.from(this.paymentsMap.values())
+      .filter(p => p.userId === userId)
+      .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+  }
+
+  async getPaymentsByCollection(collectionId: number): Promise<Payment[]> {
+    return Array.from(this.paymentsMap.values())
+      .filter(p => p.collectionId === collectionId)
+      .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
   }
 
   // Seed initial data
@@ -1656,6 +1713,35 @@ export class DatabaseStorage implements IStorage {
       ))
       .limit(1);
     return result.length > 0;
+  }
+
+  async createPayment(payment: InsertPayment): Promise<Payment> {
+    const [newPayment] = await db.insert(payments).values(payment).returning();
+    return newPayment;
+  }
+
+  async updatePayment(id: number, updates: Partial<Payment>): Promise<Payment | undefined> {
+    const [updated] = await db.update(payments).set(updates).where(eq(payments.id, id)).returning();
+    return updated;
+  }
+
+  async getPaymentByCheckoutRequestId(checkoutRequestId: string): Promise<Payment | undefined> {
+    const [payment] = await db.select().from(payments)
+      .where(eq(payments.checkoutRequestId, checkoutRequestId))
+      .limit(1);
+    return payment;
+  }
+
+  async getPaymentsByUser(userId: number): Promise<Payment[]> {
+    return db.select().from(payments)
+      .where(eq(payments.userId, userId))
+      .orderBy(desc(payments.createdAt));
+  }
+
+  async getPaymentsByCollection(collectionId: number): Promise<Payment[]> {
+    return db.select().from(payments)
+      .where(eq(payments.collectionId, collectionId))
+      .orderBy(desc(payments.createdAt));
   }
 }
 
