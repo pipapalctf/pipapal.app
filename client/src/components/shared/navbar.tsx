@@ -21,7 +21,8 @@ import {
   LayoutDashboard, 
   Lightbulb, 
   BarChart, 
-  User
+  User,
+  Receipt
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { NotificationBell } from "@/components/shared/notification-bell";
@@ -161,6 +162,7 @@ export default function Navbar() {
                 <span className="capitalize">{user.role} Account</span>
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => window.location.href = "/profile"}>Profile Settings</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => window.location.href = "/billing"}>Billing & Statements</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout}>Log out</DropdownMenuItem>
             </DropdownMenuContent>
@@ -213,6 +215,16 @@ export default function Navbar() {
             >
               <User className="w-4 h-4 mr-1" />
               Profile
+            </Link>
+            <Link
+              href="/billing"
+              className={`transition-colors font-medium flex items-center ${
+                location === "/billing" ? "text-primary" : "text-secondary hover:text-primary"
+              }`}
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              <Receipt className="w-4 h-4 mr-1" />
+              Billing
             </Link>
             <div className="flex items-center justify-between mt-2 border-t border-gray-100 pt-2">
               <div className="py-2">
