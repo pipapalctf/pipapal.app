@@ -50,7 +50,8 @@ import {
   Scale,
   FileText,
   Clipboard,
-  AlertCircle
+  AlertCircle,
+  LocateFixed
 } from "lucide-react";
 import { iconMap } from "@/components/ui/icon-badge";
 import { WasteType, WasteTypeValue, Collection } from "@shared/schema";
@@ -755,25 +756,40 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
               name="address"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Address Details (optional)</FormLabel>
+                  <FormLabel>Address Details</FormLabel>
                   <FormControl>
-                    <Input 
-                      placeholder="Additional address details (e.g. street name, landmark)"
-                      value={field.value} 
-                      onChange={(e) => {
-                        // Combine city and details if city is selected
-                        if (watchedValues.location) {
-                          const cityPart = watchedValues.address?.split(',')[0] || '';
-                          field.onChange(`${e.target.value}, ${cityPart}, Kenya`);
-                        } else {
-                          field.onChange(e.target.value);
-                        }
-                      }}
-                      disabled={isDetecting}
-                    />
+                    <div className="relative">
+                      <Input 
+                        placeholder="Provide exact address (e.g., street name, building, landmark)"
+                        value={field.value} 
+                        onChange={(e) => {
+                          if (watchedValues.location) {
+                            const cityPart = watchedValues.address?.split(',')[0] || '';
+                            field.onChange(`${e.target.value}, ${cityPart}, Kenya`);
+                          } else {
+                            field.onChange(e.target.value);
+                          }
+                        }}
+                        disabled={isDetecting}
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => detectUserLocation()}
+                        disabled={isDetecting}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors disabled:opacity-50"
+                        title="Detect my location"
+                      >
+                        {isDetecting ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <LocateFixed className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
                   </FormControl>
                   <FormDescription>
-                    Add specific details to help the collector find your location
+                    Add specific details or tap the location icon to auto-detect
                   </FormDescription>
                 </FormItem>
               )}
@@ -790,18 +806,33 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
               <FormItem>
                 <FormLabel>Full Address</FormLabel>
                 <FormControl>
-                  <Input 
-                    placeholder="Enter your complete address in Kenya"
-                    value={field.value} 
-                    onChange={(e) => {
-                      field.onChange(e.target.value);
-                      // Clear location coordinates since we're using manual entry
-                      form.setValue('location', undefined);
-                    }}
-                  />
+                  <div className="relative">
+                    <Input 
+                      placeholder="Enter your complete address in Kenya"
+                      value={field.value} 
+                      onChange={(e) => {
+                        field.onChange(e.target.value);
+                        form.setValue('location', undefined);
+                      }}
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => detectUserLocation()}
+                      disabled={isDetecting}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors disabled:opacity-50"
+                      title="Detect my location"
+                    >
+                      {isDetecting ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <LocateFixed className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
                 </FormControl>
                 <FormDescription>
-                  Please provide detailed address including street name, area, and city in Kenya
+                  Enter your address or tap the location icon to auto-detect
                 </FormDescription>
                 <FormMessage />
               </FormItem>
