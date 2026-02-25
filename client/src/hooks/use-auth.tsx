@@ -19,6 +19,15 @@ import {
 } from "@/lib/firebase";
 import { onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
 
+type GoogleLoginData = {
+  role: string;
+  consent: {
+    consentPrivacyPolicy: boolean;
+    consentTermsOfService: boolean;
+    consentUserAgreement: boolean;
+  };
+} | undefined;
+
 type AuthContextType = {
   user: SelectUser | null;
   firebaseUser: FirebaseUser | null;
@@ -26,7 +35,7 @@ type AuthContextType = {
   isLoading: boolean;
   error: Error | null;
   loginMutation: UseMutationResult<SelectUser, Error, LoginData>;
-  loginWithGoogleMutation: UseMutationResult<SelectUser, Error, string | undefined>;
+  loginWithGoogleMutation: UseMutationResult<SelectUser, Error, GoogleLoginData>;
   logoutMutation: UseMutationResult<void, Error, void>;
   registerMutation: UseMutationResult<SelectUser, Error, RegisterData>;
   resendVerificationEmailMutation: UseMutationResult<void, Error, void>;
@@ -110,29 +119,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Google login mutation
   const loginWithGoogleMutation = useMutation({
-    mutationFn: async (role?: string) => {
+    mutationFn: async (data?: GoogleLoginData) => {
       const googleResult = await signInWithGoogle();
       
       if (!googleResult.success || !googleResult.user) {
         throw new Error(googleResult.error || "Failed to sign in with Google");
       }
       
-      // We'd need to handle this on the backend to either find or create a user
-      // based on the Google account info
       const googleUser = googleResult.user;
       
-      // For now, we'll just use the email to log in if it exists in our system
       if (!googleUser.email) {
         throw new Error("Failed to get email from Google account");
       }
       
-      const res = await apiRequest("POST", "/api/login-with-google", {
+      const requestData: Record<string, unknown> = {
         email: googleUser.email,
         displayName: googleUser.displayName || googleUser.email.split('@')[0],
         photoURL: googleUser.photoURL || null,
         uid: googleUser.uid,
-        role: role || UserRole.HOUSEHOLD // Allow specifying a role, default to HOUSEHOLD if not provided
-      });
+        role: data?.role || UserRole.HOUSEHOLD,
+      };
+
+      if (data?.consent) {
+        requestData.consentPrivacyPolicy = data.consent.consentPrivacyPolicy;
+        requestData.consentTermsOfService = data.consent.consentTermsOfService;
+        requestData.consentUserAgreement = data.consent.consentUserAgreement;
+        requestData.consentDate = new Date().toISOString();
+      }
+      
+      const res = await apiRequest("POST", "/api/login-with-google", requestData);
       return await res.json();
     },
     onSuccess: (user: SelectUser) => {
@@ -168,10 +183,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { confirmPassword, ...userDataWithoutConfirm } = userData;
       const dataToSend = {
         ...userDataWithoutConfirm,
-        // Add Firebase UID to link accounts
         firebaseUid: firebaseResult.user.uid,
-        emailVerified: false, // Initially false until they verify email
-        onboardingCompleted: false
+        emailVerified: false,
+        onboardingCompleted: false,
+        consentPrivacyPolicy: true,
+        consentTermsOfService: true,
+        consentUserAgreement: true,
+        consentDate: new Date().toISOString(),
       };
       
       const res = await apiRequest("POST", "/api/register", dataToSend);

@@ -61,7 +61,7 @@ The application uses a comprehensive PostgreSQL schema with the following core e
 
 ## Data Flow
 
-1. **User Registration**: Firebase handles initial auth, backend creates user profiles
+1. **User Registration**: Firebase handles initial auth, backend creates user profiles. Consent checkboxes (Privacy Policy, Terms & Conditions, User Agreement) required during signup per Kenya DPA 2019. Consent is recorded with timestamp in the database.
 2. **Waste Collection**: Households schedule → Collectors accept → Status updates via WebSocket
 3. **Recycling Process**: Collectors complete jobs → Recyclers browse materials → Express interest
 4. **Communication**: Real-time chat system between all user types
