@@ -567,7 +567,7 @@ export default function SchedulePickupPage() {
                                     {hasPaid ? (
                                       <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200">
                                         <CheckCircle className="h-3 w-3 mr-1" />
-                                        Paid{paidPayment ? ` KES ${paidPayment.amount}` : ''}
+                                        Paid
                                       </Badge>
                                     ) : collection.status !== 'cancelled' ? (
                                       <PaymentDialog
