@@ -53,7 +53,8 @@ import {
   Clipboard,
   AlertCircle,
   Building,
-  Gift as GiftIcon
+  Gift as GiftIcon,
+  LocateFixed
 } from "lucide-react";
 import { iconMap } from "@/components/ui/icon-badge";
 import { WasteType, WasteTypeValue, Collection } from "@shared/schema";
@@ -81,7 +82,7 @@ const formSchema = z.object({
     required_error: "Please select a date and time",
   }),
   city: z.string({
-    required_error: "Please select a city",
+    required_error: "Please select a county",
   }),
   address: z.string().min(5, "Address must be at least 5 characters"),
   notes: z.string().optional(),
@@ -104,20 +105,54 @@ enum FormStep {
   REVIEW = 3
 }
 
-// Define Kenya cities
-const KENYA_CITIES = [
-  { value: "nairobi", name: "Nairobi" },
-  { value: "mombasa", name: "Mombasa" },
-  { value: "nakuru", name: "Nakuru" },
-  { value: "eldoret", name: "Eldoret" },
-  { value: "nyahururu", name: "Nyahururu" },
-  { value: "kisumu", name: "Kisumu" },
-  { value: "kericho", name: "Kericho" },
-  { value: "embu", name: "Embu" },
-  { value: "kapsabet", name: "Kapsabet" },
-  { value: "nyeri", name: "Nyeri" },
-  { value: "machakos", name: "Machakos" },
-  { value: "meru", name: "Meru" }
+const KENYA_COUNTIES = [
+  { value: "baringo", name: "Baringo", lat: 0.4913, lng: 35.7426 },
+  { value: "bomet", name: "Bomet", lat: -0.7813, lng: 35.3416 },
+  { value: "bungoma", name: "Bungoma", lat: 0.5635, lng: 34.5608 },
+  { value: "busia", name: "Busia", lat: 0.4347, lng: 34.2422 },
+  { value: "elgeyo-marakwet", name: "Elgeyo-Marakwet", lat: 0.6780, lng: 35.5082 },
+  { value: "embu", name: "Embu", lat: -0.5388, lng: 37.4593 },
+  { value: "garissa", name: "Garissa", lat: -0.4532, lng: 39.6461 },
+  { value: "homa-bay", name: "Homa Bay", lat: -0.5273, lng: 34.4571 },
+  { value: "isiolo", name: "Isiolo", lat: 0.3546, lng: 37.5822 },
+  { value: "kajiado", name: "Kajiado", lat: -2.0981, lng: 36.7820 },
+  { value: "kakamega", name: "Kakamega", lat: 0.2827, lng: 34.7519 },
+  { value: "kericho", name: "Kericho", lat: -0.3692, lng: 35.2863 },
+  { value: "kiambu", name: "Kiambu", lat: -1.1714, lng: 36.8355 },
+  { value: "kilifi", name: "Kilifi", lat: -3.5107, lng: 39.9093 },
+  { value: "kirinyaga", name: "Kirinyaga", lat: -0.4989, lng: 37.2803 },
+  { value: "kisii", name: "Kisii", lat: -0.6813, lng: 34.7668 },
+  { value: "kisumu", name: "Kisumu", lat: -0.1022, lng: 34.7617 },
+  { value: "kitui", name: "Kitui", lat: -1.3679, lng: 38.0106 },
+  { value: "kwale", name: "Kwale", lat: -4.1816, lng: 39.4521 },
+  { value: "laikipia", name: "Laikipia", lat: 0.3606, lng: 36.7819 },
+  { value: "lamu", name: "Lamu", lat: -2.2717, lng: 40.9020 },
+  { value: "machakos", name: "Machakos", lat: -1.5177, lng: 37.2634 },
+  { value: "makueni", name: "Makueni", lat: -1.8039, lng: 37.6195 },
+  { value: "mandera", name: "Mandera", lat: 3.9373, lng: 41.8569 },
+  { value: "marsabit", name: "Marsabit", lat: 2.3284, lng: 37.9909 },
+  { value: "meru", name: "Meru", lat: 0.0480, lng: 37.6559 },
+  { value: "migori", name: "Migori", lat: -1.0634, lng: 34.4731 },
+  { value: "mombasa", name: "Mombasa", lat: -4.0435, lng: 39.6682 },
+  { value: "muranga", name: "Murang'a", lat: -0.7839, lng: 37.1522 },
+  { value: "nairobi", name: "Nairobi", lat: -1.2921, lng: 36.8219 },
+  { value: "nakuru", name: "Nakuru", lat: -0.3031, lng: 36.0800 },
+  { value: "nandi", name: "Nandi", lat: 0.1836, lng: 35.1269 },
+  { value: "narok", name: "Narok", lat: -1.0878, lng: 35.8605 },
+  { value: "nyamira", name: "Nyamira", lat: -0.5633, lng: 34.9349 },
+  { value: "nyandarua", name: "Nyandarua", lat: -0.1804, lng: 36.5234 },
+  { value: "nyeri", name: "Nyeri", lat: -0.4197, lng: 36.9510 },
+  { value: "samburu", name: "Samburu", lat: 1.2150, lng: 36.9541 },
+  { value: "siaya", name: "Siaya", lat: -0.0617, lng: 34.2422 },
+  { value: "taita-taveta", name: "Taita-Taveta", lat: -3.3162, lng: 38.4850 },
+  { value: "tana-river", name: "Tana River", lat: -1.8012, lng: 39.6397 },
+  { value: "tharaka-nithi", name: "Tharaka-Nithi", lat: -0.3070, lng: 37.7230 },
+  { value: "trans-nzoia", name: "Trans Nzoia", lat: 1.0567, lng: 34.9507 },
+  { value: "turkana", name: "Turkana", lat: 3.3122, lng: 35.5658 },
+  { value: "uasin-gishu", name: "Uasin Gishu", lat: 0.5143, lng: 35.2698 },
+  { value: "vihiga", name: "Vihiga", lat: 0.0837, lng: 34.7073 },
+  { value: "wajir", name: "Wajir", lat: 1.7471, lng: 40.0573 },
+  { value: "west-pokot", name: "West Pokot", lat: 1.6210, lng: 35.1190 },
 ];
 
 export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: MultiStepPickupFormProps) {
@@ -161,7 +196,7 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
         ...dataToSend,
         scheduledDate: data.scheduledDate.toISOString(),
         // Add the city name to make it easier to read in the database
-        cityName: KENYA_CITIES.find(c => c.value === data.city)?.name,
+        cityName: KENYA_COUNTIES.find(c => c.value === data.city)?.name,
       };
       
       // Handle edit vs create
@@ -451,7 +486,111 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
     </div>
   );
   
-  // Render location step with manual city selection only
+  const [isDetecting, setIsDetecting] = useState<boolean>(false);
+
+  const detectUserLocation = () => {
+    if (!navigator.geolocation) {
+      toast({
+        title: "Location Detection Failed",
+        description: "Your browser doesn't support geolocation. Please enter your address manually.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsDetecting(true);
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const userLat = position.coords.latitude;
+        const userLng = position.coords.longitude;
+
+        const KENYA_BOUNDS = {
+          north: 4.62, south: -4.72, west: 33.90, east: 41.91
+        };
+
+        if (userLat < KENYA_BOUNDS.south || userLat > KENYA_BOUNDS.north ||
+            userLng < KENYA_BOUNDS.west || userLng > KENYA_BOUNDS.east) {
+          toast({
+            title: "Location Outside Kenya",
+            description: "PipaPal is only available in Kenya. Please select a Kenya county.",
+            variant: "destructive"
+          });
+          setIsDetecting(false);
+          return;
+        }
+
+        let closestCounty = KENYA_COUNTIES[0];
+        let minDistance = Number.MAX_VALUE;
+        for (const county of KENYA_COUNTIES) {
+          const distance = Math.sqrt(
+            Math.pow(county.lat - userLat, 2) + Math.pow(county.lng - userLng, 2)
+          );
+          if (distance < minDistance) {
+            minDistance = distance;
+            closestCounty = county;
+          }
+        }
+
+        form.setValue('city', closestCounty.value, { shouldValidate: true });
+
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${userLat}&lon=${userLng}&zoom=18&addressdetails=1`,
+            { headers: { 'Accept-Language': 'en' } }
+          );
+          if (response.ok) {
+            const data = await response.json();
+            const addr = data.address;
+            const parts = [
+              addr.road || addr.street,
+              addr.neighbourhood || addr.suburb,
+              addr.town || addr.city || addr.village,
+              closestCounty.name + " County"
+            ].filter(Boolean);
+            const detectedAddress = parts.join(', ');
+            form.setValue('address', detectedAddress, { shouldValidate: true });
+            toast({
+              title: "Location Detected",
+              description: detectedAddress,
+            });
+          } else {
+            form.setValue('address', `${closestCounty.name} County, Kenya`, { shouldValidate: true });
+            toast({
+              title: "Location Detected",
+              description: `${closestCounty.name} County, Kenya`,
+            });
+          }
+        } catch {
+          form.setValue('address', `${closestCounty.name} County, Kenya`, { shouldValidate: true });
+          toast({
+            title: "Location Detected",
+            description: `${closestCounty.name} County, Kenya`,
+          });
+        }
+
+        setIsDetecting(false);
+      },
+      (error) => {
+        setIsDetecting(false);
+        let errorMessage = "Failed to get your location. Please enter your address manually.";
+        if (error.code === 1) {
+          errorMessage = "Location access denied. Please grant permission or enter your address manually.";
+        } else if (error.code === 2) {
+          errorMessage = "Location unavailable. Please select your county and enter your address.";
+        } else if (error.code === 3) {
+          errorMessage = "Location request timed out. Please try again or enter manually.";
+        }
+        toast({
+          title: "Location Detection Failed",
+          description: errorMessage,
+          variant: "destructive"
+        });
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+  };
+
   const renderLocationStep = () => {
     return (
       <div className="space-y-6">
@@ -461,80 +600,81 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
             <div>
               <h3 className="font-medium">Collection Location</h3>
               <p className="text-sm text-muted-foreground mt-1">
-                PipaPal service is currently only available in Kenya. Please select your city and provide your address details.
+                PipaPal service is currently only available in Kenya. Please select your county and provide your address details.
               </p>
             </div>
           </div>
         </div>
         
-        {/* City Selection */}
         <FormField
           control={form.control}
           name="city"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Select Your City</FormLabel>
+              <FormLabel>Select Your County</FormLabel>
               <Select
                 onValueChange={field.onChange}
-                defaultValue={field.value}
+                value={field.value}
+                disabled={isDetecting}
               >
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Choose your city" />
+                    <SelectValue placeholder="Select the county where collection will take place" />
                   </SelectTrigger>
                 </FormControl>
-                <SelectContent>
-                  {KENYA_CITIES.map((city) => (
-                    <SelectItem key={city.name} value={city.value}>
-                      {city.name}
+                <SelectContent className="max-h-[300px]">
+                  {KENYA_COUNTIES.map((county) => (
+                    <SelectItem key={county.value} value={county.value}>
+                      {county.name} County
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               <FormDescription>
-                Select the city where collection will take place
+                Select the county where collection will take place
               </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
         
-        {/* Address Details - Basic HTML Version */}
-        <div>
-          <label htmlFor="address-input-multi" className="text-sm font-medium">Address Details</label>
-          <div className="relative mt-2">
-            <input
-              id="address-input-multi"
-              type="text"
-              placeholder="Provide exact address (e.g., street name, building, landmark)"
-              value={form.getValues().address || ""}
-              onChange={(e) => form.setValue("address", e.target.value, { shouldValidate: true })}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 pr-8"
-            />
-            <MapPin className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-          </div>
-          <p className="text-sm text-muted-foreground mt-1">
-            Enter the full address for waste collection, including any building/apartment numbers, floor, and landmark references.
-          </p>
-          {form.formState.errors.address && (
-            <p className="text-sm font-medium text-destructive mt-1">{form.formState.errors.address.message}</p>
+        <FormField
+          control={form.control}
+          name="address"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Address Details</FormLabel>
+              <FormControl>
+                <Input 
+                  placeholder="Provide exact address (e.g., street name, building, landmark)"
+                  value={field.value}
+                  onChange={(e) => field.onChange(e.target.value)}
+                  disabled={isDetecting}
+                />
+              </FormControl>
+              <FormDescription>
+                Enter the full address for waste collection, including any building/apartment numbers, floor, and landmark references.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
           )}
-        </div>
+        />
+
+        <Button
+          type="button"
+          variant="outline"
+          onClick={detectUserLocation}
+          disabled={isDetecting}
+          className="w-full"
+        >
+          {isDetecting ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <LocateFixed className="h-4 w-4 mr-2" />
+          )}
+          {isDetecting ? "Detecting your location..." : "Detect Location"}
+        </Button>
         
-        {/* Location note */}
-        <div className="rounded-md overflow-hidden border p-4 bg-muted/20">
-          <div className="flex items-center space-x-3 text-muted-foreground">
-            <Building className="h-5 w-5" />
-            <div>
-              <h4 className="font-medium text-foreground">Address Verification</h4>
-              <p className="text-sm mt-1">
-                Your address will be verified by the collector before pickup. Make sure it's accurate and includes nearby landmarks for easy identification.
-              </p>
-            </div>
-          </div>
-        </div>
-        
-        {/* Display Selected Location */}
         {watchedValues.address && watchedValues.city && (
           <div className="mt-4 bg-primary/10 border border-primary/20 rounded-md p-4">
             <div className="flex items-start space-x-3">
@@ -542,7 +682,7 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
               <div>
                 <h4 className="font-medium">Selected Location</h4>
                 <p className="text-sm text-muted-foreground mt-1 break-words">
-                  {watchedValues.address}, {watchedValues.city && KENYA_CITIES.find(c => c.value === watchedValues.city)?.name}, Kenya
+                  {watchedValues.address}, {KENYA_COUNTIES.find(c => c.value === watchedValues.city)?.name} County, Kenya
                 </p>
               </div>
             </div>
@@ -744,9 +884,9 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
                   <div className="flex flex-col">
                     <div className="flex items-center">
                       <Building className="h-4 w-4 mr-2 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">City:</span>
+                      <span className="text-sm text-muted-foreground">County:</span>
                       <span className="text-sm font-medium ml-2">
-                        {values.city && KENYA_CITIES.find(c => c.value === values.city)?.name || "Not specified"}
+                        {values.city && KENYA_COUNTIES.find(c => c.value === values.city)?.name || "Not specified"} County
                       </span>
                     </div>
                     <div className="flex items-start mt-2">
