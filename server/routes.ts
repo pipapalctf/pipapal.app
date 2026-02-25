@@ -2073,7 +2073,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
 
         if (payment.collectionId) {
-          await storage.updateCollection(payment.collectionId, { status: CollectionStatus.CONFIRMED });
+          console.log(`Payment successful for collection #${payment.collectionId}. Collection status unchanged — awaiting collector confirmation.`);
         }
       } else {
         await storage.updatePayment(payment.id, {
