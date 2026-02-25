@@ -154,26 +154,29 @@ export function setupAuth(app: Express) {
           });
         }
         
-        // Create new user with Google info
-        // Generate a random password (they'll login with Google, not password)
         const randomPassword = randomBytes(16).toString('hex');
         
-        // Validate the role is a valid UserRole
         const userRole = Object.values(UserRole).includes(role) 
           ? role 
-          : UserRole.HOUSEHOLD; // Default to HOUSEHOLD if invalid
+          : UserRole.HOUSEHOLD;
         
         console.log("Creating new Google user with role:", userRole);
         
+        const { consentPrivacyPolicy, consentTermsOfService, consentUserAgreement, consentDate } = req.body;
+        
         user = await storage.createUser({
-          username: email.split('@')[0] + '_' + randomBytes(3).toString('hex'), // Create unique username
+          username: email.split('@')[0] + '_' + randomBytes(3).toString('hex'),
           password: await hashPassword(randomPassword),
           fullName: displayName || email.split('@')[0],
           email,
-          role: userRole, // Use the role passed from the client
+          role: userRole,
           firebaseUid: uid,
-          emailVerified: true, // Google login is pre-verified
-          onboardingCompleted: false
+          emailVerified: true,
+          onboardingCompleted: false,
+          consentPrivacyPolicy: consentPrivacyPolicy === true,
+          consentTermsOfService: consentTermsOfService === true,
+          consentUserAgreement: consentUserAgreement === true,
+          consentDate: consentDate ? new Date(consentDate) : new Date(),
         });
       }
       

@@ -99,6 +99,12 @@ export const users = pgTable("users", {
   serviceType: text("service_type"), // "pickup", "drop_off", or "both"
   operatingHours: text("operating_hours"), // Operating hours information
   
+  // Consent fields (Kenya DPA 2019)
+  consentPrivacyPolicy: boolean("consent_privacy_policy").default(false),
+  consentTermsOfService: boolean("consent_terms_of_service").default(false),
+  consentUserAgreement: boolean("consent_user_agreement").default(false),
+  consentDate: timestamp("consent_date"),
+
   // Common
   onboardingCompleted: boolean("onboarding_completed").default(false),
 });
@@ -202,6 +208,11 @@ export const insertUserSchema = createInsertSchema(users)
     serviceLocation: true,
     serviceType: true,
     operatingHours: true,
+    // Consent fields
+    consentPrivacyPolicy: true,
+    consentTermsOfService: true,
+    consentUserAgreement: true,
+    consentDate: true,
     // Common fields
     onboardingCompleted: true,
   });

@@ -24,10 +24,11 @@ import { z } from "zod";
 import { useAuth } from "@/hooks/use-auth";
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { Loader2 } from "lucide-react";
+import { Loader2, ExternalLink } from "lucide-react";
 import Logo from "@/components/logo";
 import { UserRole } from "@shared/schema";
 import { FcGoogle } from "react-icons/fc";
+import { Checkbox } from "@/components/ui/checkbox";
 
 import { Separator } from "@/components/ui/separator";
 import { RoleSelectionDialog } from "@/components/auth/role-selection-dialog";
@@ -53,6 +54,9 @@ const registerFormSchema = z.object({
   }),
   address: z.string().min(5, "Address must be at least 5 characters"),
   phone: z.string().optional(),
+  consentPrivacyPolicy: z.literal(true, { errorMap: () => ({ message: "You must accept the Privacy Policy" }) }),
+  consentTermsOfService: z.literal(true, { errorMap: () => ({ message: "You must accept the Terms & Conditions" }) }),
+  consentUserAgreement: z.literal(true, { errorMap: () => ({ message: "You must accept the User Agreement" }) }),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords do not match",
   path: ["confirmPassword"],
@@ -97,9 +101,8 @@ export default function AuthPage() {
     }
   };
   
-  const handleRoleSelect = (role: string) => {
-    // After role is selected, proceed with Google sign-in with the selected role
-    loginWithGoogleMutation.mutate(role);
+  const handleRoleSelect = (role: string, consent: { consentPrivacyPolicy: boolean; consentTermsOfService: boolean; consentUserAgreement: boolean }) => {
+    loginWithGoogleMutation.mutate({ role, consent });
   };
   
   // Redirect if already logged in
@@ -130,6 +133,9 @@ export default function AuthPage() {
       role: getRoleFromUrlParam(urlParams.role),
       address: "",
       phone: "",
+      consentPrivacyPolicy: false as unknown as true,
+      consentTermsOfService: false as unknown as true,
+      consentUserAgreement: false as unknown as true,
     },
   });
   
@@ -473,12 +479,93 @@ export default function AuthPage() {
                               <FormItem>
                                 <FormLabel>Phone Number (Optional)</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="+1 (555) 123-4567" {...field} />
+                                  <Input placeholder="+254 7XX XXX XXX" {...field} />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
                             )}
                           />
+
+                          <div className="space-y-3 pt-2 border-t">
+                            <p className="text-sm font-medium text-gray-700">
+                              By creating an account, you agree to the following:
+                            </p>
+                            
+                            <FormField
+                              control={registerForm.control}
+                              name="consentPrivacyPolicy"
+                              render={({ field }) => (
+                                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                  <FormControl>
+                                    <Checkbox
+                                      checked={field.value === true}
+                                      onCheckedChange={field.onChange}
+                                    />
+                                  </FormControl>
+                                  <div className="space-y-1 leading-none">
+                                    <FormLabel className="text-sm font-normal cursor-pointer">
+                                      I have read and agree to the{" "}
+                                      <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary underline hover:text-primary/80 inline-flex items-center gap-0.5">
+                                        Privacy Policy
+                                        <ExternalLink className="h-3 w-3" />
+                                      </a>
+                                    </FormLabel>
+                                    <FormMessage />
+                                  </div>
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={registerForm.control}
+                              name="consentTermsOfService"
+                              render={({ field }) => (
+                                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                  <FormControl>
+                                    <Checkbox
+                                      checked={field.value === true}
+                                      onCheckedChange={field.onChange}
+                                    />
+                                  </FormControl>
+                                  <div className="space-y-1 leading-none">
+                                    <FormLabel className="text-sm font-normal cursor-pointer">
+                                      I have read and agree to the{" "}
+                                      <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary underline hover:text-primary/80 inline-flex items-center gap-0.5">
+                                        Terms & Conditions
+                                        <ExternalLink className="h-3 w-3" />
+                                      </a>
+                                    </FormLabel>
+                                    <FormMessage />
+                                  </div>
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={registerForm.control}
+                              name="consentUserAgreement"
+                              render={({ field }) => (
+                                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                  <FormControl>
+                                    <Checkbox
+                                      checked={field.value === true}
+                                      onCheckedChange={field.onChange}
+                                    />
+                                  </FormControl>
+                                  <div className="space-y-1 leading-none">
+                                    <FormLabel className="text-sm font-normal cursor-pointer">
+                                      I have read and agree to the{" "}
+                                      <a href="/user-agreement" target="_blank" rel="noopener noreferrer" className="text-primary underline hover:text-primary/80 inline-flex items-center gap-0.5">
+                                        User Agreement
+                                        <ExternalLink className="h-3 w-3" />
+                                      </a>
+                                    </FormLabel>
+                                    <FormMessage />
+                                  </div>
+                                </FormItem>
+                              )}
+                            />
+                          </div>
                           
                           <Button 
                             type="submit" 

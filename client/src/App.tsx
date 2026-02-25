@@ -21,6 +21,8 @@ import ChatPage from "@/pages/chat-page";
 import RecyclingCentersPage from "@/pages/recycling-centers-page-new";
 import PrivacyPolicyPage from "@/pages/privacy-policy-page";
 import TermsOfServicePage from "@/pages/terms-of-service-page";
+import UserAgreementPage from "@/pages/user-agreement-page";
+import BillingPage from "@/pages/billing-page";
 import { AuthProvider } from "@/hooks/use-auth";
 import { WebSocketProvider } from "@/hooks/use-websocket";
 import { ProtectedRoute } from "@/lib/protected-route";
@@ -42,6 +44,7 @@ function Router() {
       <ProtectedRoute path="/recycler/materials" component={RecyclerMaterialsPage} roleCheck={UserRole.RECYCLER} />
       <ProtectedRoute path="/materials" component={RecyclerMaterialsPage} roleCheck={UserRole.RECYCLER} />
       <ProtectedRoute path="/profile" component={ProfilePage} />
+      <ProtectedRoute path="/billing" component={BillingPage} />
       <ProtectedRoute path="/onboarding" component={OnboardingPage} skipOnboardingCheck={true} />
       <Route path="/recycling-centers" component={RecyclingCentersPage} />
       <Route path="/auth" component={AuthPage} />
@@ -49,6 +52,7 @@ function Router() {
       <Route path="/mission" component={MissionPage} />
       <Route path="/privacy" component={PrivacyPolicyPage} />
       <Route path="/terms" component={TermsOfServicePage} />
+      <Route path="/user-agreement" component={UserAgreementPage} />
       <Route component={NotFound} />
     </Switch>
   );

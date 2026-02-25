@@ -44,6 +44,13 @@ The application uses a comprehensive PostgreSQL schema with the following core e
 - **Feedback**: User feedback and support system
 - **User Ratings**: User-to-user rating system (1-5 stars with optional comments, tied to collections, unique constraint on collectionId+raterId+rateeId)
 
+### Billing & Statements
+- **Billing Page** (`/billing`): Shows payment history, transaction details, and billing summary
+- Summary cards: Total Paid, Pending, Failed, and total transaction count
+- Transaction list with date, amount, status badges, phone number, and M-Pesa receipt number
+- Filter by payment status (All, Paid, Pending, Failed, Cancelled)
+- Accessible from My Account dropdown and mobile menu in navbar
+
 ### User Roles and Permissions
 - **Households**: Schedule pickups, track impact, view recycling centers
 - **Collectors**: Accept jobs, manage routes, communicate with customers
@@ -61,7 +68,7 @@ The application uses a comprehensive PostgreSQL schema with the following core e
 
 ## Data Flow
 
-1. **User Registration**: Firebase handles initial auth, backend creates user profiles
+1. **User Registration**: Firebase handles initial auth, backend creates user profiles. Consent checkboxes (Privacy Policy, Terms & Conditions, User Agreement) required during signup per Kenya DPA 2019. Consent is recorded with timestamp in the database.
 2. **Waste Collection**: Households schedule → Collectors accept → Status updates via WebSocket
 3. **Recycling Process**: Collectors complete jobs → Recyclers browse materials → Express interest
 4. **Communication**: Real-time chat system between all user types
