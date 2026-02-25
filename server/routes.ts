@@ -1889,16 +1889,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const consumerKey = process.env.MPESA_CONSUMER_KEY;
     const consumerSecret = process.env.MPESA_CONSUMER_SECRET;
     if (!consumerKey || !consumerSecret) {
-      throw new Error('M-Pesa credentials not configured');
+      throw new Error('M-Pesa credentials not configured. Please set MPESA_CONSUMER_KEY and MPESA_CONSUMER_SECRET.');
     }
     const auth = Buffer.from(`${consumerKey}:${consumerSecret}`).toString('base64');
-    const response = await fetch(
-      'https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials',
-      { headers: { Authorization: `Basic ${auth}` } }
-    );
-    if (!response.ok) throw new Error('Failed to get M-Pesa access token');
-    const data = await response.json() as { access_token: string };
-    return data.access_token;
+    try {
+      const response = await fetch(
+        'https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials',
+        { 
+          headers: { Authorization: `Basic ${auth}` },
+          signal: AbortSignal.timeout(15000),
+        }
+      );
+      if (!response.ok) {
+        const errorBody = await response.text();
+        console.error(`M-Pesa token request failed: ${response.status} ${response.statusText}`, errorBody);
+        throw new Error(`Failed to get M-Pesa access token: ${response.status} ${response.statusText}`);
+      }
+      const data = await response.json() as { access_token: string };
+      if (!data.access_token) {
+        console.error('M-Pesa token response missing access_token:', data);
+        throw new Error('M-Pesa returned an invalid token response');
+      }
+      return data.access_token;
+    } catch (error: any) {
+      if (error.name === 'TimeoutError' || error.name === 'AbortError') {
+        throw new Error('M-Pesa API request timed out. Safaricom sandbox may be temporarily unavailable.');
+      }
+      throw error;
+    }
   }
 
   function generateMpesaTimestamp(): string {
