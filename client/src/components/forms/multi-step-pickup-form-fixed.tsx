@@ -614,7 +614,7 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
               <FormLabel>Select Your County</FormLabel>
               <Select
                 onValueChange={field.onChange}
-                value={field.value}
+                value={field.value || undefined}
                 disabled={isDetecting}
               >
                 <FormControl>
