@@ -1995,8 +1995,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         PartyB: shortCode,
         PhoneNumber: formattedPhone,
         CallBackURL: callbackUrl,
-        AccountReference: collectionId ? `COL${collectionId}` : `PAY${userId}`,
-        TransactionDesc: collectionId ? `Payment for waste collection #${collectionId}` : 'PipaPal payment',
+        AccountReference: 'PipaPal',
+        TransactionDesc: collectionId ? `PipaPal waste collection #${collectionId}` : 'PipaPal payment',
       };
 
       const stkResponse = await fetch(
