@@ -1894,7 +1894,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const auth = Buffer.from(`${consumerKey}:${consumerSecret}`).toString('base64');
     try {
       const response = await fetch(
-        'https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials',
+        'https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials',
         { 
           headers: { Authorization: `Basic ${auth}` },
           signal: AbortSignal.timeout(15000),
@@ -2000,7 +2000,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       const stkResponse = await fetch(
-        'https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest',
+        'https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest',
         {
           method: 'POST',
           headers: {
