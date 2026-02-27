@@ -647,9 +647,7 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
               <FormControl>
                 <Input 
                   placeholder="Provide exact address (e.g., street name, building, landmark)"
-                  value={field.value}
-                  onChange={(e) => field.onChange(e.target.value)}
-                  disabled={isDetecting}
+                  {...field}
                 />
               </FormControl>
               <FormDescription>
