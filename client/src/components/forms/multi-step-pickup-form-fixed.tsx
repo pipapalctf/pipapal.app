@@ -181,11 +181,8 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
     },
   });
   
-  const watchedWasteType = form.watch('wasteType');
-  const watchedWasteAmount = form.watch('wasteAmount');
-  const watchedConfirmSubmission = form.watch('confirmSubmission');
-  const [displayAddress, setDisplayAddress] = useState(form.getValues('address') || '');
-  const [displayCity, setDisplayCity] = useState(form.getValues('city') || '');
+  // Watch form values for use in UI
+  const watchedValues = form.watch();
   
   // Track submission success state
   const [isSubmitSuccess, setIsSubmitSuccess] = useState<boolean>(false);
@@ -436,38 +433,38 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
       />
       
       {/* Show waste info card if waste type is selected */}
-      {watchedWasteType && (
+      {watchedValues.wasteType && (
         <div className="mt-4">
           <Card className={`border ${
-            wasteTypeConfig[watchedWasteType as WasteTypeValue]?.bgColor || 'bg-card'
+            wasteTypeConfig[watchedValues.wasteType as WasteTypeValue]?.bgColor || 'bg-card'
           }`}>
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg flex items-center">
-                  {wasteTypeConfig[watchedWasteType as WasteTypeValue]?.icon && (
-                    <span className={`mr-2 ${wasteTypeConfig[watchedWasteType as WasteTypeValue]?.textColor}`}>
-                      {React.createElement(iconMap[wasteTypeConfig[watchedWasteType as WasteTypeValue]?.icon], { className: "h-5 w-5" })}
+                  {wasteTypeConfig[watchedValues.wasteType as WasteTypeValue]?.icon && (
+                    <span className={`mr-2 ${wasteTypeConfig[watchedValues.wasteType as WasteTypeValue]?.textColor}`}>
+                      {React.createElement(iconMap[wasteTypeConfig[watchedValues.wasteType as WasteTypeValue]?.icon], { className: "h-5 w-5" })}
                     </span>
                   )}
-                  {wasteTypeConfig[watchedWasteType as WasteTypeValue]?.label} Waste
+                  {wasteTypeConfig[watchedValues.wasteType as WasteTypeValue]?.label} Waste
                 </CardTitle>
                 <div className="px-3 py-1 rounded-full bg-primary/20 text-primary font-medium flex items-center">
                   <GiftIcon className="h-3 w-3 mr-1" />
-                  {wasteTypeConfig[watchedWasteType as WasteTypeValue]?.points} points/kg
+                  {wasteTypeConfig[watchedValues.wasteType as WasteTypeValue]?.points} points/kg
                 </div>
               </div>
             </CardHeader>
             <CardContent>
               <div className="text-sm">
-                <p className="mb-2">{wasteTypeConfig[watchedWasteType as WasteTypeValue]?.description}</p>
-                {watchedWasteAmount > 0 && (
+                <p className="mb-2">{wasteTypeConfig[watchedValues.wasteType as WasteTypeValue]?.description}</p>
+                {watchedValues.wasteAmount > 0 && (
                   <div className="space-y-3 mt-3 pt-3 border-t border-border">
                     <div className="flex justify-between items-center">
                       <div className="flex items-center">
                         <Scale className="h-4 w-4 mr-2 text-muted-foreground" />
                         <span>Estimated Amount:</span>
                       </div>
-                      <span className="font-medium">{watchedWasteAmount} kg</span>
+                      <span className="font-medium">{watchedValues.wasteAmount} kg</span>
                     </div>
                     
                     <div className="flex justify-between items-center">
@@ -476,7 +473,7 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
                         <span>Points Earning:</span>
                       </div>
                       <span className="font-medium text-primary">
-                        {watchedWasteAmount * (wasteTypeConfig[watchedWasteType as WasteTypeValue]?.points || 5)} points
+                        {watchedValues.wasteAmount * (wasteTypeConfig[watchedValues.wasteType as WasteTypeValue]?.points || 5)} points
                       </span>
                     </div>
                   </div>
@@ -536,7 +533,6 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
         }
 
         form.setValue('city', closestCounty.value, { shouldValidate: true });
-        setDisplayCity(closestCounty.value);
 
         try {
           const response = await fetch(
@@ -554,27 +550,22 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
             ].filter(Boolean);
             const detectedAddress = parts.join(', ');
             form.setValue('address', detectedAddress, { shouldValidate: true });
-            setDisplayAddress(detectedAddress);
             toast({
               title: "Location Detected",
               description: detectedAddress,
             });
           } else {
-            const fallbackAddr = `${closestCounty.name} County, Kenya`;
-            form.setValue('address', fallbackAddr, { shouldValidate: true });
-            setDisplayAddress(fallbackAddr);
+            form.setValue('address', `${closestCounty.name} County, Kenya`, { shouldValidate: true });
             toast({
               title: "Location Detected",
-              description: fallbackAddr,
+              description: `${closestCounty.name} County, Kenya`,
             });
           }
         } catch {
-          const fallbackAddr = `${closestCounty.name} County, Kenya`;
-          form.setValue('address', fallbackAddr, { shouldValidate: true });
-          setDisplayAddress(fallbackAddr);
+          form.setValue('address', `${closestCounty.name} County, Kenya`, { shouldValidate: true });
           toast({
             title: "Location Detected",
-            description: fallbackAddr,
+            description: `${closestCounty.name} County, Kenya`,
           });
         }
 
@@ -622,11 +613,9 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
             <FormItem>
               <FormLabel>Select Your County</FormLabel>
               <Select
-                onValueChange={(val) => {
-                  field.onChange(val);
-                  setDisplayCity(val);
-                }}
-                value={field.value || undefined}
+                onValueChange={field.onChange}
+                defaultValue={field.value || undefined}
+                disabled={isDetecting}
               >
                 <FormControl>
                   <SelectTrigger>
@@ -658,14 +647,7 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
               <FormControl>
                 <Input 
                   placeholder="Provide exact address (e.g., street name, building, landmark)"
-                  value={field.value}
-                  onChange={(e) => {
-                    field.onChange(e.target.value);
-                  }}
-                  onBlur={() => {
-                    field.onBlur();
-                    setDisplayAddress(field.value);
-                  }}
+                  {...field}
                 />
               </FormControl>
               <FormDescription>
@@ -691,14 +673,14 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
           {isDetecting ? "Detecting your location..." : "Detect Location"}
         </Button>
         
-        {displayAddress && displayCity && (
+        {watchedValues.address && watchedValues.city && (
           <div className="mt-4 bg-primary/10 border border-primary/20 rounded-md p-4">
             <div className="flex items-start space-x-3">
               <MapPin className="h-5 w-5 text-primary mt-0.5" />
               <div>
                 <h4 className="font-medium">Selected Location</h4>
                 <p className="text-sm text-muted-foreground mt-1 break-words">
-                  {displayAddress}, {KENYA_COUNTIES.find(c => c.value === displayCity)?.name} County, Kenya
+                  {watchedValues.address}, {KENYA_COUNTIES.find(c => c.value === watchedValues.city)?.name} County, Kenya
                 </p>
               </div>
             </div>
@@ -954,7 +936,7 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
             <div className="flex flex-row items-start space-x-3 space-y-0">
               <Checkbox
                 id="confirm-checkbox"
-                checked={!!watchedConfirmSubmission}
+                checked={!!watchedValues.confirmSubmission}
                 onCheckedChange={(checked) => {
                   form.setValue('confirmSubmission', !!checked);
                 }}
@@ -1042,7 +1024,7 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
             ) : (
               <Button
                 type="submit"
-                disabled={isSubmitting || (!watchedConfirmSubmission && !isSubmitSuccess)}
+                disabled={isSubmitting || (!watchedValues.confirmSubmission && !isSubmitSuccess)}
                 className={`space-x-2 ${isSubmitSuccess ? 'bg-green-600 text-white hover:bg-green-700' : ''}`}
               >
                 {isSubmitting ? (
@@ -1066,7 +1048,7 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
           </div>
           
           {/* Display note when on review step and checkbox is not checked */}
-          {currentStep === FormStep.REVIEW && !watchedConfirmSubmission && (
+          {currentStep === FormStep.REVIEW && !watchedValues.confirmSubmission && (
             <p className="text-sm text-muted-foreground text-center">
               Please confirm the details above by checking the box to enable submission
             </p>
