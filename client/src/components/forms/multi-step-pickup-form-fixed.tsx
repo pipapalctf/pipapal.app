@@ -181,8 +181,11 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
     },
   });
   
-  // Watch form values for use in UI
-  const watchedValues = form.watch();
+  const watchedAddress = form.watch('address');
+  const watchedCity = form.watch('city');
+  const watchedWasteType = form.watch('wasteType');
+  const watchedWasteAmount = form.watch('wasteAmount');
+  const watchedConfirmSubmission = form.watch('confirmSubmission');
   
   // Track submission success state
   const [isSubmitSuccess, setIsSubmitSuccess] = useState<boolean>(false);
@@ -433,38 +436,38 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
       />
       
       {/* Show waste info card if waste type is selected */}
-      {watchedValues.wasteType && (
+      {watchedWasteType && (
         <div className="mt-4">
           <Card className={`border ${
-            wasteTypeConfig[watchedValues.wasteType as WasteTypeValue]?.bgColor || 'bg-card'
+            wasteTypeConfig[watchedWasteType as WasteTypeValue]?.bgColor || 'bg-card'
           }`}>
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg flex items-center">
-                  {wasteTypeConfig[watchedValues.wasteType as WasteTypeValue]?.icon && (
-                    <span className={`mr-2 ${wasteTypeConfig[watchedValues.wasteType as WasteTypeValue]?.textColor}`}>
-                      {React.createElement(iconMap[wasteTypeConfig[watchedValues.wasteType as WasteTypeValue]?.icon], { className: "h-5 w-5" })}
+                  {wasteTypeConfig[watchedWasteType as WasteTypeValue]?.icon && (
+                    <span className={`mr-2 ${wasteTypeConfig[watchedWasteType as WasteTypeValue]?.textColor}`}>
+                      {React.createElement(iconMap[wasteTypeConfig[watchedWasteType as WasteTypeValue]?.icon], { className: "h-5 w-5" })}
                     </span>
                   )}
-                  {wasteTypeConfig[watchedValues.wasteType as WasteTypeValue]?.label} Waste
+                  {wasteTypeConfig[watchedWasteType as WasteTypeValue]?.label} Waste
                 </CardTitle>
                 <div className="px-3 py-1 rounded-full bg-primary/20 text-primary font-medium flex items-center">
                   <GiftIcon className="h-3 w-3 mr-1" />
-                  {wasteTypeConfig[watchedValues.wasteType as WasteTypeValue]?.points} points/kg
+                  {wasteTypeConfig[watchedWasteType as WasteTypeValue]?.points} points/kg
                 </div>
               </div>
             </CardHeader>
             <CardContent>
               <div className="text-sm">
-                <p className="mb-2">{wasteTypeConfig[watchedValues.wasteType as WasteTypeValue]?.description}</p>
-                {watchedValues.wasteAmount > 0 && (
+                <p className="mb-2">{wasteTypeConfig[watchedWasteType as WasteTypeValue]?.description}</p>
+                {watchedWasteAmount > 0 && (
                   <div className="space-y-3 mt-3 pt-3 border-t border-border">
                     <div className="flex justify-between items-center">
                       <div className="flex items-center">
                         <Scale className="h-4 w-4 mr-2 text-muted-foreground" />
                         <span>Estimated Amount:</span>
                       </div>
-                      <span className="font-medium">{watchedValues.wasteAmount} kg</span>
+                      <span className="font-medium">{watchedWasteAmount} kg</span>
                     </div>
                     
                     <div className="flex justify-between items-center">
@@ -473,7 +476,7 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
                         <span>Points Earning:</span>
                       </div>
                       <span className="font-medium text-primary">
-                        {watchedValues.wasteAmount * (wasteTypeConfig[watchedValues.wasteType as WasteTypeValue]?.points || 5)} points
+                        {watchedWasteAmount * (wasteTypeConfig[watchedWasteType as WasteTypeValue]?.points || 5)} points
                       </span>
                     </div>
                   </div>
@@ -614,8 +617,7 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
               <FormLabel>Select Your County</FormLabel>
               <Select
                 onValueChange={field.onChange}
-                defaultValue={field.value || undefined}
-                disabled={isDetecting}
+                value={field.value || undefined}
               >
                 <FormControl>
                   <SelectTrigger>
@@ -673,14 +675,14 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
           {isDetecting ? "Detecting your location..." : "Detect Location"}
         </Button>
         
-        {watchedValues.address && watchedValues.city && (
+        {watchedAddress && watchedCity && (
           <div className="mt-4 bg-primary/10 border border-primary/20 rounded-md p-4">
             <div className="flex items-start space-x-3">
               <MapPin className="h-5 w-5 text-primary mt-0.5" />
               <div>
                 <h4 className="font-medium">Selected Location</h4>
                 <p className="text-sm text-muted-foreground mt-1 break-words">
-                  {watchedValues.address}, {KENYA_COUNTIES.find(c => c.value === watchedValues.city)?.name} County, Kenya
+                  {watchedAddress}, {KENYA_COUNTIES.find(c => c.value === watchedCity)?.name} County, Kenya
                 </p>
               </div>
             </div>
@@ -936,7 +938,7 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
             <div className="flex flex-row items-start space-x-3 space-y-0">
               <Checkbox
                 id="confirm-checkbox"
-                checked={!!watchedValues.confirmSubmission}
+                checked={!!watchedConfirmSubmission}
                 onCheckedChange={(checked) => {
                   form.setValue('confirmSubmission', !!checked);
                 }}
@@ -1024,7 +1026,7 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
             ) : (
               <Button
                 type="submit"
-                disabled={isSubmitting || (!watchedValues.confirmSubmission && !isSubmitSuccess)}
+                disabled={isSubmitting || (!watchedConfirmSubmission && !isSubmitSuccess)}
                 className={`space-x-2 ${isSubmitSuccess ? 'bg-green-600 text-white hover:bg-green-700' : ''}`}
               >
                 {isSubmitting ? (
@@ -1048,7 +1050,7 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
           </div>
           
           {/* Display note when on review step and checkbox is not checked */}
-          {currentStep === FormStep.REVIEW && !watchedValues.confirmSubmission && (
+          {currentStep === FormStep.REVIEW && !watchedConfirmSubmission && (
             <p className="text-sm text-muted-foreground text-center">
               Please confirm the details above by checking the box to enable submission
             </p>
