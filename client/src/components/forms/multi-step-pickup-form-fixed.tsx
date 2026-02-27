@@ -181,11 +181,11 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
     },
   });
   
-  const watchedAddress = form.watch('address');
-  const watchedCity = form.watch('city');
   const watchedWasteType = form.watch('wasteType');
   const watchedWasteAmount = form.watch('wasteAmount');
   const watchedConfirmSubmission = form.watch('confirmSubmission');
+  const [displayAddress, setDisplayAddress] = useState(form.getValues('address') || '');
+  const [displayCity, setDisplayCity] = useState(form.getValues('city') || '');
   
   // Track submission success state
   const [isSubmitSuccess, setIsSubmitSuccess] = useState<boolean>(false);
@@ -536,6 +536,7 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
         }
 
         form.setValue('city', closestCounty.value, { shouldValidate: true });
+        setDisplayCity(closestCounty.value);
 
         try {
           const response = await fetch(
@@ -553,22 +554,27 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
             ].filter(Boolean);
             const detectedAddress = parts.join(', ');
             form.setValue('address', detectedAddress, { shouldValidate: true });
+            setDisplayAddress(detectedAddress);
             toast({
               title: "Location Detected",
               description: detectedAddress,
             });
           } else {
-            form.setValue('address', `${closestCounty.name} County, Kenya`, { shouldValidate: true });
+            const fallbackAddr = `${closestCounty.name} County, Kenya`;
+            form.setValue('address', fallbackAddr, { shouldValidate: true });
+            setDisplayAddress(fallbackAddr);
             toast({
               title: "Location Detected",
-              description: `${closestCounty.name} County, Kenya`,
+              description: fallbackAddr,
             });
           }
         } catch {
-          form.setValue('address', `${closestCounty.name} County, Kenya`, { shouldValidate: true });
+          const fallbackAddr = `${closestCounty.name} County, Kenya`;
+          form.setValue('address', fallbackAddr, { shouldValidate: true });
+          setDisplayAddress(fallbackAddr);
           toast({
             title: "Location Detected",
-            description: `${closestCounty.name} County, Kenya`,
+            description: fallbackAddr,
           });
         }
 
@@ -616,7 +622,10 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
             <FormItem>
               <FormLabel>Select Your County</FormLabel>
               <Select
-                onValueChange={field.onChange}
+                onValueChange={(val) => {
+                  field.onChange(val);
+                  setDisplayCity(val);
+                }}
                 value={field.value || undefined}
               >
                 <FormControl>
@@ -649,7 +658,14 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
               <FormControl>
                 <Input 
                   placeholder="Provide exact address (e.g., street name, building, landmark)"
-                  {...field}
+                  value={field.value}
+                  onChange={(e) => {
+                    field.onChange(e.target.value);
+                  }}
+                  onBlur={() => {
+                    field.onBlur();
+                    setDisplayAddress(field.value);
+                  }}
                 />
               </FormControl>
               <FormDescription>
@@ -675,14 +691,14 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
           {isDetecting ? "Detecting your location..." : "Detect Location"}
         </Button>
         
-        {watchedAddress && watchedCity && (
+        {displayAddress && displayCity && (
           <div className="mt-4 bg-primary/10 border border-primary/20 rounded-md p-4">
             <div className="flex items-start space-x-3">
               <MapPin className="h-5 w-5 text-primary mt-0.5" />
               <div>
                 <h4 className="font-medium">Selected Location</h4>
                 <p className="text-sm text-muted-foreground mt-1 break-words">
-                  {watchedAddress}, {KENYA_COUNTIES.find(c => c.value === watchedCity)?.name} County, Kenya
+                  {displayAddress}, {KENYA_COUNTIES.find(c => c.value === displayCity)?.name} County, Kenya
                 </p>
               </div>
             </div>
