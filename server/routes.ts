@@ -1539,6 +1539,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const filtered = recyclers
         .filter(r => r.onboardingCompleted)
+        .filter(r => r.acceptingWaste !== false)
         .filter(r => {
           if (!wasteType) return true;
           const specializations = r.wasteSpecialization || [];
@@ -1559,6 +1560,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching recyclers:", error);
       res.status(500).json({ error: "Failed to fetch recyclers" });
+    }
+  });
+
+  app.patch("/api/recycler/accepting-waste", requireAuthentication, requireRole(UserRole.RECYCLER), async (req: any, res: any) => {
+    try {
+      const { acceptingWaste } = req.body;
+      if (typeof acceptingWaste !== "boolean") {
+        return res.status(400).json({ error: "acceptingWaste must be a boolean" });
+      }
+      const updated = await storage.updateUser(req.user.id, { acceptingWaste });
+      res.json({ acceptingWaste: updated?.acceptingWaste });
+    } catch (error) {
+      console.error("Error updating accepting waste:", error);
+      res.status(500).json({ error: "Failed to update" });
     }
   });
 

@@ -98,6 +98,7 @@ export const users = pgTable("users", {
   serviceLocation: text("service_location"), // Where they operate
   serviceType: text("service_type"), // "pickup", "drop_off", or "both"
   operatingHours: text("operating_hours"), // Operating hours information
+  acceptingWaste: boolean("accepting_waste").default(true), // Whether recycler is currently accepting waste
   
   // Consent fields (Kenya DPA 2019)
   consentPrivacyPolicy: boolean("consent_privacy_policy").default(false),
