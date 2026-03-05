@@ -1683,7 +1683,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/collections/:id/confirm-dropoff", requireAuthentication, requireRole(UserRole.RECYCLER), async (req: any, res: any) => {
+  app.post("/api/collections/:id/confirm-dropoff", requireAuthentication, requireRole(UserRole.COLLECTOR), async (req: any, res: any) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) return res.status(400).send("Invalid ID format");
@@ -1692,12 +1692,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const collection = await storage.getCollection(id);
       if (!collection) return res.status(404).json({ error: "Collection not found" });
 
-      if (collection.dropoffCenterId !== req.user.id) {
-        return res.status(403).json({ error: "This drop-off is not assigned to you" });
+      if (collection.collectorId !== req.user.id) {
+        return res.status(403).json({ error: "This collection is not assigned to you" });
       }
 
       if (collection.dropoffCode !== dropoffCode) {
-        return res.status(400).json({ error: "Invalid drop-off code" });
+        return res.status(400).json({ error: "Invalid drop-off code. Please check with the recycler." });
       }
 
       if (collection.dropoffConfirmed) {
@@ -1709,24 +1709,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         dropoffStatus: 'confirmed'
       });
 
-      if (updated && collection.wasteAmount) {
-        const limits = await storage.getWasteAcceptanceLimits(req.user.id);
+      if (updated && collection.wasteAmount && collection.dropoffCenterId) {
+        const limits = await storage.getWasteAcceptanceLimits(collection.dropoffCenterId);
         const matchingLimit = limits.find(l => l.wasteType === collection.wasteType);
         if (matchingLimit) {
           await storage.updateWasteAcceptanceLimitUsage(matchingLimit.id, collection.wasteAmount);
         }
       }
 
-      if (updated && collection.collectorId) {
+      if (updated && collection.dropoffCenterId) {
         try {
-          const collectorClients = clients.get(collection.collectorId) || [];
-          const recyclerName = req.user.businessName || req.user.fullName || req.user.username;
+          const recyclerClients = clients.get(collection.dropoffCenterId) || [];
+          const collectorName = req.user.businessName || req.user.fullName || req.user.username;
           const notification = {
             type: 'dropoff_confirmed',
             collectionId: collection.id,
-            message: `${recyclerName} has confirmed receiving your ${collection.wasteType} drop-off of ${collection.wasteAmount || 0} kg.`
+            message: `${collectorName} has confirmed delivering ${collection.wasteAmount || 0} kg of ${collection.wasteType} waste.`
           };
-          collectorClients.forEach((ws: any) => {
+          recyclerClients.forEach((ws: any) => {
             if (ws.readyState === 1) ws.send(JSON.stringify(notification));
           });
         } catch (e) {

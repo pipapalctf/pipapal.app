@@ -4,13 +4,12 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Loader2, Inbox, Star, Phone, Mail, Building2, Award, ChevronDown, ChevronUp, User, MapPin, Settings, Plus, Trash2, CheckCircle, Package } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Loader2, Inbox, Star, Phone, Mail, Building2, Award, ChevronDown, ChevronUp, User, MapPin, Settings, Plus, Trash2, CheckCircle, Package, Copy } from "lucide-react";
 import { format } from "date-fns";
 import { wasteTypeConfig } from "@/lib/types";
 import { useAuth } from "@/hooks/use-auth";
@@ -284,8 +283,6 @@ export function DropoffRequests() {
   const { user } = useAuth();
   const [expandedCollectors, setExpandedCollectors] = useState<Set<number>>(new Set());
   const [showConfig, setShowConfig] = useState(false);
-  const [confirmCode, setConfirmCode] = useState('');
-  const [confirmingId, setConfirmingId] = useState<number | null>(null);
 
   const isAccepting = user?.acceptingWaste !== false;
 
@@ -295,6 +292,11 @@ export function DropoffRequests() {
       if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
+  };
+
+  const copyCode = (code: string) => {
+    navigator.clipboard.writeText(code);
+    toast({ title: "Code copied", description: `Drop-off code ${code} copied to clipboard.` });
   };
 
   const { data: dropoffs = [], isLoading } = useQuery<DropoffCollection[]>({
@@ -310,27 +312,6 @@ export function DropoffRequests() {
       return res.json();
     },
     enabled: !!user?.id,
-  });
-
-  const confirmDropoffMutation = useMutation({
-    mutationFn: async ({ collectionId, dropoffCode }: { collectionId: number; dropoffCode: string }) => {
-      const res = await apiRequest("POST", `/api/collections/${collectionId}/confirm-dropoff`, { dropoffCode });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to confirm");
-      }
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/dropoffs"] });
-      queryClient.invalidateQueries({ queryKey: ['/api/waste-acceptance-limits'] });
-      setConfirmingId(null);
-      setConfirmCode('');
-      toast({ title: "Drop-off Confirmed", description: "The delivery has been confirmed and the amount has been deducted from your capacity." });
-    },
-    onError: (error: Error) => {
-      toast({ title: "Confirmation Failed", description: error.message, variant: "destructive" });
-    },
   });
 
   const getWasteConfig = (type: string) => {
@@ -434,15 +415,14 @@ export function DropoffRequests() {
                       <TableHead>Amount</TableHead>
                       <TableHead>Pickup Location</TableHead>
                       <TableHead>Date</TableHead>
+                      <TableHead>Drop-off Code</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Confirm Delivery</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {unconfirmedDropoffs.map((dropoff) => {
                       const config = getWasteConfig(dropoff.wasteType);
                       const isExpanded = expandedCollectors.has(dropoff.id);
-                      const isConfirming = confirmingId === dropoff.id;
                       return (
                         <>
                           <TableRow key={dropoff.id}>
@@ -469,6 +449,18 @@ export function DropoffRequests() {
                               {dropoff.scheduledDate ? format(new Date(dropoff.scheduledDate), "MMM d, yyyy") : "N/A"}
                             </TableCell>
                             <TableCell>
+                              {dropoff.dropoffCode ? (
+                                <div className="flex items-center gap-1.5">
+                                  <code className="text-sm font-mono font-bold bg-primary/10 text-primary px-2 py-1 rounded">{dropoff.dropoffCode}</code>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => copyCode(dropoff.dropoffCode!)}>
+                                    <Copy className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">—</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
                               <Badge variant="outline" className={
                                 dropoff.status === "completed" ? "bg-green-50 text-green-700 border-green-200" :
                                 dropoff.status === "in_progress" ? "bg-blue-50 text-blue-700 border-blue-200" :
@@ -478,28 +470,6 @@ export function DropoffRequests() {
                                  dropoff.status === "completed" ? "Collected" :
                                  dropoff.status === "confirmed" ? "Confirmed" : dropoff.status}
                               </Badge>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              {isConfirming ? (
-                                <div className="flex items-center gap-2 justify-end">
-                                  <Input
-                                    value={confirmCode}
-                                    onChange={(e) => setConfirmCode(e.target.value.toUpperCase())}
-                                    placeholder="Enter code"
-                                    className="w-[120px] h-8 text-sm"
-                                  />
-                                  <Button size="sm" onClick={() => confirmDropoffMutation.mutate({ collectionId: dropoff.id, dropoffCode: confirmCode })} disabled={!confirmCode || confirmDropoffMutation.isPending}>
-                                    {confirmDropoffMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
-                                  </Button>
-                                  <Button size="sm" variant="ghost" onClick={() => { setConfirmingId(null); setConfirmCode(''); }}>
-                                    Cancel
-                                  </Button>
-                                </div>
-                              ) : (
-                                <Button size="sm" variant="outline" onClick={() => setConfirmingId(dropoff.id)}>
-                                  Confirm
-                                </Button>
-                              )}
                             </TableCell>
                           </TableRow>
                           {isExpanded && dropoff.collectorDetails && (
@@ -515,6 +485,9 @@ export function DropoffRequests() {
                   </TableBody>
                 </Table>
               </div>
+              <p className="text-xs text-muted-foreground">
+                Share the drop-off code with the collector when they arrive. They will enter it to confirm delivery.
+              </p>
             </div>
           )}
 

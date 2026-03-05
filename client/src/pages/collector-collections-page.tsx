@@ -197,6 +197,8 @@ export default function CollectorCollectionsPage() {
 
   // Claim a collection (assign to self)
   const [currentlyClaimingId, setCurrentlyClaimingId] = useState<number | null>(null);
+  const [confirmingDropoffId, setConfirmingDropoffId] = useState<number | null>(null);
+  const [dropoffCodeInput, setDropoffCodeInput] = useState('');
   
   const claimCollectionMutation = useMutation({
     mutationFn: async ({ collectionId, dropoffCenterId }: { collectionId: number; dropoffCenterId: number }) => {
@@ -238,6 +240,33 @@ export default function CollectorCollectionsPage() {
       });
       setCurrentlyClaimingId(null);
     }
+  });
+
+  const confirmDropoffMutation = useMutation({
+    mutationFn: async ({ collectionId, dropoffCode }: { collectionId: number; dropoffCode: string }) => {
+      const res = await apiRequest('POST', `/api/collections/${collectionId}/confirm-dropoff`, { dropoffCode });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to confirm delivery');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/collections'] });
+      setConfirmingDropoffId(null);
+      setDropoffCodeInput('');
+      toast({
+        title: 'Delivery Confirmed',
+        description: 'The drop-off has been confirmed successfully.',
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Confirmation Failed',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
   });
 
   // Update collection status
@@ -673,13 +702,40 @@ export default function CollectorCollectionsPage() {
                           <TableCell>
                             {collection.dropoffCenterId ? (
                               <div className="flex flex-col gap-1">
-                                {collection.dropoffCode && (
-                                  <code className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded w-fit">{collection.dropoffCode}</code>
-                                )}
                                 {collection.dropoffConfirmed ? (
-                                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 w-fit">Delivered</Badge>
+                                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 w-fit">
+                                    <CheckCircle2 className="h-3 w-3 mr-1" />
+                                    Delivered
+                                  </Badge>
+                                ) : confirmingDropoffId === collection.id ? (
+                                  <div className="flex items-center gap-1.5">
+                                    <input
+                                      value={dropoffCodeInput}
+                                      onChange={(e) => setDropoffCodeInput(e.target.value.toUpperCase())}
+                                      placeholder="Enter code"
+                                      className="w-[100px] h-7 text-xs font-mono border rounded px-2 bg-background"
+                                    />
+                                    <Button
+                                      size="sm"
+                                      className="h-7 px-2"
+                                      onClick={() => confirmDropoffMutation.mutate({ collectionId: collection.id, dropoffCode: dropoffCodeInput })}
+                                      disabled={!dropoffCodeInput || confirmDropoffMutation.isPending}
+                                    >
+                                      {confirmDropoffMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />}
+                                    </Button>
+                                    <Button size="sm" variant="ghost" className="h-7 px-1" onClick={() => { setConfirmingDropoffId(null); setDropoffCodeInput(''); }}>
+                                      <XCircle className="h-3 w-3" />
+                                    </Button>
+                                  </div>
                                 ) : (
-                                  <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 w-fit">Pending Delivery</Badge>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-7 text-xs"
+                                    onClick={() => setConfirmingDropoffId(collection.id)}
+                                  >
+                                    Confirm Delivery
+                                  </Button>
                                 )}
                               </div>
                             ) : (
