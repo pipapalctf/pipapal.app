@@ -1,10 +1,9 @@
-import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import { Recycle, Leaf, Package, TrendingUp, FileText, Scale, Truck, ShoppingBag, MapPin, Star, Calendar, ChevronRight, Clock, Users, Activity, Award } from 'lucide-react';
-import { User, CollectionStatus, Collection, Impact } from '@shared/schema';
+import { User, Impact } from '@shared/schema';
 import { formatNumber } from '@/lib/utils';
 import RoleBasedCTA from './role-based-cta';
 import RecentActivity from './recent-activity';
@@ -13,107 +12,65 @@ interface RecyclerDashboardProps {
   user: User;
 }
 
-/**
- * Dashboard for Recycler users
- * Focused on materials sourcing and recycling stats
- */
 export default function RecyclerDashboard({ user }: RecyclerDashboardProps) {
-  // In a real app, we would fetch data specific to recycler operations
-  // For now, we'll use the general collections data to simulate recycler activity
-  const { data: collections = [] } = useQuery({
-    queryKey: ['/api/collections'],
+  const { data: dropoffs = [] } = useQuery<any[]>({
+    queryKey: ['/api/dropoffs'],
   });
 
-  // Assume all completed collections are materials bought by recyclers
-  const purchasedMaterials = collections.filter(
-    (collection) => collection.status === CollectionStatus.COMPLETED
+  const confirmedDropoffs = dropoffs.filter((d: any) => d.dropoffConfirmed === true);
+
+  const totalReceived = confirmedDropoffs.reduce(
+    (total: number, d: any) => total + (d.wasteAmount || 0), 0
   );
 
-  // Calculate total materials purchased
-  const totalPurchased = purchasedMaterials.reduce(
-    (total, material) => total + (material.wasteAmount || 10), 
-    0
-  );
+  const co2Offset = totalReceived * 2;
 
-  // Calculate CO2 offset (assumption: 2kg CO2 per kg of recycled material)
-  const co2Offset = totalPurchased * 2;
-
-  // Group materials by type for pie chart
-  const materialsByType = purchasedMaterials.reduce((acc, material) => {
-    const wasteType = material.wasteType || 'general';
-    // Skip general waste as it's typically not recyclable
-    if (wasteType === 'general') return acc;
-    
-    const amount = material.wasteAmount || 10;
-    
-    if (!acc[wasteType]) {
-      acc[wasteType] = { name: wasteType.charAt(0).toUpperCase() + wasteType.slice(1), value: 0 };
+  const materialsByType: Record<string, { name: string; value: number }> = {};
+  confirmedDropoffs.forEach((d: any) => {
+    const wasteType = d.wasteType || 'general';
+    if (wasteType === 'general') return;
+    const amount = d.wasteAmount || 0;
+    if (!materialsByType[wasteType]) {
+      materialsByType[wasteType] = { name: wasteType.charAt(0).toUpperCase() + wasteType.slice(1), value: 0 };
     }
-    
-    acc[wasteType].value += amount;
-    return acc;
-  }, {});
-  
+    materialsByType[wasteType].value += amount;
+  });
   const materialTypesData = Object.values(materialsByType);
 
-  // Group by month for timeline
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  
-  const purchasesByMonth = months.map(month => {
-    return {
-      name: month,
-      amount: 0,
-      value: 0
-    };
-  });
-  
-  purchasedMaterials.forEach(material => {
-    const date = new Date(material.completedDate || material.scheduledDate);
+  const receiptsByMonth = months.map(month => ({ name: month, amount: 0, value: 0 }));
+  confirmedDropoffs.forEach((d: any) => {
+    const date = new Date(d.completedDate || d.scheduledDate);
     const monthIndex = date.getMonth();
-    purchasesByMonth[monthIndex].amount += (material.wasteAmount || 10);
-    // Fictional monetary value: KSh 20 per kg for recyclables
-    purchasesByMonth[monthIndex].value += (material.wasteAmount || 10) * 20;
+    const amt = d.wasteAmount || 0;
+    receiptsByMonth[monthIndex].amount += amt;
+    receiptsByMonth[monthIndex].value += amt * 20;
   });
 
-  // Top supplying collectors (fictional data based on user IDs)
-  const collectorStats = purchasedMaterials.reduce((acc, material) => {
-    const collectorId = material.collectorId || 'unknown';
-    const collectorName = `Collector ${collectorId}`;
-    const amount = material.wasteAmount || 10;
-    
-    if (!acc[collectorName]) {
-      acc[collectorName] = { name: collectorName, amount: 0 };
+  const collectorStats: Record<string, { name: string; amount: number }> = {};
+  confirmedDropoffs.forEach((d: any) => {
+    const name = d.collectorName || `Collector ${d.collectorId || 'unknown'}`;
+    if (!collectorStats[name]) {
+      collectorStats[name] = { name, amount: 0 };
     }
-    
-    acc[collectorName].amount += amount;
-    return acc;
-  }, {});
-  
+    collectorStats[name].amount += (d.wasteAmount || 0);
+  });
   const topCollectors = Object.values(collectorStats)
     .sort((a, b) => b.amount - a.amount)
     .slice(0, 5);
 
-  // Random colors for the pie chart
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D', '#FF6B6B', '#6B66FF', '#FFA556', '#4CD790'];
-  
-  // Variables for achievement badges
-  const completedCollections = purchasedMaterials;
-  const totalWasteRecycled = totalPurchased;
-  
-  // Count unique waste types
-  const wasteTypesCount = new Set(purchasedMaterials.map(material => material.wasteType));
-  
-  // Get impact data
+
+  const wasteTypesCount = new Set(confirmedDropoffs.map((d: any) => d.wasteType));
+
   const { data: impactData } = useQuery({
     queryKey: ['/api/impacts', user.id],
     enabled: !!user.id,
   });
-  
   const impact: Impact | undefined = impactData;
 
   return (
     <div className="space-y-6 p-2 md:p-6">
-      {/* User Welcome Section */}
       <div className="mb-6 bg-gradient-to-r from-green-50 to-blue-50 p-6 rounded-lg border border-green-100 shadow-sm">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between">
           <div>
@@ -122,7 +79,7 @@ export default function RecyclerDashboard({ user }: RecyclerDashboardProps) {
               Welcome back, {user?.fullName?.split(' ')[0] || user?.username || 'Recycler'}!
             </h2>
             <p className="text-sm text-muted-foreground mt-1">
-              Today's materials are waiting to be transformed into new resources.
+              Your statistics are based on confirmed waste drop-offs.
             </p>
           </div>
           <div className="mt-4 md:mt-0">
@@ -134,22 +91,20 @@ export default function RecyclerDashboard({ user }: RecyclerDashboardProps) {
         </div>
       </div>
       
-      {/* Role-specific CTAs */}
       <RoleBasedCTA />
       
-      {/* Key Stats */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="overflow-hidden border-0 shadow-md">
           <div className="h-2 bg-gradient-to-r from-green-400 to-green-600"></div>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Recyclables</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Received</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center">
               <div className="p-2 rounded-full bg-green-100 mr-3">
                 <Scale className="h-5 w-5 text-green-600" />
               </div>
-              <span className="text-2xl font-bold">{formatNumber(totalPurchased)} kg</span>
+              <span className="text-2xl font-bold">{formatNumber(totalReceived)} kg</span>
             </div>
           </CardContent>
         </Card>
@@ -194,7 +149,7 @@ export default function RecyclerDashboard({ user }: RecyclerDashboardProps) {
               <div className="p-2 rounded-full bg-amber-100 mr-3">
                 <ShoppingBag className="h-5 w-5 text-amber-600" />
               </div>
-              <span className="text-2xl font-bold">KSh {formatNumber(totalPurchased * 20, 0)}</span>
+              <span className="text-2xl font-bold">KSh {formatNumber(totalReceived * 20, 0)}</span>
             </div>
           </CardContent>
         </Card>
@@ -220,7 +175,6 @@ export default function RecyclerDashboard({ user }: RecyclerDashboardProps) {
           </TabsTrigger>
         </TabsList>
         
-        {/* Materials Tab */}
         <TabsContent value="materials" className="space-y-6 pt-3">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card className="border-0 shadow-md overflow-hidden">
@@ -228,35 +182,44 @@ export default function RecyclerDashboard({ user }: RecyclerDashboardProps) {
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center text-lg">
                   <Recycle className="mr-2 h-5 w-5 text-blue-500" />
-                  Recyclable Materials Breakdown
+                  Received Materials Breakdown
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="h-[270px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={materialTypesData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={65}
-                        outerRadius={85}
-                        fill="#8884d8"
-                        paddingAngle={5}
-                        dataKey="value"
-                        nameKey="name"
-                        label={({ name, percent }) => 
-                          `${name}: ${(percent * 100).toFixed(0)}%`
-                        }
-                      >
-                        {materialTypesData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip formatter={(value) => [`${formatNumber(value)} kg`, 'Amount']} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
+                {materialTypesData.length > 0 ? (
+                  <div className="h-[270px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={materialTypesData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={65}
+                          outerRadius={85}
+                          fill="#8884d8"
+                          paddingAngle={5}
+                          dataKey="value"
+                          nameKey="name"
+                          label={({ name, percent }) => 
+                            `${name}: ${(percent * 100).toFixed(0)}%`
+                          }
+                        >
+                          {materialTypesData.map((_, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(value) => [`${formatNumber(value)} kg`, 'Amount']} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <div className="h-[270px] flex items-center justify-center text-center">
+                    <div>
+                      <Package className="h-10 w-10 mx-auto mb-2 text-muted-foreground opacity-30" />
+                      <p className="text-sm text-muted-foreground">No confirmed drop-offs yet</p>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
             
@@ -274,13 +237,9 @@ export default function RecyclerDashboard({ user }: RecyclerDashboardProps) {
                     <div className="text-sm font-medium text-muted-foreground mb-1">CO₂ Emissions Reduced</div>
                     <div className="flex items-end gap-2">
                       <div className="text-3xl font-bold text-green-600">{formatNumber(co2Offset)} kg</div>
-                      <div className="text-sm text-green-500 flex items-center mb-1 bg-green-50 px-2 py-0.5 rounded-full">
-                        <TrendingUp className="h-4 w-4 mr-1" />
-                        12% from last month
-                      </div>
                     </div>
                     <div className="w-full bg-gray-100 h-2 rounded-full mt-2">
-                      <div className="bg-gradient-to-r from-green-400 to-green-600 h-2 rounded-full" style={{width: '72%'}}></div>
+                      <div className="bg-gradient-to-r from-green-400 to-green-600 h-2 rounded-full" style={{width: `${Math.min((co2Offset / 5000) * 100, 100)}%`}}></div>
                     </div>
                   </div>
                   
@@ -288,27 +247,19 @@ export default function RecyclerDashboard({ user }: RecyclerDashboardProps) {
                     <div className="text-sm font-medium text-muted-foreground mb-1">Trees Equivalent</div>
                     <div className="flex items-end gap-2">
                       <div className="text-3xl font-bold text-teal-600">{formatNumber(co2Offset / 20, 1)}</div>
-                      <div className="text-sm text-teal-500 flex items-center mb-1 bg-teal-50 px-2 py-0.5 rounded-full">
-                        <TrendingUp className="h-4 w-4 mr-1" />
-                        9% from last month
-                      </div>
                     </div>
                     <div className="w-full bg-gray-100 h-2 rounded-full mt-2">
-                      <div className="bg-gradient-to-r from-teal-400 to-teal-600 h-2 rounded-full" style={{width: '65%'}}></div>
+                      <div className="bg-gradient-to-r from-teal-400 to-teal-600 h-2 rounded-full" style={{width: `${Math.min((co2Offset / 20 / 100) * 100, 100)}%`}}></div>
                     </div>
                   </div>
                   
                   <div className="flex flex-col">
                     <div className="text-sm font-medium text-muted-foreground mb-1">Water Saved</div>
                     <div className="flex items-end gap-2">
-                      <div className="text-3xl font-bold text-blue-600">{formatNumber(totalPurchased * 50)} L</div>
-                      <div className="text-sm text-blue-500 flex items-center mb-1 bg-blue-50 px-2 py-0.5 rounded-full">
-                        <TrendingUp className="h-4 w-4 mr-1" />
-                        15% from last month
-                      </div>
+                      <div className="text-3xl font-bold text-blue-600">{formatNumber(totalReceived * 50)} L</div>
                     </div>
                     <div className="w-full bg-gray-100 h-2 rounded-full mt-2">
-                      <div className="bg-gradient-to-r from-blue-400 to-blue-600 h-2 rounded-full" style={{width: '78%'}}></div>
+                      <div className="bg-gradient-to-r from-blue-400 to-blue-600 h-2 rounded-full" style={{width: `${Math.min((totalReceived * 50 / 100000) * 100, 100)}%`}}></div>
                     </div>
                   </div>
                 </div>
@@ -333,7 +284,6 @@ export default function RecyclerDashboard({ user }: RecyclerDashboardProps) {
                       <th className="text-center py-3 px-4 font-medium text-muted-foreground text-sm">Amount (kg)</th>
                       <th className="text-center py-3 px-4 font-medium text-muted-foreground text-sm">Value (KSh)</th>
                       <th className="text-center py-3 px-4 font-medium text-muted-foreground text-sm">CO₂ Offset (kg)</th>
-                      <th className="text-center py-3 px-4 font-medium text-muted-foreground text-sm">Quality</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -351,21 +301,15 @@ export default function RecyclerDashboard({ user }: RecyclerDashboardProps) {
                         <td className="text-center py-3 px-4 font-medium">{formatNumber(material.value)}</td>
                         <td className="text-center py-3 px-4 text-emerald-600 font-medium">KSh {formatNumber(material.value * 20, 0)}</td>
                         <td className="text-center py-3 px-4 font-medium">{formatNumber(material.value * 2)}</td>
-                        <td className="text-center py-3 px-4">
-                          <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
-                            <span className="h-1.5 w-1.5 rounded-full bg-green-600 mr-1"></span>
-                            Good
-                          </div>
-                        </td>
                       </tr>
                     ))}
                     
                     {materialTypesData.length === 0 && (
                       <tr>
-                        <td colSpan={5} className="py-8 text-center text-muted-foreground">
+                        <td colSpan={4} className="py-8 text-center text-muted-foreground">
                           <Package className="h-10 w-10 mx-auto mb-2 text-muted" />
-                          <p className="font-medium">No recyclable materials data available</p>
-                          <p className="text-sm">Start processing materials to see them here</p>
+                          <p className="font-medium">No confirmed drop-offs yet</p>
+                          <p className="text-sm">Once collectors confirm deliveries, your material data will appear here</p>
                         </td>
                       </tr>
                     )}
@@ -376,7 +320,6 @@ export default function RecyclerDashboard({ user }: RecyclerDashboardProps) {
           </Card>
         </TabsContent>
         
-        {/* Trends Tab */}
         <TabsContent value="trends" className="space-y-6 pt-3">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card className="border-0 shadow-md overflow-hidden">
@@ -390,7 +333,7 @@ export default function RecyclerDashboard({ user }: RecyclerDashboardProps) {
               <CardContent>
                 <div className="h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={purchasesByMonth}>
+                    <LineChart data={receiptsByMonth}>
                       <defs>
                         <linearGradient id="colorAmount" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
@@ -432,7 +375,7 @@ export default function RecyclerDashboard({ user }: RecyclerDashboardProps) {
               <CardContent>
                 <div className="h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={purchasesByMonth}>
+                    <BarChart data={receiptsByMonth}>
                       <defs>
                         <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="5%" stopColor="#4ade80" stopOpacity={0.8}/>
@@ -465,38 +408,39 @@ export default function RecyclerDashboard({ user }: RecyclerDashboardProps) {
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center text-lg">
                 <FileText className="mr-2 h-5 w-5 text-amber-500" />
-                Recent Transactions
+                Recent Drop-offs
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {purchasedMaterials.length > 0 ? (
+              {confirmedDropoffs.length > 0 ? (
                 <div className="space-y-3">
-                  {purchasedMaterials.slice(0, 5).map((material) => (
-                    <div key={material.id} className="flex items-center p-4 rounded-xl bg-muted/20 hover:bg-muted/30 transition-colors">
+                  {confirmedDropoffs.slice(0, 5).map((d: any) => (
+                    <div key={d.id} className="flex items-center p-4 rounded-xl bg-muted/20 hover:bg-muted/30 transition-colors">
                       <div className="mr-4 p-2.5 rounded-full bg-gradient-to-br from-amber-100 to-amber-200 text-amber-700">
                         <Recycle className="h-5 w-5" />
                       </div>
                       <div className="flex-1">
-                        <p className="font-medium capitalize">{material.wasteType} Material</p>
-                        <p className="text-sm text-muted-foreground flex items-center gap-1">
-                          <Calendar className="h-3.5 w-3.5" />
-                          {new Date(material.completedDate || material.scheduledDate).toLocaleDateString('en-US', {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric'
+                        <p className="font-medium capitalize">{d.wasteType} waste</p>
+                        <p className="text-sm text-muted-foreground">
+                          From {d.collectorName || 'Unknown collector'}
+                        </p>
+                        <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                          <Calendar className="h-3 w-3" />
+                          {new Date(d.completedDate || d.scheduledDate).toLocaleDateString('en-US', {
+                            year: 'numeric', month: 'short', day: 'numeric'
                           })}
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="font-medium text-lg">{material.wasteAmount || 10} kg</p>
-                        <p className="text-sm font-medium text-emerald-600">KSh {formatNumber((material.wasteAmount || 10) * 20, 0)}</p>
+                        <p className="font-medium text-lg">{d.wasteAmount || 0} kg</p>
+                        <p className="text-sm font-medium text-emerald-600">KSh {formatNumber((d.wasteAmount || 0) * 20, 0)}</p>
                       </div>
                     </div>
                   ))}
-                  {purchasedMaterials.length > 5 && (
+                  {confirmedDropoffs.length > 5 && (
                     <div className="text-center pt-2">
                       <button className="inline-flex items-center text-primary hover:text-primary/80 transition-colors text-sm font-medium bg-primary/5 px-4 py-2 rounded-lg">
-                        View all {purchasedMaterials.length} transactions
+                        View all {confirmedDropoffs.length} drop-offs
                         <ChevronRight className="h-4 w-4 ml-1" />
                       </button>
                     </div>
@@ -505,9 +449,9 @@ export default function RecyclerDashboard({ user }: RecyclerDashboardProps) {
               ) : (
                 <div className="text-center py-12 px-6">
                   <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-3 opacity-30" />
-                  <h3 className="text-lg font-medium mb-1">No Transaction History</h3>
+                  <h3 className="text-lg font-medium mb-1">No Confirmed Drop-offs</h3>
                   <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                    Start processing recyclable materials to see your transaction history here.
+                    Once collectors confirm deliveries using your drop-off code, they will appear here.
                   </p>
                 </div>
               )}
@@ -515,7 +459,6 @@ export default function RecyclerDashboard({ user }: RecyclerDashboardProps) {
           </Card>
         </TabsContent>
         
-        {/* Suppliers Tab */}
         <TabsContent value="suppliers" className="space-y-6 pt-3">
           <Card className="border-0 shadow-md overflow-hidden">
             <div className="h-2 bg-gradient-to-r from-purple-400 to-indigo-600"></div>
@@ -526,36 +469,45 @@ export default function RecyclerDashboard({ user }: RecyclerDashboardProps) {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart 
-                    data={topCollectors} 
-                    layout="vertical"
-                    margin={{ left: 100 }}
-                  >
-                    <defs>
-                      <linearGradient id="colorBar" x1="0" y1="0" x2="1" y2="0">
-                        <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.8}/>
-                        <stop offset="100%" stopColor="#6366f1" stopOpacity={0.8}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.3} horizontal={false} />
-                    <XAxis type="number" axisLine={false} tickLine={false} />
-                    <YAxis type="category" dataKey="name" axisLine={false} tickLine={false} width={90} />
-                    <Tooltip 
-                      formatter={(value) => [`${formatNumber(value)} kg`, 'Amount']}
-                      labelStyle={{fontWeight: 'bold'}}
-                      contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)'}}
-                    />
-                    <Bar 
-                      dataKey="amount" 
-                      name="Amount (kg)" 
-                      fill="url(#colorBar)" 
-                      radius={[0, 4, 4, 0]} 
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+              {topCollectors.length > 0 ? (
+                <div className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart 
+                      data={topCollectors} 
+                      layout="vertical"
+                      margin={{ left: 100 }}
+                    >
+                      <defs>
+                        <linearGradient id="colorBar" x1="0" y1="0" x2="1" y2="0">
+                          <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.8}/>
+                          <stop offset="100%" stopColor="#6366f1" stopOpacity={0.8}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.3} horizontal={false} />
+                      <XAxis type="number" axisLine={false} tickLine={false} />
+                      <YAxis type="category" dataKey="name" axisLine={false} tickLine={false} width={90} />
+                      <Tooltip 
+                        formatter={(value) => [`${formatNumber(value)} kg`, 'Amount']}
+                        labelStyle={{fontWeight: 'bold'}}
+                        contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)'}}
+                      />
+                      <Bar 
+                        dataKey="amount" 
+                        name="Amount (kg)" 
+                        fill="url(#colorBar)" 
+                        radius={[0, 4, 4, 0]} 
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <div className="h-[200px] flex items-center justify-center">
+                  <div className="text-center">
+                    <Truck className="h-10 w-10 mx-auto mb-2 text-muted-foreground opacity-30" />
+                    <p className="text-sm text-muted-foreground">No supplier data yet</p>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
           
@@ -600,27 +552,9 @@ export default function RecyclerDashboard({ user }: RecyclerDashboardProps) {
                       </div>
                       <div className="flex-1">
                         <p className="font-medium">{collector.name}</p>
-                        <div className="flex items-center text-sm text-muted-foreground">
-                          <div className="flex items-center">
-                            {[1, 2, 3, 4, 5].map((star) => (
-                              <Star 
-                                key={star} 
-                                className={`h-3.5 w-3.5 ${star <= (5 - index * 0.5) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`}
-                              />
-                            ))}
-                            <span className="ml-1 text-xs">({(5 - index * 0.3).toFixed(1)})</span>
-                          </div>
-                        </div>
                       </div>
                       <div className="text-right">
                         <p className="font-medium">{formatNumber(collector.amount)} kg</p>
-                        <p className="text-xs text-muted-foreground flex items-center justify-end gap-1">
-                          <Clock className="h-3 w-3" />
-                          {new Date(Date.now() - (index * 24 * 60 * 60 * 1000)).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric'
-                          })}
-                        </p>
                       </div>
                     </div>
                   ))}
@@ -628,9 +562,9 @@ export default function RecyclerDashboard({ user }: RecyclerDashboardProps) {
                   {topCollectors.length === 0 && (
                     <div className="text-center py-10 px-4">
                       <Users className="h-12 w-12 text-muted-foreground mx-auto mb-3 opacity-30" />
-                      <h3 className="text-lg font-medium mb-1">No Suppliers Data</h3>
+                      <h3 className="text-lg font-medium mb-1">No Suppliers Yet</h3>
                       <p className="text-sm text-muted-foreground">
-                        Connect with collectors to start receiving materials
+                        Confirmed drop-offs from collectors will show here
                       </p>
                     </div>
                   )}
@@ -640,7 +574,6 @@ export default function RecyclerDashboard({ user }: RecyclerDashboardProps) {
           </div>
         </TabsContent>
         
-        {/* Activities Tab */}
         <TabsContent value="activities" className="space-y-6 pt-3">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="md:col-span-1">
@@ -657,56 +590,31 @@ export default function RecyclerDashboard({ user }: RecyclerDashboardProps) {
               </CardHeader>
               <CardContent>
                 <div className="relative pl-6 border-l border-gray-200 dark:border-gray-700 space-y-6 py-2">
-                  {/* Milestone items */}
-                  <div className="relative">
-                    <div className="absolute -left-9 mt-1.5 h-4 w-4 rounded-full border-2 border-green-500 bg-white"></div>
-                    <div className="mb-1 text-sm font-medium text-green-600">
-                      100 kg Milestone
+                  {totalReceived >= 100 && (
+                    <div className="relative">
+                      <div className="absolute -left-9 mt-1.5 h-4 w-4 rounded-full border-2 border-green-500 bg-white"></div>
+                      <div className="mb-1 text-sm font-medium text-green-600">100 kg Milestone</div>
+                      <p className="text-sm text-muted-foreground">
+                        You've received over 100 kg of recyclable materials through confirmed drop-offs!
+                      </p>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      You've processed over 100 kg of recyclable materials! Great impact on our environment.
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      April 15, 2025
-                    </p>
-                  </div>
+                  )}
                   
-                  <div className="relative">
-                    <div className="absolute -left-9 mt-1.5 h-4 w-4 rounded-full border-2 border-blue-500 bg-white"></div>
-                    <div className="mb-1 text-sm font-medium text-blue-600">
-                      First Plastic Processing
+                  {confirmedDropoffs.length >= 1 && (
+                    <div className="relative">
+                      <div className="absolute -left-9 mt-1.5 h-4 w-4 rounded-full border-2 border-blue-500 bg-white"></div>
+                      <div className="mb-1 text-sm font-medium text-blue-600">First Confirmed Drop-off</div>
+                      <p className="text-sm text-muted-foreground">
+                        Received your first confirmed waste delivery from a collector.
+                      </p>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      Started processing plastic waste into reusable materials. A big step for circular economy.
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      March 22, 2025
-                    </p>
-                  </div>
-                  
-                  <div className="relative">
-                    <div className="absolute -left-9 mt-1.5 h-4 w-4 rounded-full border-2 border-amber-500 bg-white"></div>
-                    <div className="mb-1 text-sm font-medium text-amber-600">
-                      Community Partnership
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      Established partnership with local collectors for steady material supply.
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      February 10, 2025
-                    </p>
-                  </div>
+                  )}
                   
                   <div className="relative">
                     <div className="absolute -left-9 mt-1.5 h-4 w-4 rounded-full border-2 border-purple-500 bg-white"></div>
-                    <div className="mb-1 text-sm font-medium text-purple-600">
-                      Joined PipaPal
-                    </div>
+                    <div className="mb-1 text-sm font-medium text-purple-600">Joined PipaPal</div>
                     <p className="text-sm text-muted-foreground">
                       Started your journey as a recycler on the PipaPal platform.
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      January 05, 2025
                     </p>
                   </div>
                 </div>
@@ -716,7 +624,6 @@ export default function RecyclerDashboard({ user }: RecyclerDashboardProps) {
         </TabsContent>
       </Tabs>
       
-      {/* Achievement Badges */}
       <Card className="mt-6">
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center text-base">
@@ -728,11 +635,11 @@ export default function RecyclerDashboard({ user }: RecyclerDashboardProps) {
           <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
             {[
               { name: 'Materials Master', achieved: wasteTypesCount.size >= 6, icon: '🔄' },
-              { name: 'Volume Leader', achieved: totalWasteRecycled >= 1000, icon: '📦' },
-              { name: 'Processing Pro', achieved: completedCollections.length >= 15, icon: '⚙️' },
-              { name: 'Carbon Hero', achieved: impact?.co2Reduced > 200, icon: '🌿' },
-              { name: 'Water Protector', achieved: impact?.waterSaved > 2000, icon: '💧' },
-              { name: 'Forest Guardian', achieved: impact?.treesEquivalent > 10, icon: '🌳' }
+              { name: 'Volume Leader', achieved: totalReceived >= 1000, icon: '📦' },
+              { name: 'Processing Pro', achieved: confirmedDropoffs.length >= 15, icon: '⚙️' },
+              { name: 'Carbon Hero', achieved: co2Offset > 200, icon: '🌿' },
+              { name: 'Water Protector', achieved: totalReceived * 50 > 2000, icon: '💧' },
+              { name: 'Forest Guardian', achieved: co2Offset / 20 > 10, icon: '🌳' }
             ].map((badge, index) => (
               <div 
                 key={index} 
