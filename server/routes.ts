@@ -481,6 +481,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
   );
   
+  app.post("/api/collections/bulk-claim", requireAuthentication, requireRole(UserRole.COLLECTOR), async (req: any, res: any) => {
+    try {
+      const { collectionIds, dropoffCenterId } = req.body;
+      
+      if (!Array.isArray(collectionIds) || collectionIds.length === 0) {
+        return res.status(400).json({ error: "collectionIds must be a non-empty array" });
+      }
+      
+      if (!dropoffCenterId) {
+        return res.status(400).json({ error: "dropoffCenterId is required" });
+      }
+      
+      const results = [];
+      const errors = [];
+      
+      for (const collectionId of collectionIds) {
+        try {
+          const collection = await storage.getCollection(collectionId);
+          if (!collection) {
+            errors.push({ id: collectionId, error: "Collection not found" });
+            continue;
+          }
+          if (collection.collectorId) {
+            errors.push({ id: collectionId, error: "Already claimed" });
+            continue;
+          }
+          if (collection.status !== CollectionStatus.SCHEDULED) {
+            errors.push({ id: collectionId, error: "Not in scheduled status" });
+            continue;
+          }
+          
+          const code = 'DP-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+          
+          const updated = await storage.updateCollection(collectionId, {
+            collectorId: req.user.id,
+            status: CollectionStatus.CONFIRMED,
+            dropoffCenterId,
+            dropoffStatus: 'pending',
+            dropoffCode: code,
+          });
+          
+          if (updated) {
+            results.push(updated);
+            
+            try {
+              const userClients = clients.get(collection.userId) || [];
+              const notification = {
+                type: 'collection_update',
+                collectionId: collection.id,
+                status: CollectionStatus.CONFIRMED,
+                message: `Your ${collection.wasteType} collection has been claimed by a collector`
+              };
+              userClients.forEach((client: any) => {
+                if (client.readyState === WebSocket.OPEN) {
+                  client.send(JSON.stringify(notification));
+                }
+              });
+            } catch (e) {
+              // notification failure is non-critical
+            }
+          }
+        } catch (e) {
+          errors.push({ id: collectionId, error: "Failed to claim" });
+        }
+      }
+      
+      res.json({ 
+        claimed: results.length, 
+        failed: errors.length,
+        errors: errors.length > 0 ? errors : undefined,
+        collections: results
+      });
+    } catch (error) {
+      console.error("Error bulk claiming collections:", error);
+      res.status(500).json({ error: "Failed to bulk claim collections" });
+    }
+  });
+
   // Environmental Impact - Role-specific impact data
   app.get("/api/impact", 
     requirePermission(Permissions.VIEW_PICKUP_HISTORY),
