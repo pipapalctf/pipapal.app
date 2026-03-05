@@ -1119,6 +1119,14 @@ export class DatabaseStorage implements IStorage {
       updateValues.collectorId = updates.collectorId;
     }
     
+    if (updates.dropoffCenterId !== undefined) {
+      updateValues.dropoffCenterId = updates.dropoffCenterId;
+    }
+    
+    if (updates.dropoffStatus !== undefined) {
+      updateValues.dropoffStatus = updates.dropoffStatus;
+    }
+    
     // Handle completedDate separately
     if (updates.status === CollectionStatus.COMPLETED && !collection.completedDate) {
       updateValues.completedDate = sql`NOW()`; // Use the database's NOW() function
