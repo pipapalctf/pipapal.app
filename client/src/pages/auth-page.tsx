@@ -106,7 +106,10 @@ export default function AuthPage() {
     loginWithGoogleMutation.mutate({ 
       role, 
       consent,
-      onEmailExists: () => setEmailExistsError(true),
+      onEmailExists: () => {
+        setRoleDialogOpen(false);
+        setEmailExistsError(true);
+      },
     });
   };
   
@@ -213,7 +216,7 @@ export default function AuthPage() {
                 </Button>
               </div>
               
-              <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-full">
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <TabsList className="grid grid-cols-2 mb-8 w-full">
                   <TabsTrigger value="login">Login</TabsTrigger>
                   <TabsTrigger value="register">Register</TabsTrigger>
