@@ -30,6 +30,7 @@ export interface IStorage {
   getAllUsers(): Promise<User[]>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, updates: Partial<User>): Promise<User | undefined>;
+  getUsersByRole(role: string): Promise<User[]>;
   
   // Collections
   getCollection(id: number): Promise<Collection | undefined>;
@@ -206,6 +207,10 @@ export class MemStorage implements IStorage {
   
   async getAllUsers(): Promise<User[]> {
     return Array.from(this.users.values());
+  }
+
+  async getUsersByRole(role: string): Promise<User[]> {
+    return Array.from(this.users.values()).filter(u => u.role === role);
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
@@ -964,6 +969,10 @@ export class DatabaseStorage implements IStorage {
   
   async getAllUsers(): Promise<User[]> {
     return await db.select().from(users);
+  }
+
+  async getUsersByRole(role: string): Promise<User[]> {
+    return await db.select().from(users).where(eq(users.role, role));
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {

@@ -1532,22 +1532,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/recyclers", requireAuthentication, async (req: any, res: any) => {
+    try {
+      const recyclers = await storage.getUsersByRole(UserRole.RECYCLER);
+      const wasteType = req.query.wasteType as string | undefined;
+      
+      const filtered = recyclers
+        .filter(r => r.onboardingCompleted)
+        .filter(r => {
+          if (!wasteType) return true;
+          const specializations = r.wasteSpecialization || [];
+          return specializations.length === 0 || specializations.includes(wasteType);
+        })
+        .map(r => ({
+          id: r.id,
+          businessName: r.businessName || r.fullName || r.username,
+          fullName: r.fullName,
+          address: r.address || '',
+          serviceLocation: r.serviceLocation || '',
+          wasteSpecialization: r.wasteSpecialization || [],
+          serviceType: r.serviceType || '',
+          isCertified: r.isCertified || false,
+        }));
+      
+      res.json(filtered);
+    } catch (error) {
+      console.error("Error fetching recyclers:", error);
+      res.status(500).json({ error: "Failed to fetch recyclers" });
+    }
+  });
+
   app.get("/api/dropoffs", requireAuthentication, requireRole(UserRole.RECYCLER), async (req: any, res: any) => {
     try {
       const allCollections = await storage.getAllCollections();
-      const allCenters = await storage.getAllRecyclingCenters();
       
-      const collectionsWithDropoff = allCollections.filter(
-        (c: any) => c.dropoffCenterId != null
+      const collectionsForThisRecycler = allCollections.filter(
+        (c: any) => c.dropoffCenterId === req.user.id
       );
       
-      const enriched = await Promise.all(collectionsWithDropoff.map(async (c: any) => {
-        const center = allCenters.find((rc: any) => rc.id === c.dropoffCenterId);
+      const enriched = await Promise.all(collectionsForThisRecycler.map(async (c: any) => {
         const collector = c.collectorId ? await storage.getUser(c.collectorId) : null;
         const household = await storage.getUser(c.userId);
         return {
           ...c,
-          dropoffCenter: center || null,
+          recyclerName: req.user.fullName || req.user.username,
           collectorName: collector ? (collector.fullName || collector.username) : null,
           householdName: household ? (household.fullName || household.username) : null,
         };
@@ -1582,8 +1610,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (updated && collection.collectorId) {
         try {
           const collectorClients = clients.get(collection.collectorId) || [];
-          const center = await storage.getRecyclingCenterById(collection.dropoffCenterId);
-          const centerName = center ? center.name : 'The recycling center';
+          const recycler = await storage.getUser(collection.dropoffCenterId);
+          const centerName = recycler ? (recycler.businessName || recycler.fullName || recycler.username) : 'The recycler';
           
           const notification = {
             type: 'dropoff_update',

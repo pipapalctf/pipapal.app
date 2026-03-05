@@ -20,12 +20,7 @@ interface DropoffCollection {
   dropoffStatus: string | null;
   collectorName: string | null;
   householdName: string | null;
-  dropoffCenter: {
-    id: number;
-    name: string;
-    address: string;
-    city: string;
-  } | null;
+  recyclerName: string | null;
 }
 
 export function DropoffRequests() {
@@ -155,12 +150,6 @@ export function DropoffRequests() {
                               <span>{dropoff.scheduledDate ? format(new Date(dropoff.scheduledDate), "MMM d, yyyy") : "N/A"}</span>
                             </div>
                           </div>
-                          {dropoff.dropoffCenter && (
-                            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                              <Building2 className="h-3.5 w-3.5 shrink-0" />
-                              <span>Center: <span className="text-foreground">{dropoff.dropoffCenter.name}</span></span>
-                            </div>
-                          )}
                         </div>
                         <div className="flex gap-2 sm:flex-col">
                           <Button
