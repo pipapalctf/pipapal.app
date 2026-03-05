@@ -124,6 +124,8 @@ export const collections = pgTable("collections", {
   city: text("city"), // Added city field to replace coordinates (nullable for existing data)
   location: json("location"), // Keeping for backward compatibility but no longer used
   notes: text("notes"),
+  dropoffCenterId: integer("dropoff_center_id"),
+  dropoffStatus: text("dropoff_status"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

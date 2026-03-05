@@ -28,6 +28,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Input } from '@/components/ui/input';
 import { CollectionDetailsDialog } from '@/components/modals/collection-details-dialog';
 import { ExpressInterestDialog } from '@/components/modals/express-interest-dialog';
+import { DropoffRequests } from '@/components/dropoff-requests';
 
 export default function RecyclerMaterialsPage() {
   const { user } = useAuth();
@@ -369,6 +370,10 @@ export default function RecyclerMaterialsPage() {
                 </div>
               </CardContent>
             </Card>
+          </div>
+
+          <div className="mb-8">
+            <DropoffRequests />
           </div>
 
           {/* Filter and Search Controls */}

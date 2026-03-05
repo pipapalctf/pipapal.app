@@ -35,7 +35,7 @@ PipaPal follows a full-stack TypeScript architecture with a clear separation bet
 ### Database Schema
 The application uses a comprehensive PostgreSQL schema with the following core entities:
 - **Users**: Multi-role system (household, collector, recycler, organization, admin)
-- **Collections**: Waste pickup requests with status tracking
+- **Collections**: Waste pickup requests with status tracking, includes `dropoffCenterId` and `dropoffStatus` for recycling center drop-off workflow
 - **Recycling Centers**: Directory of waste processing facilities
 - **Material Interests**: Recycler interest in specific waste collections
 - **Chat Messages**: Communication system between users

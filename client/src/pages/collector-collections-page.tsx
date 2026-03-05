@@ -24,6 +24,7 @@ import { Separator } from '@/components/ui/separator';
 import { MaterialInterestsTab } from '@/components/material-interests-tab';
 import { RouteOptimizationMap } from '@/components/maps/route-optimization-map';
 import { useLocation } from 'wouter';
+import { ClaimPickupDialog } from '@/components/claim-pickup-dialog';
 
 export default function CollectorCollectionsPage() {
   const { user } = useAuth();
@@ -37,6 +38,8 @@ export default function CollectorCollectionsPage() {
   const [statusUpdateModal, setStatusUpdateModal] = useState(false);
   const [cancelDialog, setCancelDialog] = useState(false);
   const [notesInput, setNotesInput] = useState('');
+  const [claimDialogOpen, setClaimDialogOpen] = useState(false);
+  const [claimingCollection, setClaimingCollection] = useState<any>(null);
   
   // Sorting state
   const [sortField, setSortField] = useState<string>('date');
@@ -196,11 +199,9 @@ export default function CollectorCollectionsPage() {
   const [currentlyClaimingId, setCurrentlyClaimingId] = useState<number | null>(null);
   
   const claimCollectionMutation = useMutation({
-    mutationFn: async (collectionId: number) => {
-      // Set which collection is currently being claimed
+    mutationFn: async ({ collectionId, dropoffCenterId }: { collectionId: number; dropoffCenterId: number }) => {
       setCurrentlyClaimingId(collectionId);
       
-      // First verify if the collection is still available
       const checkRes = await apiRequest('GET', `/api/collections/${collectionId}`);
       const collection = await checkRes.json();
       
@@ -208,10 +209,11 @@ export default function CollectorCollectionsPage() {
         throw new Error('This collection has already been claimed by another collector');
       }
       
-      // Update the collection
       const res = await apiRequest('PATCH', `/api/collections/${collectionId}`, {
         collectorId: user.id,
-        status: CollectionStatus.CONFIRMED
+        status: CollectionStatus.CONFIRMED,
+        dropoffCenterId,
+        dropoffStatus: 'pending'
       });
       
       return await res.json();
@@ -220,12 +222,12 @@ export default function CollectorCollectionsPage() {
       queryClient.invalidateQueries({ queryKey: ['/api/collections'] });
       toast({
         title: 'Collection claimed',
-        description: 'You have successfully claimed this collection.',
+        description: 'You have successfully claimed this collection and assigned a drop-off center.',
         variant: 'default',
       });
-      // Reset claiming state
       setCurrentlyClaimingId(null);
-      // Switch to confirmed status to show the newly claimed collection
+      setClaimDialogOpen(false);
+      setClaimingCollection(null);
       setStatusFilter(CollectionStatus.CONFIRMED);
     },
     onError: (error: Error) => {
@@ -234,7 +236,6 @@ export default function CollectorCollectionsPage() {
         description: error.message,
         variant: 'destructive',
       });
-      // Reset claiming state
       setCurrentlyClaimingId(null);
     }
   });
@@ -343,26 +344,18 @@ export default function CollectorCollectionsPage() {
     const nextStatus = getNextStatus(collection.status);
     
     if (!collection.collectorId && collection.status === CollectionStatus.SCHEDULED) {
-      const isClaimingThis = currentlyClaimingId === collection.id;
       return (
         <Button 
           size="sm" 
           variant="default" 
           className="w-full"
-          onClick={() => claimCollectionMutation.mutate(collection.id)}
-          disabled={claimCollectionMutation.isPending || isClaimingThis}
+          onClick={() => {
+            setClaimingCollection(collection);
+            setClaimDialogOpen(true);
+          }}
         >
-          {isClaimingThis ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Claiming...
-            </>
-          ) : (
-            <>
-              <Truck className="mr-2 h-4 w-4" />
-              Claim Pickup
-            </>
-          )}
+          <Truck className="mr-2 h-4 w-4" />
+          Claim Pickup
         </Button>
       );
     }
@@ -609,6 +602,7 @@ export default function CollectorCollectionsPage() {
                             {getSortIcon('value')}
                           </button>
                         </TableHead>
+                        <TableHead>Drop-off</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -675,6 +669,23 @@ export default function CollectorCollectionsPage() {
                                 {formatNumber(calculateWasteValue(collection.wasteType, collection.wasteAmount || 10))} KSh
                               </Badge>
                             </div>
+                          </TableCell>
+                          <TableCell>
+                            {collection.dropoffCenterId ? (
+                              <div className="flex flex-col gap-1">
+                                {collection.dropoffStatus === 'pending' && (
+                                  <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 w-fit">Pending</Badge>
+                                )}
+                                {collection.dropoffStatus === 'accepted' && (
+                                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 w-fit">Accepted</Badge>
+                                )}
+                                {collection.dropoffStatus === 'rejected' && (
+                                  <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 w-fit">Rejected</Badge>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-2">
@@ -1032,6 +1043,24 @@ export default function CollectorCollectionsPage() {
         </Dialog>
       )}
       
+      {claimingCollection && (
+        <ClaimPickupDialog
+          open={claimDialogOpen}
+          onOpenChange={(open) => {
+            setClaimDialogOpen(open);
+            if (!open) setClaimingCollection(null);
+          }}
+          wasteType={claimingCollection.wasteType}
+          onConfirm={(centerId) => {
+            claimCollectionMutation.mutate({
+              collectionId: claimingCollection.id,
+              dropoffCenterId: centerId,
+            });
+          }}
+          isPending={claimCollectionMutation.isPending}
+        />
+      )}
+
       <Footer />
     </div>
   );

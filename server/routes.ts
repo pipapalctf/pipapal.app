@@ -400,7 +400,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         key !== 'collectorId' && 
         key !== 'notes' && 
         key !== 'wasteAmount' && 
-        key !== 'completedDate')) {
+        key !== 'completedDate' &&
+        key !== 'dropoffCenterId' &&
+        key !== 'dropoffStatus')) {
         return res.status(403).json({
           error: 'Access denied',
           message: 'Collectors can only update status, claim collections, or add notes'
@@ -1527,6 +1529,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error(`Error fetching recycling center ${req.params.id}:`, error);
       res.status(500).json({ error: "Failed to fetch recycling center" });
+    }
+  });
+
+  app.get("/api/dropoffs", requireAuthentication, requireRole(UserRole.RECYCLER), async (req: any, res: any) => {
+    try {
+      const allCollections = await storage.getAllCollections();
+      const allCenters = await storage.getAllRecyclingCenters();
+      
+      const collectionsWithDropoff = allCollections.filter(
+        (c: any) => c.dropoffCenterId != null
+      );
+      
+      const enriched = await Promise.all(collectionsWithDropoff.map(async (c: any) => {
+        const center = allCenters.find((rc: any) => rc.id === c.dropoffCenterId);
+        const collector = c.collectorId ? await storage.getUser(c.collectorId) : null;
+        const household = await storage.getUser(c.userId);
+        return {
+          ...c,
+          dropoffCenter: center || null,
+          collectorName: collector ? (collector.fullName || collector.username) : null,
+          householdName: household ? (household.fullName || household.username) : null,
+        };
+      }));
+      
+      res.json(enriched);
+    } catch (error) {
+      console.error("Error fetching dropoffs:", error);
+      res.status(500).json({ error: "Failed to fetch dropoffs" });
+    }
+  });
+
+  app.patch("/api/collections/:id/dropoff-status", requireAuthentication, requireRole(UserRole.RECYCLER), async (req: any, res: any) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).send("Invalid ID format");
+      
+      const { dropoffStatus } = req.body;
+      if (!dropoffStatus || !['accepted', 'rejected'].includes(dropoffStatus)) {
+        return res.status(400).json({ error: "dropoffStatus must be 'accepted' or 'rejected'" });
+      }
+      
+      const collection = await storage.getCollection(id);
+      if (!collection) return res.status(404).send("Collection not found");
+      
+      if (!collection.dropoffCenterId) {
+        return res.status(400).json({ error: "This collection has no drop-off center assigned" });
+      }
+      
+      const updated = await storage.updateCollection(id, { dropoffStatus });
+      
+      if (updated && collection.collectorId) {
+        try {
+          const collectorClients = clients.get(collection.collectorId) || [];
+          const center = await storage.getRecyclingCenterById(collection.dropoffCenterId);
+          const centerName = center ? center.name : 'The recycling center';
+          
+          const notification = {
+            type: 'dropoff_update',
+            collectionId: collection.id,
+            dropoffStatus,
+            message: dropoffStatus === 'accepted' 
+              ? `${centerName} has accepted your drop-off for ${collection.wasteType} waste`
+              : `${centerName} has rejected your drop-off for ${collection.wasteType} waste. Please select another center.`
+          };
+          
+          collectorClients.forEach((client: any) => {
+            if (client.readyState === WebSocket.OPEN) {
+              client.send(JSON.stringify(notification));
+            }
+          });
+        } catch (err) {
+          console.error('Error sending dropoff WebSocket notification:', err);
+        }
+      }
+      
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating dropoff status:", error);
+      res.status(500).json({ error: "Failed to update dropoff status" });
     }
   });
 
