@@ -176,6 +176,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       );
       
       if (!firebaseResult.success || !firebaseResult.user) {
+        if (firebaseResult.error === "EMAIL_EXISTS") {
+          throw new Error("EMAIL_EXISTS");
+        }
         throw new Error(firebaseResult.error || "Failed to create Firebase user");
       }
       
@@ -203,6 +206,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     },
     onError: (error: Error) => {
+      if (error.message === "EMAIL_EXISTS") {
+        toast({
+          title: "Account already exists",
+          description: "An account with this email already exists. Please log in instead.",
+          variant: "destructive",
+          duration: 6000,
+        });
+        window.location.href = "/auth?tab=login";
+        return;
+      }
       toast({
         title: "Registration failed",
         description: error.message,
