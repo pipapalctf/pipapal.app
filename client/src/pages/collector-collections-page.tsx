@@ -673,14 +673,13 @@ export default function CollectorCollectionsPage() {
                           <TableCell>
                             {collection.dropoffCenterId ? (
                               <div className="flex flex-col gap-1">
-                                {collection.dropoffStatus === 'pending' && (
-                                  <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 w-fit">Pending</Badge>
+                                {collection.dropoffCode && (
+                                  <code className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded w-fit">{collection.dropoffCode}</code>
                                 )}
-                                {collection.dropoffStatus === 'accepted' && (
-                                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 w-fit">Accepted</Badge>
-                                )}
-                                {collection.dropoffStatus === 'rejected' && (
-                                  <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 w-fit">Rejected</Badge>
+                                {collection.dropoffConfirmed ? (
+                                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 w-fit">Delivered</Badge>
+                                ) : (
+                                  <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 w-fit">Pending Delivery</Badge>
                                 )}
                               </div>
                             ) : (
@@ -1051,6 +1050,7 @@ export default function CollectorCollectionsPage() {
             if (!open) setClaimingCollection(null);
           }}
           wasteType={claimingCollection.wasteType}
+          wasteAmount={claimingCollection.wasteAmount}
           onConfirm={(centerId) => {
             claimCollectionMutation.mutate({
               collectionId: claimingCollection.id,

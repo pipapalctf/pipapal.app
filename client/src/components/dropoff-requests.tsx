@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -7,7 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Loader2, Inbox, Star, Phone, Mail, Building2, Award, ChevronDown, ChevronUp, User, MapPin } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Loader2, Inbox, Star, Phone, Mail, Building2, Award, ChevronDown, ChevronUp, User, MapPin, Settings, Plus, Trash2, CheckCircle, Package } from "lucide-react";
 import { format } from "date-fns";
 import { wasteTypeConfig } from "@/lib/types";
 import { useAuth } from "@/hooks/use-auth";
@@ -32,11 +35,28 @@ interface DropoffCollection {
   city: string | null;
   dropoffCenterId: number;
   dropoffStatus: string | null;
+  dropoffCode: string | null;
+  dropoffConfirmed: boolean | null;
   collectorName: string | null;
   householdName: string | null;
   recyclerName: string | null;
   collectorDetails: CollectorDetails | null;
 }
+
+interface AcceptanceLimit {
+  id?: number;
+  wasteType: string;
+  limitAmount: number;
+  currentUsed: number;
+  period: string;
+}
+
+const WASTE_TYPES = ['plastic', 'paper', 'glass', 'metal', 'organic', 'electronic', 'hazardous', 'cardboard', 'general'];
+const PERIODS = [
+  { value: 'daily', label: 'Daily' },
+  { value: 'weekly', label: 'Weekly' },
+  { value: 'monthly', label: 'Monthly' },
+];
 
 function CollectorDetailsPanel({ details, collectorName }: { details: CollectorDetails; collectorName: string | null }) {
   return (
@@ -90,21 +110,189 @@ function CollectorDetailsPanel({ details, collectorName }: { details: CollectorD
   );
 }
 
+function AcceptanceLimitsConfig({ onClose }: { onClose: () => void }) {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [limits, setLimits] = useState<Array<{ wasteType: string; limitAmount: string; period: string }>>([]);
+
+  const { data: existingLimits = [], isLoading } = useQuery<AcceptanceLimit[]>({
+    queryKey: ['/api/waste-acceptance-limits', user?.id],
+    queryFn: async () => {
+      const res = await fetch(`/api/waste-acceptance-limits/${user?.id}`);
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    },
+    enabled: !!user?.id,
+  });
+
+  useEffect(() => {
+    if (existingLimits.length > 0) {
+      setLimits(existingLimits.map(l => ({
+        wasteType: l.wasteType,
+        limitAmount: l.limitAmount.toString(),
+        period: l.period,
+      })));
+    }
+  }, [existingLimits]);
+
+  const saveMutation = useMutation({
+    mutationFn: async (data: Array<{ wasteType: string; limitAmount: number; period: string }>) => {
+      const res = await apiRequest("PUT", "/api/waste-acceptance-limits", { limits: data });
+      if (!res.ok) throw new Error("Failed to save");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/waste-acceptance-limits'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+      toast({ title: "Acceptance limits saved", description: "Collectors can now see your waste capacity." });
+      onClose();
+    },
+    onError: () => {
+      toast({ title: "Failed to save", description: "Please try again.", variant: "destructive" });
+    },
+  });
+
+  const addLimit = () => {
+    const usedTypes = limits.map(l => l.wasteType);
+    const availableType = WASTE_TYPES.find(t => !usedTypes.includes(t));
+    if (availableType) {
+      setLimits([...limits, { wasteType: availableType, limitAmount: '1000', period: 'monthly' }]);
+    }
+  };
+
+  const removeLimit = (index: number) => {
+    setLimits(limits.filter((_, i) => i !== index));
+  };
+
+  const updateLimit = (index: number, field: string, value: string) => {
+    const updated = [...limits];
+    updated[index] = { ...updated[index], [field]: value };
+    setLimits(updated);
+  };
+
+  const handleSave = () => {
+    const valid = limits.filter(l => l.wasteType && parseFloat(l.limitAmount) > 0 && l.period);
+    saveMutation.mutate(valid.map(l => ({
+      wasteType: l.wasteType,
+      limitAmount: parseFloat(l.limitAmount),
+      period: l.period,
+    })));
+  };
+
+  const handleTurnOff = () => {
+    saveMutation.mutate([]);
+  };
+
+  const usedTypes = limits.map(l => l.wasteType);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="h-6 w-6 animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">
+        Set how much of each waste type you can accept and how often. Collectors will see your remaining capacity.
+      </p>
+
+      {limits.length === 0 ? (
+        <div className="text-center py-6 border rounded-lg bg-muted/20">
+          <Package className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+          <p className="text-sm text-muted-foreground mb-3">No waste types configured yet</p>
+          <Button size="sm" onClick={addLimit}>
+            <Plus className="h-4 w-4 mr-1" />
+            Add Waste Type
+          </Button>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {limits.map((limit, index) => (
+            <div key={index} className="flex items-center gap-2 p-3 border rounded-lg bg-card">
+              <Select value={limit.wasteType} onValueChange={(v) => updateLimit(index, 'wasteType', v)}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {WASTE_TYPES.filter(t => t === limit.wasteType || !usedTypes.includes(t)).map(t => (
+                    <SelectItem key={t} value={t}>
+                      {wasteTypeConfig[t as keyof typeof wasteTypeConfig]?.label || t}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Input
+                type="number"
+                value={limit.limitAmount}
+                onChange={(e) => updateLimit(index, 'limitAmount', e.target.value)}
+                className="w-[100px]"
+                min="1"
+                placeholder="kg"
+              />
+              <span className="text-sm text-muted-foreground">kg</span>
+
+              <Select value={limit.period} onValueChange={(v) => updateLimit(index, 'period', v)}>
+                <SelectTrigger className="w-[120px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PERIODS.map(p => (
+                    <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Button variant="ghost" size="icon" onClick={() => removeLimit(index)} className="shrink-0 text-destructive hover:text-destructive">
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          ))}
+
+          {limits.length < WASTE_TYPES.length && (
+            <Button variant="outline" size="sm" onClick={addLimit}>
+              <Plus className="h-4 w-4 mr-1" />
+              Add Another Type
+            </Button>
+          )}
+        </div>
+      )}
+
+      <div className="flex justify-between pt-2">
+        {existingLimits.length > 0 && (
+          <Button variant="outline" onClick={handleTurnOff} disabled={saveMutation.isPending} className="text-destructive border-destructive/30">
+            Stop Accepting
+          </Button>
+        )}
+        <div className="flex gap-2 ml-auto">
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={handleSave} disabled={saveMutation.isPending || limits.length === 0}>
+            {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+            Save Limits
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function DropoffRequests() {
   const { toast } = useToast();
   const { user } = useAuth();
   const [expandedCollectors, setExpandedCollectors] = useState<Set<number>>(new Set());
+  const [showConfig, setShowConfig] = useState(false);
+  const [confirmCode, setConfirmCode] = useState('');
+  const [confirmingId, setConfirmingId] = useState<number | null>(null);
 
   const isAccepting = user?.acceptingWaste !== false;
 
   const toggleCollectorDetails = (id: number) => {
     setExpandedCollectors(prev => {
       const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
+      if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
   };
@@ -114,27 +302,34 @@ export function DropoffRequests() {
     refetchInterval: 30000,
   });
 
-  const toggleAcceptingMutation = useMutation({
-    mutationFn: async (acceptingWaste: boolean) => {
-      const res = await apiRequest("PATCH", "/api/recycler/accepting-waste", { acceptingWaste });
-      if (!res.ok) throw new Error("Failed to update");
+  const { data: limits = [] } = useQuery<AcceptanceLimit[]>({
+    queryKey: ['/api/waste-acceptance-limits', user?.id],
+    queryFn: async () => {
+      const res = await fetch(`/api/waste-acceptance-limits/${user?.id}`);
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    },
+    enabled: !!user?.id,
+  });
+
+  const confirmDropoffMutation = useMutation({
+    mutationFn: async ({ collectionId, dropoffCode }: { collectionId: number; dropoffCode: string }) => {
+      const res = await apiRequest("POST", `/api/collections/${collectionId}/confirm-dropoff`, { dropoffCode });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to confirm");
+      }
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-      toast({
-        title: isAccepting ? "No Longer Accepting Waste" : "Now Accepting Waste",
-        description: isAccepting
-          ? "Collectors will no longer see you as an available drop-off option."
-          : "Collectors can now select you for waste drop-offs.",
-      });
+      queryClient.invalidateQueries({ queryKey: ["/api/dropoffs"] });
+      queryClient.invalidateQueries({ queryKey: ['/api/waste-acceptance-limits'] });
+      setConfirmingId(null);
+      setConfirmCode('');
+      toast({ title: "Drop-off Confirmed", description: "The delivery has been confirmed and the amount has been deducted from your capacity." });
     },
     onError: (error: Error) => {
-      toast({
-        title: "Failed to update",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Confirmation Failed", description: error.message, variant: "destructive" });
     },
   });
 
@@ -153,6 +348,9 @@ export function DropoffRequests() {
     );
   }
 
+  const unconfirmedDropoffs = dropoffs.filter(d => !d.dropoffConfirmed);
+  const confirmedDropoffs = dropoffs.filter(d => d.dropoffConfirmed);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -160,8 +358,8 @@ export function DropoffRequests() {
           <h2 className="text-xl font-semibold flex items-center gap-2">
             <Inbox className="h-5 w-5" />
             Incoming Drop-offs
-            {dropoffs.length > 0 && (
-              <Badge variant="secondary" className="ml-1">{dropoffs.length}</Badge>
+            {unconfirmedDropoffs.length > 0 && (
+              <Badge variant="secondary" className="ml-1">{unconfirmedDropoffs.length} pending</Badge>
             )}
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
@@ -169,20 +367,45 @@ export function DropoffRequests() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3 p-3 rounded-lg border bg-card">
-          <div className="flex flex-col">
-            <span className="text-sm font-medium">Accepting Waste</span>
-            <span className="text-xs text-muted-foreground">
-              {isAccepting ? "Visible to collectors" : "Hidden from collectors"}
-            </span>
-          </div>
-          <Switch
-            checked={isAccepting}
-            onCheckedChange={(checked) => toggleAcceptingMutation.mutate(checked)}
-            disabled={toggleAcceptingMutation.isPending}
-          />
-        </div>
+        <Button
+          variant={isAccepting ? "default" : "outline"}
+          size="sm"
+          onClick={() => setShowConfig(true)}
+        >
+          <Settings className="h-4 w-4 mr-1.5" />
+          {isAccepting ? "Manage Acceptance" : "Start Accepting Waste"}
+        </Button>
       </div>
+
+      {limits.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+          {limits.map((limit) => {
+            const config = getWasteConfig(limit.wasteType);
+            const remaining = limit.limitAmount - (limit.currentUsed || 0);
+            const percentage = Math.min(((limit.currentUsed || 0) / limit.limitAmount) * 100, 100);
+            return (
+              <Card key={limit.wasteType} className="p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Badge className={`${config.bgColor} ${config.textColor} border-0 text-xs`}>
+                    {config.label}
+                  </Badge>
+                  <span className="text-xs text-muted-foreground capitalize">{limit.period}</span>
+                </div>
+                <div className="text-sm">
+                  <span className="font-semibold">{Math.max(0, remaining).toLocaleString()}</span>
+                  <span className="text-muted-foreground"> / {limit.limitAmount.toLocaleString()} kg</span>
+                </div>
+                <div className="w-full bg-muted rounded-full h-1.5 mt-1.5">
+                  <div
+                    className={`h-1.5 rounded-full transition-all ${percentage > 90 ? 'bg-red-500' : percentage > 70 ? 'bg-yellow-500' : 'bg-green-500'}`}
+                    style={{ width: `${percentage}%` }}
+                  />
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
 
       {dropoffs.length === 0 ? (
         <Card>
@@ -192,94 +415,168 @@ export function DropoffRequests() {
             <p className="text-sm text-muted-foreground mt-1">
               {isAccepting
                 ? "When collectors assign you for waste drop-off, they will appear here."
-                : "Turn on \"Accepting Waste\" to start receiving drop-offs from collectors."
+                : "Configure your acceptance limits to start receiving drop-offs from collectors."
               }
             </p>
           </CardContent>
         </Card>
       ) : (
-        <div className="rounded-md border overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Waste Type</TableHead>
-                <TableHead>Collector</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Pickup Location</TableHead>
-                <TableHead>Collection Date</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {dropoffs.map((dropoff) => {
-                const config = getWasteConfig(dropoff.wasteType);
-                const isExpanded = expandedCollectors.has(dropoff.id);
-                return (
-                  <>
-                    <TableRow key={dropoff.id}>
-                      <TableCell>
-                        <Badge className={`${config.bgColor} ${config.textColor} border-0`}>
-                          {config.label}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col gap-1">
-                          <span className="font-medium">{dropoff.collectorName || "Unknown"}</span>
-                          {dropoff.collectorDetails && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-primary hover:text-primary/80 p-0 h-auto font-normal text-xs justify-start"
-                              onClick={() => toggleCollectorDetails(dropoff.id)}
-                            >
-                              {isExpanded ? (
-                                <>
-                                  <ChevronUp className="h-3 w-3 mr-1" />
-                                  Hide Details
-                                </>
-                              ) : (
-                                <>
-                                  <ChevronDown className="h-3 w-3 mr-1" />
-                                  View Details
-                                </>
-                              )}
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>{dropoff.wasteAmount ? `${dropoff.wasteAmount} kg` : "TBD"}</TableCell>
-                      <TableCell>
-                        <span className="text-sm truncate max-w-[200px] block">{dropoff.address}</span>
-                      </TableCell>
-                      <TableCell>
-                        {dropoff.scheduledDate ? format(new Date(dropoff.scheduledDate), "MMM d, yyyy") : "N/A"}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className={
-                          dropoff.status === "completed" ? "bg-green-50 text-green-700 border-green-200" :
-                          dropoff.status === "in_progress" ? "bg-blue-50 text-blue-700 border-blue-200" :
-                          "bg-yellow-50 text-yellow-700 border-yellow-200"
-                        }>
-                          {dropoff.status === "in_progress" ? "In Progress" :
-                           dropoff.status === "completed" ? "Completed" :
-                           dropoff.status === "confirmed" ? "Confirmed" : dropoff.status}
-                        </Badge>
-                      </TableCell>
+        <>
+          {unconfirmedDropoffs.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Awaiting Delivery</h3>
+              <div className="rounded-md border overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Waste Type</TableHead>
+                      <TableHead>Collector</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Pickup Location</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Confirm Delivery</TableHead>
                     </TableRow>
-                    {isExpanded && dropoff.collectorDetails && (
-                      <TableRow key={`${dropoff.id}-details`}>
-                        <TableCell colSpan={6} className="p-2">
-                          <CollectorDetailsPanel details={dropoff.collectorDetails} collectorName={dropoff.collectorName} />
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
+                  </TableHeader>
+                  <TableBody>
+                    {unconfirmedDropoffs.map((dropoff) => {
+                      const config = getWasteConfig(dropoff.wasteType);
+                      const isExpanded = expandedCollectors.has(dropoff.id);
+                      const isConfirming = confirmingId === dropoff.id;
+                      return (
+                        <>
+                          <TableRow key={dropoff.id}>
+                            <TableCell>
+                              <Badge className={`${config.bgColor} ${config.textColor} border-0`}>
+                                {config.label}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex flex-col gap-1">
+                                <span className="font-medium">{dropoff.collectorName || "Unknown"}</span>
+                                {dropoff.collectorDetails && (
+                                  <Button variant="ghost" size="sm" className="text-primary hover:text-primary/80 p-0 h-auto font-normal text-xs justify-start" onClick={() => toggleCollectorDetails(dropoff.id)}>
+                                    {isExpanded ? <><ChevronUp className="h-3 w-3 mr-1" />Hide Details</> : <><ChevronDown className="h-3 w-3 mr-1" />View Details</>}
+                                  </Button>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>{dropoff.wasteAmount ? `${dropoff.wasteAmount} kg` : "TBD"}</TableCell>
+                            <TableCell>
+                              <span className="text-sm truncate max-w-[200px] block">{dropoff.address}</span>
+                            </TableCell>
+                            <TableCell>
+                              {dropoff.scheduledDate ? format(new Date(dropoff.scheduledDate), "MMM d, yyyy") : "N/A"}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className={
+                                dropoff.status === "completed" ? "bg-green-50 text-green-700 border-green-200" :
+                                dropoff.status === "in_progress" ? "bg-blue-50 text-blue-700 border-blue-200" :
+                                "bg-yellow-50 text-yellow-700 border-yellow-200"
+                              }>
+                                {dropoff.status === "in_progress" ? "In Progress" :
+                                 dropoff.status === "completed" ? "Collected" :
+                                 dropoff.status === "confirmed" ? "Confirmed" : dropoff.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {isConfirming ? (
+                                <div className="flex items-center gap-2 justify-end">
+                                  <Input
+                                    value={confirmCode}
+                                    onChange={(e) => setConfirmCode(e.target.value.toUpperCase())}
+                                    placeholder="Enter code"
+                                    className="w-[120px] h-8 text-sm"
+                                  />
+                                  <Button size="sm" onClick={() => confirmDropoffMutation.mutate({ collectionId: dropoff.id, dropoffCode: confirmCode })} disabled={!confirmCode || confirmDropoffMutation.isPending}>
+                                    {confirmDropoffMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
+                                  </Button>
+                                  <Button size="sm" variant="ghost" onClick={() => { setConfirmingId(null); setConfirmCode(''); }}>
+                                    Cancel
+                                  </Button>
+                                </div>
+                              ) : (
+                                <Button size="sm" variant="outline" onClick={() => setConfirmingId(dropoff.id)}>
+                                  Confirm
+                                </Button>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                          {isExpanded && dropoff.collectorDetails && (
+                            <TableRow key={`${dropoff.id}-details`}>
+                              <TableCell colSpan={7} className="p-2">
+                                <CollectorDetailsPanel details={dropoff.collectorDetails} collectorName={dropoff.collectorName} />
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          )}
+
+          {confirmedDropoffs.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Confirmed Deliveries</h3>
+              <div className="rounded-md border overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Waste Type</TableHead>
+                      <TableHead>Collector</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Location</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {confirmedDropoffs.slice(0, 10).map((dropoff) => {
+                      const config = getWasteConfig(dropoff.wasteType);
+                      return (
+                        <TableRow key={dropoff.id}>
+                          <TableCell>
+                            <Badge className={`${config.bgColor} ${config.textColor} border-0`}>
+                              {config.label}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="font-medium">{dropoff.collectorName || "Unknown"}</TableCell>
+                          <TableCell>{dropoff.wasteAmount ? `${dropoff.wasteAmount} kg` : "TBD"}</TableCell>
+                          <TableCell>
+                            <span className="text-sm truncate max-w-[200px] block">{dropoff.address}</span>
+                          </TableCell>
+                          <TableCell>{dropoff.scheduledDate ? format(new Date(dropoff.scheduledDate), "MMM d, yyyy") : "N/A"}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              Delivered
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          )}
+        </>
       )}
+
+      <Dialog open={showConfig} onOpenChange={setShowConfig}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Configure Waste Acceptance</DialogTitle>
+            <DialogDescription>
+              Set the types and amounts of waste you can accept. Collectors will see your available capacity.
+            </DialogDescription>
+          </DialogHeader>
+          <AcceptanceLimitsConfig onClose={() => setShowConfig(false)} />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

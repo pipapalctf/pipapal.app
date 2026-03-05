@@ -3,9 +3,16 @@ import { useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, MapPin, Building2, CheckCircle, Award, Recycle } from "lucide-react";
+import { Loader2, MapPin, Building2, CheckCircle, Award, Recycle, Package } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
+
+interface RelevantLimit {
+  limitAmount: number;
+  currentUsed: number;
+  remaining: number;
+  period: string;
+}
 
 interface Recycler {
   id: number;
@@ -16,17 +23,19 @@ interface Recycler {
   wasteSpecialization: string[];
   serviceType: string;
   isCertified: boolean;
+  relevantLimit: RelevantLimit | null;
 }
 
 interface ClaimPickupDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   wasteType: string;
+  wasteAmount?: number | null;
   onConfirm: (recyclerId: number) => void;
   isPending: boolean;
 }
 
-export function ClaimPickupDialog({ open, onOpenChange, wasteType, onConfirm, isPending }: ClaimPickupDialogProps) {
+export function ClaimPickupDialog({ open, onOpenChange, wasteType, wasteAmount, onConfirm, isPending }: ClaimPickupDialogProps) {
   const [selectedRecyclerId, setSelectedRecyclerId] = useState<number | null>(null);
 
   const { data: recyclers = [], isLoading } = useQuery<Recycler[]>({
@@ -58,7 +67,8 @@ export function ClaimPickupDialog({ open, onOpenChange, wasteType, onConfirm, is
         <DialogHeader>
           <DialogTitle>Select Drop-off Recycler</DialogTitle>
           <DialogDescription>
-            Choose a recycler to drop off the <span className="font-medium text-foreground">{wasteType}</span> waste after collection. The recycler will need to accept the drop-off.
+            Choose a recycler to drop off the <span className="font-medium text-foreground">{wasteType}</span> waste
+            {wasteAmount ? <> ({wasteAmount} kg)</> : ''} after collection. A unique drop-off code will be generated.
           </DialogDescription>
         </DialogHeader>
 
@@ -71,7 +81,7 @@ export function ClaimPickupDialog({ open, onOpenChange, wasteType, onConfirm, is
           <div className="text-center py-8">
             <Recycle className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
             <p className="text-sm text-muted-foreground">
-              No recyclers found that handle <span className="font-medium">{wasteType}</span> waste.
+              No recyclers currently accepting <span className="font-medium">{wasteType}</span> waste.
             </p>
           </div>
         ) : (
@@ -81,52 +91,81 @@ export function ClaimPickupDialog({ open, onOpenChange, wasteType, onConfirm, is
               onValueChange={(val) => setSelectedRecyclerId(parseInt(val))}
             >
               <div className="space-y-2">
-                {recyclers.map((recycler) => (
-                  <label
-                    key={recycler.id}
-                    htmlFor={`recycler-${recycler.id}`}
-                    className={`flex items-start gap-3 rounded-lg border p-3 cursor-pointer transition-colors hover:bg-accent/50 ${
-                      selectedRecyclerId === recycler.id ? "border-primary bg-primary/5" : "border-border"
-                    }`}
-                  >
-                    <RadioGroupItem value={recycler.id.toString()} id={`recycler-${recycler.id}`} className="mt-1" />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <Building2 className="h-4 w-4 text-primary shrink-0" />
-                        <span className="font-medium text-sm truncate">{recycler.businessName}</span>
-                        {recycler.isCertified && (
-                          <Badge variant="secondary" className="text-xs bg-green-50 text-green-700 border-green-200 shrink-0">
-                            <Award className="h-3 w-3 mr-0.5" />
-                            Certified
-                          </Badge>
+                {recyclers.map((recycler) => {
+                  const limit = recycler.relevantLimit;
+                  const capacityPercentage = limit ? Math.min(((limit.currentUsed) / limit.limitAmount) * 100, 100) : 0;
+                  
+                  return (
+                    <label
+                      key={recycler.id}
+                      htmlFor={`recycler-${recycler.id}`}
+                      className={`flex items-start gap-3 rounded-lg border p-3 cursor-pointer transition-colors hover:bg-accent/50 ${
+                        selectedRecyclerId === recycler.id ? "border-primary bg-primary/5" : "border-border"
+                      }`}
+                    >
+                      <RadioGroupItem value={recycler.id.toString()} id={`recycler-${recycler.id}`} className="mt-1" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <Building2 className="h-4 w-4 text-primary shrink-0" />
+                          <span className="font-medium text-sm truncate">{recycler.businessName}</span>
+                          {recycler.isCertified && (
+                            <Badge variant="secondary" className="text-xs bg-green-50 text-green-700 border-green-200 shrink-0">
+                              <Award className="h-3 w-3 mr-0.5" />
+                              Certified
+                            </Badge>
+                          )}
+                        </div>
+                        {recycler.address && (
+                          <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                            <MapPin className="h-3 w-3 shrink-0" />
+                            <span className="truncate">{recycler.address}</span>
+                          </p>
+                        )}
+                        {recycler.serviceLocation && (
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            Serves: {recycler.serviceLocation}
+                          </p>
+                        )}
+                        
+                        {limit && (
+                          <div className="mt-2 p-2 rounded bg-muted/40 border border-border/50">
+                            <div className="flex items-center justify-between text-xs mb-1">
+                              <span className="flex items-center gap-1 text-muted-foreground">
+                                <Package className="h-3 w-3" />
+                                Capacity ({limit.period})
+                              </span>
+                              <span className={`font-medium ${limit.remaining < (wasteAmount || 0) ? 'text-orange-600' : 'text-green-600'}`}>
+                                {Math.max(0, limit.remaining).toLocaleString()} kg remaining
+                              </span>
+                            </div>
+                            <div className="w-full bg-muted rounded-full h-1.5">
+                              <div
+                                className={`h-1.5 rounded-full transition-all ${capacityPercentage > 90 ? 'bg-red-500' : capacityPercentage > 70 ? 'bg-yellow-500' : 'bg-green-500'}`}
+                                style={{ width: `${capacityPercentage}%` }}
+                              />
+                            </div>
+                            <div className="text-xs text-muted-foreground mt-1">
+                              {limit.currentUsed.toLocaleString()} / {limit.limitAmount.toLocaleString()} kg used
+                            </div>
+                          </div>
+                        )}
+
+                        {!limit && recycler.wasteSpecialization && recycler.wasteSpecialization.length > 0 && (
+                          <div className="flex gap-1 mt-1.5 flex-wrap">
+                            {recycler.wasteSpecialization.map((spec) => (
+                              <Badge key={spec} variant="outline" className="text-xs py-0">
+                                {spec}
+                              </Badge>
+                            ))}
+                          </div>
                         )}
                       </div>
-                      {recycler.address && (
-                        <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                          <MapPin className="h-3 w-3 shrink-0" />
-                          <span className="truncate">{recycler.address}</span>
-                        </p>
+                      {selectedRecyclerId === recycler.id && (
+                        <CheckCircle className="h-5 w-5 text-primary shrink-0 mt-1" />
                       )}
-                      {recycler.serviceLocation && (
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          Serves: {recycler.serviceLocation}
-                        </p>
-                      )}
-                      {recycler.wasteSpecialization && recycler.wasteSpecialization.length > 0 && (
-                        <div className="flex gap-1 mt-1.5 flex-wrap">
-                          {recycler.wasteSpecialization.map((spec) => (
-                            <Badge key={spec} variant="outline" className="text-xs py-0">
-                              {spec}
-                            </Badge>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    {selectedRecyclerId === recycler.id && (
-                      <CheckCircle className="h-5 w-5 text-primary shrink-0 mt-1" />
-                    )}
-                  </label>
-                ))}
+                    </label>
+                  );
+                })}
               </div>
             </RadioGroup>
           </ScrollArea>

@@ -411,6 +411,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const updates = { ...req.body };
       
+      if (updates.dropoffCenterId && updates.collectorId) {
+        const code = 'DP-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+        updates.dropoffCode = code;
+        updates.dropoffStatus = 'pending';
+      }
+      
       const updatedCollection = await storage.updateCollection(id, updates);
       
       // Send notification if the status was updated or collection is claimed
@@ -1556,7 +1562,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
           isCertified: r.isCertified || false,
         }));
       
-      res.json(filtered);
+      const enriched = await Promise.all(filtered.map(async (r) => {
+        const limits = await storage.getWasteAcceptanceLimits(r.id);
+        const relevantLimit = wasteType ? limits.find(l => l.wasteType === wasteType) : null;
+        return {
+          ...r,
+          acceptanceLimits: limits.map(l => ({
+            wasteType: l.wasteType,
+            limitAmount: l.limitAmount,
+            currentUsed: l.currentUsed || 0,
+            remaining: l.limitAmount - (l.currentUsed || 0),
+            period: l.period,
+          })),
+          relevantLimit: relevantLimit ? {
+            limitAmount: relevantLimit.limitAmount,
+            currentUsed: relevantLimit.currentUsed || 0,
+            remaining: relevantLimit.limitAmount - (relevantLimit.currentUsed || 0),
+            period: relevantLimit.period,
+          } : null,
+        };
+      }));
+
+      const finalFiltered = wasteType 
+        ? enriched.filter(r => !r.relevantLimit || r.relevantLimit.remaining > 0)
+        : enriched;
+
+      res.json(finalFiltered);
     } catch (error) {
       console.error("Error fetching recyclers:", error);
       res.status(500).json({ error: "Failed to fetch recyclers" });
@@ -1613,6 +1644,100 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching dropoffs:", error);
       res.status(500).json({ error: "Failed to fetch dropoffs" });
+    }
+  });
+
+  app.get("/api/waste-acceptance-limits/:recyclerId", requireAuthentication, async (req: any, res: any) => {
+    try {
+      const recyclerId = parseInt(req.params.recyclerId);
+      if (isNaN(recyclerId)) return res.status(400).json({ error: "Invalid recycler ID" });
+      const limits = await storage.getWasteAcceptanceLimits(recyclerId);
+      res.json(limits);
+    } catch (error) {
+      console.error("Error fetching waste acceptance limits:", error);
+      res.status(500).json({ error: "Failed to fetch limits" });
+    }
+  });
+
+  app.put("/api/waste-acceptance-limits", requireAuthentication, requireRole(UserRole.RECYCLER), async (req: any, res: any) => {
+    try {
+      const { limits } = req.body;
+      if (!Array.isArray(limits)) {
+        return res.status(400).json({ error: "limits must be an array" });
+      }
+
+      await storage.deleteAllWasteAcceptanceLimits(req.user.id);
+
+      const results = await Promise.all(
+        limits.map((l: any) =>
+          storage.upsertWasteAcceptanceLimit(req.user.id, l.wasteType, l.limitAmount, l.period)
+        )
+      );
+
+      await storage.updateUser(req.user.id, { acceptingWaste: limits.length > 0 });
+
+      res.json(results);
+    } catch (error) {
+      console.error("Error saving waste acceptance limits:", error);
+      res.status(500).json({ error: "Failed to save limits" });
+    }
+  });
+
+  app.post("/api/collections/:id/confirm-dropoff", requireAuthentication, requireRole(UserRole.RECYCLER), async (req: any, res: any) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).send("Invalid ID format");
+
+      const { dropoffCode } = req.body;
+      const collection = await storage.getCollection(id);
+      if (!collection) return res.status(404).json({ error: "Collection not found" });
+
+      if (collection.dropoffCenterId !== req.user.id) {
+        return res.status(403).json({ error: "This drop-off is not assigned to you" });
+      }
+
+      if (collection.dropoffCode !== dropoffCode) {
+        return res.status(400).json({ error: "Invalid drop-off code" });
+      }
+
+      if (collection.dropoffConfirmed) {
+        return res.status(400).json({ error: "Drop-off already confirmed" });
+      }
+
+      const updated = await storage.updateCollection(id, { 
+        dropoffConfirmed: true,
+        dropoffStatus: 'confirmed'
+      });
+
+      if (updated && collection.wasteAmount) {
+        const limits = await storage.getWasteAcceptanceLimits(req.user.id);
+        const matchingLimit = limits.find(l => l.wasteType === collection.wasteType);
+        if (matchingLimit) {
+          await storage.updateWasteAcceptanceLimitUsage(matchingLimit.id, collection.wasteAmount);
+        }
+      }
+
+      if (updated && collection.collectorId) {
+        try {
+          const collectorClients = clients.get(collection.collectorId) || [];
+          const recyclerName = req.user.businessName || req.user.fullName || req.user.username;
+          const notification = {
+            type: 'dropoff_confirmed',
+            collectionId: collection.id,
+            message: `${recyclerName} has confirmed receiving your ${collection.wasteType} drop-off of ${collection.wasteAmount || 0} kg.`
+          };
+          collectorClients.forEach((ws: any) => {
+            if (ws.readyState === 1) ws.send(JSON.stringify(notification));
+          });
+        } catch (e) {
+          console.error("Error sending dropoff confirmation notification:", e);
+        }
+      }
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Error confirming dropoff:", error);
+      res.status(500).json({ error: "Failed to confirm drop-off" });
     }
   });
 

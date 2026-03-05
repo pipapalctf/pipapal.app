@@ -127,6 +127,19 @@ export const collections = pgTable("collections", {
   notes: text("notes"),
   dropoffCenterId: integer("dropoff_center_id"),
   dropoffStatus: text("dropoff_status"),
+  dropoffCode: text("dropoff_code"),
+  dropoffConfirmed: boolean("dropoff_confirmed").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const wasteAcceptanceLimits = pgTable("waste_acceptance_limits", {
+  id: serial("id").primaryKey(),
+  recyclerId: integer("recycler_id").notNull(),
+  wasteType: text("waste_type").notNull(),
+  limitAmount: real("limit_amount").notNull(),
+  period: text("period").notNull(),
+  currentUsed: real("current_used").default(0),
+  periodStartDate: timestamp("period_start_date").defaultNow(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -241,6 +254,17 @@ export const insertCollectionSchema = createInsertSchema(collections, {
     location: true, // Kept for backward compatibility
     notes: true,
   });
+
+export const insertWasteAcceptanceLimitSchema = createInsertSchema(wasteAcceptanceLimits)
+  .pick({
+    recyclerId: true,
+    wasteType: true,
+    limitAmount: true,
+    period: true,
+  });
+
+export type WasteAcceptanceLimit = typeof wasteAcceptanceLimits.$inferSelect;
+export type InsertWasteAcceptanceLimit = z.infer<typeof insertWasteAcceptanceLimitSchema>;
 
 export const insertImpactSchema = createInsertSchema(impacts)
   .pick({

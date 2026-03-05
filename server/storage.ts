@@ -11,6 +11,7 @@ import {
   feedback, type Feedback, type InsertFeedback,
   userRatings, type UserRating, type InsertUserRating,
   payments, type Payment, type InsertPayment,
+  wasteAcceptanceLimits, type WasteAcceptanceLimit, type InsertWasteAcceptanceLimit,
   CollectionStatus
 } from "@shared/schema";
 import session from "express-session";
@@ -121,6 +122,13 @@ export interface IStorage {
   getPaymentsByUser(userId: number): Promise<Payment[]>;
   getPaymentsByCollection(collectionId: number): Promise<Payment[]>;
   
+  // Waste acceptance limits
+  getWasteAcceptanceLimits(recyclerId: number): Promise<WasteAcceptanceLimit[]>;
+  upsertWasteAcceptanceLimit(recyclerId: number, wasteType: string, limitAmount: number, period: string): Promise<WasteAcceptanceLimit>;
+  deleteWasteAcceptanceLimit(recyclerId: number, wasteType: string): Promise<void>;
+  deleteAllWasteAcceptanceLimits(recyclerId: number): Promise<void>;
+  updateWasteAcceptanceLimitUsage(id: number, amountToAdd: number): Promise<WasteAcceptanceLimit | undefined>;
+
   // Session store
   sessionStore: any;
 }
@@ -904,6 +912,55 @@ export class MemStorage implements IStorage {
       await this.createEcoTip(tip);
     }
   }
+
+  private wasteAcceptanceLimitsMap: Map<number, WasteAcceptanceLimit> = new Map();
+  private wasteAcceptanceLimitId = 1;
+
+  async getWasteAcceptanceLimits(recyclerId: number): Promise<WasteAcceptanceLimit[]> {
+    return Array.from(this.wasteAcceptanceLimitsMap.values()).filter(l => l.recyclerId === recyclerId);
+  }
+
+  async upsertWasteAcceptanceLimit(recyclerId: number, wasteType: string, limitAmount: number, period: string): Promise<WasteAcceptanceLimit> {
+    const existing = Array.from(this.wasteAcceptanceLimitsMap.values()).find(
+      l => l.recyclerId === recyclerId && l.wasteType === wasteType
+    );
+    if (existing) {
+      const updated = { ...existing, limitAmount, period };
+      this.wasteAcceptanceLimitsMap.set(existing.id, updated);
+      return updated;
+    }
+    const id = this.wasteAcceptanceLimitId++;
+    const limit: WasteAcceptanceLimit = {
+      id, recyclerId, wasteType, limitAmount, period,
+      currentUsed: 0, periodStartDate: new Date(), createdAt: new Date()
+    };
+    this.wasteAcceptanceLimitsMap.set(id, limit);
+    return limit;
+  }
+
+  async deleteWasteAcceptanceLimit(recyclerId: number, wasteType: string): Promise<void> {
+    for (const [id, l] of this.wasteAcceptanceLimitsMap) {
+      if (l.recyclerId === recyclerId && l.wasteType === wasteType) {
+        this.wasteAcceptanceLimitsMap.delete(id);
+      }
+    }
+  }
+
+  async deleteAllWasteAcceptanceLimits(recyclerId: number): Promise<void> {
+    for (const [id, l] of this.wasteAcceptanceLimitsMap) {
+      if (l.recyclerId === recyclerId) {
+        this.wasteAcceptanceLimitsMap.delete(id);
+      }
+    }
+  }
+
+  async updateWasteAcceptanceLimitUsage(id: number, amountToAdd: number): Promise<WasteAcceptanceLimit | undefined> {
+    const limit = this.wasteAcceptanceLimitsMap.get(id);
+    if (!limit) return undefined;
+    const updated = { ...limit, currentUsed: (limit.currentUsed || 0) + amountToAdd };
+    this.wasteAcceptanceLimitsMap.set(id, updated);
+    return updated;
+  }
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1125,6 +1182,14 @@ export class DatabaseStorage implements IStorage {
     
     if (updates.dropoffStatus !== undefined) {
       updateValues.dropoffStatus = updates.dropoffStatus;
+    }
+    
+    if (updates.dropoffCode !== undefined) {
+      updateValues.dropoffCode = updates.dropoffCode;
+    }
+    
+    if (updates.dropoffConfirmed !== undefined) {
+      updateValues.dropoffConfirmed = updates.dropoffConfirmed;
     }
     
     // Handle completedDate separately
@@ -1759,6 +1824,51 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(payments)
       .where(eq(payments.collectionId, collectionId))
       .orderBy(desc(payments.createdAt));
+  }
+
+  async getWasteAcceptanceLimits(recyclerId: number): Promise<WasteAcceptanceLimit[]> {
+    return db.select().from(wasteAcceptanceLimits)
+      .where(eq(wasteAcceptanceLimits.recyclerId, recyclerId));
+  }
+
+  async upsertWasteAcceptanceLimit(recyclerId: number, wasteType: string, limitAmount: number, period: string): Promise<WasteAcceptanceLimit> {
+    const [existing] = await db.select().from(wasteAcceptanceLimits)
+      .where(and(
+        eq(wasteAcceptanceLimits.recyclerId, recyclerId),
+        eq(wasteAcceptanceLimits.wasteType, wasteType)
+      ));
+    if (existing) {
+      const [updated] = await db.update(wasteAcceptanceLimits)
+        .set({ limitAmount, period })
+        .where(eq(wasteAcceptanceLimits.id, existing.id))
+        .returning();
+      return updated;
+    }
+    const [created] = await db.insert(wasteAcceptanceLimits)
+      .values({ recyclerId, wasteType, limitAmount, period, currentUsed: 0 })
+      .returning();
+    return created;
+  }
+
+  async deleteWasteAcceptanceLimit(recyclerId: number, wasteType: string): Promise<void> {
+    await db.delete(wasteAcceptanceLimits)
+      .where(and(
+        eq(wasteAcceptanceLimits.recyclerId, recyclerId),
+        eq(wasteAcceptanceLimits.wasteType, wasteType)
+      ));
+  }
+
+  async deleteAllWasteAcceptanceLimits(recyclerId: number): Promise<void> {
+    await db.delete(wasteAcceptanceLimits)
+      .where(eq(wasteAcceptanceLimits.recyclerId, recyclerId));
+  }
+
+  async updateWasteAcceptanceLimitUsage(id: number, amountToAdd: number): Promise<WasteAcceptanceLimit | undefined> {
+    const [updated] = await db.update(wasteAcceptanceLimits)
+      .set({ currentUsed: sql`COALESCE(${wasteAcceptanceLimits.currentUsed}, 0) + ${amountToAdd}` })
+      .where(eq(wasteAcceptanceLimits.id, id))
+      .returning();
+    return updated;
   }
 }
 
