@@ -75,6 +75,7 @@ export default function AuthPage() {
   const [location, navigate] = useLocation();
   const [roleDialogOpen, setRoleDialogOpen] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [emailExistsError, setEmailExistsError] = useState(false);
   
   // Check URL for tab and role parameters
   const getParamsFromUrl = () => {
@@ -102,7 +103,11 @@ export default function AuthPage() {
   };
   
   const handleRoleSelect = (role: string, consent: { consentPrivacyPolicy: boolean; consentTermsOfService: boolean; consentUserAgreement: boolean }) => {
-    loginWithGoogleMutation.mutate({ role, consent });
+    loginWithGoogleMutation.mutate({ 
+      role, 
+      consent,
+      onEmailExists: () => setEmailExistsError(true),
+    });
   };
   
   // Redirect if already logged in
@@ -329,6 +334,40 @@ export default function AuthPage() {
                       <CardDescription>Join PipaPal and start your sustainability journey</CardDescription>
                     </CardHeader>
                     <CardContent>
+                      {emailExistsError ? (
+                        <div className="flex flex-col items-center text-center py-6 space-y-4">
+                          <div className="rounded-full bg-destructive/10 p-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-destructive">
+                              <circle cx="12" cy="12" r="10"/>
+                              <line x1="12" y1="8" x2="12" y2="12"/>
+                              <line x1="12" y1="16" x2="12.01" y2="16"/>
+                            </svg>
+                          </div>
+                          <h3 className="text-lg font-semibold text-secondary">Account Already Exists</h3>
+                          <p className="text-sm text-muted-foreground max-w-sm">
+                            An account with this email is already registered. Please log in with your existing account instead.
+                          </p>
+                          <div className="flex flex-col gap-2 w-full max-w-xs pt-2">
+                            <Button 
+                              className="w-full" 
+                              onClick={() => {
+                                setEmailExistsError(false);
+                                setActiveTab("login");
+                              }}
+                            >
+                              Go to Login
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              className="w-full" 
+                              onClick={() => setEmailExistsError(false)}
+                            >
+                              Try a Different Email
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                      <>
                       <Button 
                         variant="outline" 
                         type="button" 
@@ -588,6 +627,8 @@ export default function AuthPage() {
                           </Button>
                         </p>
                       </div>
+                      </>
+                      )}
                     </CardContent>
                   </Card>
                 </TabsContent>

@@ -26,6 +26,7 @@ type GoogleLoginData = {
     consentTermsOfService: boolean;
     consentUserAgreement: boolean;
   };
+  onEmailExists?: () => void;
 } | undefined;
 
 type AuthContextType = {
@@ -164,15 +165,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         description: `Welcome, ${user.fullName}!`,
       });
     },
-    onError: (error: Error) => {
-      if (error.message.includes("already exists")) {
-        toast({
-          title: "Account already exists",
-          description: "An account with this email already exists. Please log in instead.",
-          variant: "destructive",
-          duration: 6000,
-        });
-        window.location.href = "/auth?tab=login";
+    onError: (error: Error, variables) => {
+      if (error.message.includes("already exists") && variables?.onEmailExists) {
+        variables.onEmailExists();
         return;
       }
       toast({
@@ -223,19 +218,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     },
     onError: (error: Error) => {
-      if (error.message === "EMAIL_EXISTS") {
-        toast({
-          title: "Account already exists",
-          description: "An account with this email already exists. Please log in instead.",
-          variant: "destructive",
-          duration: 6000,
-        });
-        window.location.href = "/auth?tab=login";
-        return;
-      }
       toast({
         title: "Registration failed",
-        description: error.message,
+        description: error.message === "EMAIL_EXISTS" 
+          ? "An account with this email already exists. Please log in instead."
+          : error.message,
         variant: "destructive",
       });
     },
