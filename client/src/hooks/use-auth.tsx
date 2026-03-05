@@ -132,12 +132,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error("Failed to get email from Google account");
       }
       
+      const isRegistering = !!data?.role;
+      
       const requestData: Record<string, unknown> = {
         email: googleUser.email,
         displayName: googleUser.displayName || googleUser.email.split('@')[0],
         photoURL: googleUser.photoURL || null,
         uid: googleUser.uid,
         role: data?.role || UserRole.HOUSEHOLD,
+        isRegistering,
       };
 
       if (data?.consent) {
@@ -148,6 +151,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       
       const res = await apiRequest("POST", "/api/login-with-google", requestData);
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Failed to sign in with Google");
+      }
       return await res.json();
     },
     onSuccess: (user: SelectUser) => {
@@ -158,6 +165,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     },
     onError: (error: Error) => {
+      if (error.message.includes("already exists")) {
+        toast({
+          title: "Account already exists",
+          description: "An account with this email already exists. Please log in instead.",
+          variant: "destructive",
+          duration: 6000,
+        });
+        window.location.href = "/auth?tab=login";
+        return;
+      }
       toast({
         title: "Google login failed",
         description: error.message,
