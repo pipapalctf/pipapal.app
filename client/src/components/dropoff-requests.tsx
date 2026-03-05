@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
 import { Loader2, Inbox, Star, Phone, Mail, Building2, Award, ChevronDown, ChevronUp, User, MapPin, Settings, Plus, Trash2, CheckCircle, Package, Copy } from "lucide-react";
 import { format } from "date-fns";
 import { wasteTypeConfig } from "@/lib/types";
@@ -283,8 +284,26 @@ export function DropoffRequests() {
   const { user } = useAuth();
   const [expandedCollectors, setExpandedCollectors] = useState<Set<number>>(new Set());
   const [showConfig, setShowConfig] = useState(false);
+  const [isToggling, setIsToggling] = useState(false);
 
   const isAccepting = user?.acceptingWaste !== false;
+
+  const handleToggleAccepting = async (checked: boolean) => {
+    if (checked) {
+      setShowConfig(true);
+    } else {
+      setIsToggling(true);
+      try {
+        await apiRequest("PATCH", "/api/recycler/accepting-waste", { acceptingWaste: false });
+        queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+        toast({ title: "Waste acceptance turned off", description: "Collectors will no longer see you as available." });
+      } catch {
+        toast({ title: "Failed to update", description: "Please try again.", variant: "destructive" });
+      } finally {
+        setIsToggling(false);
+      }
+    }
+  };
 
   const toggleCollectorDetails = (id: number) => {
     setExpandedCollectors(prev => {
@@ -348,14 +367,28 @@ export function DropoffRequests() {
           </p>
         </div>
 
-        <Button
-          variant={isAccepting ? "default" : "outline"}
-          size="sm"
-          onClick={() => setShowConfig(true)}
-        >
-          <Settings className="h-4 w-4 mr-1.5" />
-          {isAccepting ? "Manage Acceptance" : "Start Accepting Waste"}
-        </Button>
+        <div className="flex items-center gap-3">
+          {isAccepting && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowConfig(true)}
+            >
+              <Settings className="h-4 w-4 mr-1.5" />
+              Configure Limits
+            </Button>
+          )}
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-muted-foreground">
+              {isAccepting ? "Accepting Waste" : "Not Accepting"}
+            </span>
+            <Switch
+              checked={isAccepting}
+              onCheckedChange={handleToggleAccepting}
+              disabled={isToggling}
+            />
+          </div>
+        </div>
       </div>
 
       {limits.length > 0 && (
