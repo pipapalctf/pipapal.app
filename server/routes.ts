@@ -1573,11 +1573,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const enriched = await Promise.all(collectionsForThisRecycler.map(async (c: any) => {
         const collector = c.collectorId ? await storage.getUser(c.collectorId) : null;
         const household = await storage.getUser(c.userId);
+        let collectorRating = { average: 0, count: 0 };
+        if (collector) {
+          collectorRating = await storage.getAverageRatingForUser(collector.id);
+        }
         return {
           ...c,
           recyclerName: req.user.fullName || req.user.username,
           collectorName: collector ? (collector.fullName || collector.username) : null,
           householdName: household ? (household.fullName || household.username) : null,
+          collectorDetails: collector ? {
+            email: collector.email,
+            phone: collector.phone || null,
+            businessName: collector.businessName || null,
+            serviceLocation: collector.serviceLocation || null,
+            isCertified: collector.isCertified || false,
+            rating: Math.round(collectorRating.average * 10) / 10,
+            ratingCount: collectorRating.count,
+          } : null,
         };
       }));
       

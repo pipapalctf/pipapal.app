@@ -1,12 +1,23 @@
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, CheckCircle, XCircle, Truck, MapPin, Package, Calendar, Scale, Building2, Inbox } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, Truck, MapPin, Package, Calendar, Scale, Inbox, Star, Phone, Mail, Building2, Award, ChevronDown, ChevronUp, User } from "lucide-react";
 import { format } from "date-fns";
 import { wasteTypeConfig } from "@/lib/types";
+
+interface CollectorDetails {
+  email: string;
+  phone: string | null;
+  businessName: string | null;
+  serviceLocation: string | null;
+  isCertified: boolean;
+  rating: number;
+  ratingCount: number;
+}
 
 interface DropoffCollection {
   id: number;
@@ -21,10 +32,76 @@ interface DropoffCollection {
   collectorName: string | null;
   householdName: string | null;
   recyclerName: string | null;
+  collectorDetails: CollectorDetails | null;
+}
+
+function CollectorDetailsPanel({ details, collectorName }: { details: CollectorDetails; collectorName: string | null }) {
+  return (
+    <div className="mt-3 pt-3 border-t border-yellow-200/60 bg-white/60 rounded-lg p-3 space-y-2">
+      <div className="flex items-center gap-2 mb-2">
+        <User className="h-4 w-4 text-primary" />
+        <span className="font-medium text-sm">{collectorName || "Collector"}</span>
+        {details.isCertified && (
+          <Badge variant="secondary" className="text-xs bg-green-50 text-green-700 border-green-200">
+            <Award className="h-3 w-3 mr-0.5" />
+            Certified
+          </Badge>
+        )}
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+        {details.businessName && (
+          <div className="flex items-center gap-1.5 text-muted-foreground">
+            <Building2 className="h-3.5 w-3.5 shrink-0 text-primary/70" />
+            <span>{details.businessName}</span>
+          </div>
+        )}
+        <div className="flex items-center gap-1.5 text-muted-foreground">
+          <Star className="h-3.5 w-3.5 shrink-0 text-yellow-500" />
+          {details.ratingCount > 0 ? (
+            <span>
+              <span className="text-foreground font-medium">{details.rating}</span>/5
+              <span className="text-xs ml-1">({details.ratingCount} {details.ratingCount === 1 ? "review" : "reviews"})</span>
+            </span>
+          ) : (
+            <span className="text-xs">No ratings yet</span>
+          )}
+        </div>
+        <div className="flex items-center gap-1.5 text-muted-foreground">
+          <Mail className="h-3.5 w-3.5 shrink-0 text-primary/70" />
+          <a href={`mailto:${details.email}`} className="text-primary hover:underline truncate">{details.email}</a>
+        </div>
+        {details.phone && (
+          <div className="flex items-center gap-1.5 text-muted-foreground">
+            <Phone className="h-3.5 w-3.5 shrink-0 text-primary/70" />
+            <a href={`tel:${details.phone}`} className="text-primary hover:underline">{details.phone}</a>
+          </div>
+        )}
+        {details.serviceLocation && (
+          <div className="flex items-center gap-1.5 text-muted-foreground">
+            <MapPin className="h-3.5 w-3.5 shrink-0 text-primary/70" />
+            <span>Serves: {details.serviceLocation}</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
 export function DropoffRequests() {
   const { toast } = useToast();
+  const [expandedCollectors, setExpandedCollectors] = useState<Set<number>>(new Set());
+
+  const toggleCollectorDetails = (id: number) => {
+    setExpandedCollectors(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
 
   const { data: dropoffs = [], isLoading } = useQuery<DropoffCollection[]>({
     queryKey: ["/api/dropoffs"],
@@ -121,10 +198,11 @@ export function DropoffRequests() {
               <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Pending Review</h3>
               {pendingDropoffs.map((dropoff) => {
                 const config = getWasteConfig(dropoff.wasteType);
+                const isExpanded = expandedCollectors.has(dropoff.id);
                 return (
                   <Card key={dropoff.id} className="border-yellow-200 bg-yellow-50/30">
                     <CardContent className="p-4">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                         <div className="flex-1 space-y-2">
                           <div className="flex items-center gap-2 flex-wrap">
                             <Badge className={`${config.bgColor} ${config.textColor} border-0`}>
@@ -150,8 +228,33 @@ export function DropoffRequests() {
                               <span>{dropoff.scheduledDate ? format(new Date(dropoff.scheduledDate), "MMM d, yyyy") : "N/A"}</span>
                             </div>
                           </div>
+
+                          {dropoff.collectorDetails && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-primary hover:text-primary/80 p-0 h-auto font-medium text-xs"
+                              onClick={() => toggleCollectorDetails(dropoff.id)}
+                            >
+                              {isExpanded ? (
+                                <>
+                                  <ChevronUp className="h-3.5 w-3.5 mr-1" />
+                                  Hide Collector Details
+                                </>
+                              ) : (
+                                <>
+                                  <ChevronDown className="h-3.5 w-3.5 mr-1" />
+                                  View Collector Details
+                                </>
+                              )}
+                            </Button>
+                          )}
+
+                          {isExpanded && dropoff.collectorDetails && (
+                            <CollectorDetailsPanel details={dropoff.collectorDetails} collectorName={dropoff.collectorName} />
+                          )}
                         </div>
-                        <div className="flex gap-2 sm:flex-col">
+                        <div className="flex gap-2 sm:flex-col shrink-0">
                           <Button
                             size="sm"
                             onClick={() => updateDropoffMutation.mutate({ collectionId: dropoff.id, dropoffStatus: "accepted" })}
@@ -197,19 +300,37 @@ export function DropoffRequests() {
               <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Processed</h3>
               {processedDropoffs.slice(0, 10).map((dropoff) => {
                 const config = getWasteConfig(dropoff.wasteType);
+                const isExpanded = expandedCollectors.has(dropoff.id);
                 return (
                   <Card key={dropoff.id} className="bg-muted/20">
                     <CardContent className="p-4">
-                      <div className="flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <Badge className={`${config.bgColor} ${config.textColor} border-0 shrink-0`}>
-                            {config.label}
-                          </Badge>
-                          <span className="text-sm text-muted-foreground truncate">
-                            {dropoff.collectorName || "Unknown collector"} — {dropoff.wasteAmount ? `${dropoff.wasteAmount} kg` : "Amount TBD"}
-                          </span>
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <Badge className={`${config.bgColor} ${config.textColor} border-0 shrink-0`}>
+                              {config.label}
+                            </Badge>
+                            <span className="text-sm text-muted-foreground truncate">
+                              {dropoff.collectorName || "Unknown collector"} — {dropoff.wasteAmount ? `${dropoff.wasteAmount} kg` : "Amount TBD"}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            {dropoff.collectorDetails && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-primary hover:text-primary/80 p-1 h-auto"
+                                onClick={() => toggleCollectorDetails(dropoff.id)}
+                              >
+                                {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                              </Button>
+                            )}
+                            {getStatusBadge(dropoff.dropoffStatus)}
+                          </div>
                         </div>
-                        {getStatusBadge(dropoff.dropoffStatus)}
+                        {isExpanded && dropoff.collectorDetails && (
+                          <CollectorDetailsPanel details={dropoff.collectorDetails} collectorName={dropoff.collectorName} />
+                        )}
                       </div>
                     </CardContent>
                   </Card>
