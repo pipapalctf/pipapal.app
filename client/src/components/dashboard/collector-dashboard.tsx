@@ -469,7 +469,7 @@ export default function CollectorDashboard({ user }: CollectorDashboardProps) {
             </CardHeader>
             <CardContent>
               <div className="text-center mb-4">
-                <span className="text-4xl font-bold text-primary">$1,240</span>
+                <span className="text-4xl font-bold text-primary">KSh 1,240</span>
                 <p className="text-sm text-muted-foreground">Total earnings this month</p>
               </div>
               
