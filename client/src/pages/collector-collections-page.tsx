@@ -626,14 +626,23 @@ export default function CollectorCollectionsPage() {
                             />
                           </TableHead>
                         )}
-                        <TableHead className="w-[80px]">
-                          <button onClick={() => handleSort('id')} className="flex items-center hover:text-primary">
-                            ID{getSortIcon('id')}
-                          </button>
-                        </TableHead>
+                        {!isUnassignedView && (
+                          <TableHead className="w-[80px]">
+                            <button onClick={() => handleSort('id')} className="flex items-center hover:text-primary">
+                              ID{getSortIcon('id')}
+                            </button>
+                          </TableHead>
+                        )}
+                        {!isUnassignedView && (
+                          <TableHead>
+                            <button onClick={() => handleSort('status')} className="flex items-center hover:text-primary">
+                              Status{getSortIcon('status')}
+                            </button>
+                          </TableHead>
+                        )}
                         <TableHead>
-                          <button onClick={() => handleSort('status')} className="flex items-center hover:text-primary">
-                            Status{getSortIcon('status')}
+                          <button onClick={() => handleSort('wasteType')} className="flex items-center hover:text-primary">
+                            Waste Type{getSortIcon('wasteType')}
                           </button>
                         </TableHead>
                         <TableHead>
@@ -641,22 +650,23 @@ export default function CollectorCollectionsPage() {
                             Date{getSortIcon('date')}
                           </button>
                         </TableHead>
-                        <TableHead>
-                          <button onClick={() => handleSort('wasteType')} className="flex items-center hover:text-primary">
-                            Waste Type{getSortIcon('wasteType')}
-                          </button>
-                        </TableHead>
-                        <TableHead>
-                          <button onClick={() => handleSort('location')} className="flex items-center hover:text-primary">
-                            Location{getSortIcon('location')}
-                          </button>
-                        </TableHead>
-                        <TableHead>
-                          <button onClick={() => handleSort('value')} className="flex items-center hover:text-primary">
-                            Value (KSh){getSortIcon('value')}
-                          </button>
-                        </TableHead>
-                        {!isUnassignedView && <TableHead>Drop-off</TableHead>}
+                        {isUnassignedView ? (
+                          <TableHead>City</TableHead>
+                        ) : (
+                          <>
+                            <TableHead>
+                              <button onClick={() => handleSort('location')} className="flex items-center hover:text-primary">
+                                Location{getSortIcon('location')}
+                              </button>
+                            </TableHead>
+                            <TableHead>
+                              <button onClick={() => handleSort('value')} className="flex items-center hover:text-primary">
+                                Value (KSh){getSortIcon('value')}
+                              </button>
+                            </TableHead>
+                            <TableHead>Drop-off</TableHead>
+                          </>
+                        )}
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -681,45 +691,31 @@ export default function CollectorCollectionsPage() {
                                 )}
                               </TableCell>
                             )}
-                            <TableCell className="font-medium">
-                              <div className="flex items-center">
-                                #{collection.id}
-                                {hasInterests(collection.id) && (
-                                  <Badge variant="secondary" className="ml-2 bg-indigo-100 text-indigo-800 border-indigo-200 flex items-center">
-                                    <span className="h-2 w-2 bg-indigo-500 rounded-full mr-1 animate-pulse"></span>
-                                    Interest
-                                  </Badge>
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="outline" className={getStatusColor(collection.status)}>
-                                {collection.status.charAt(0).toUpperCase() + collection.status.slice(1)}
-                              </Badge>
-                              {!collection.collectorId && (
-                                <Badge variant="outline" className="ml-2 bg-yellow-50 text-yellow-800 border-yellow-200">
-                                  Unassigned
-                                </Badge>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center">
-                                <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
-                                {format(new Date(collection.scheduledDate), 'MMM d, yyyy')}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center">
-                                <div className="flex flex-col">
-                                  <span className="capitalize">{collection.wasteType}</span>
-                                  {collection.wasteDescription && (
-                                    <span className="text-xs text-muted-foreground">
-                                      {collection.wasteDescription}
-                                    </span>
+                            {!isUnassignedView && (
+                              <TableCell className="font-medium">
+                                <div className="flex items-center">
+                                  #{collection.id}
+                                  {hasInterests(collection.id) && (
+                                    <Badge variant="secondary" className="ml-2 bg-indigo-100 text-indigo-800 border-indigo-200 flex items-center">
+                                      <span className="h-2 w-2 bg-indigo-500 rounded-full mr-1 animate-pulse"></span>
+                                      Interest
+                                    </Badge>
                                   )}
                                 </div>
+                              </TableCell>
+                            )}
+                            {!isUnassignedView && (
+                              <TableCell>
+                                <Badge variant="outline" className={getStatusColor(collection.status)}>
+                                  {collection.status.charAt(0).toUpperCase() + collection.status.slice(1)}
+                                </Badge>
+                              </TableCell>
+                            )}
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <span className="capitalize">{collection.wasteType}</span>
                                 {collection.wasteAmount && (
-                                  <Badge variant="outline" className="ml-2 bg-teal-50 text-teal-700 border-teal-200">
+                                  <Badge variant="outline" className="bg-teal-50 text-teal-700 border-teal-200">
                                     {formatNumber(collection.wasteAmount)} kg
                                   </Badge>
                                 )}
@@ -727,62 +723,74 @@ export default function CollectorCollectionsPage() {
                             </TableCell>
                             <TableCell>
                               <div className="flex items-center">
-                                <MapPin className="mr-2 h-4 w-4 text-muted-foreground" />
-                                {formatAddress(collection.address)}
+                                <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
+                                {format(new Date(collection.scheduledDate), 'MMM d, yyyy')}
                               </div>
                             </TableCell>
-                            <TableCell>
-                              <div className="flex items-center">
-                                <CreditCard className="mr-2 h-4 w-4 text-green-500" />
-                                <Badge variant="outline" className="bg-green-50 text-green-800 border-green-200 font-medium">
-                                  {formatNumber(calculateWasteValue(collection.wasteType, collection.wasteAmount || 10))} KSh
-                                </Badge>
-                              </div>
-                            </TableCell>
-                            {!isUnassignedView && (
+                            {isUnassignedView ? (
                               <TableCell>
-                                {collection.dropoffCenterId ? (
-                                  <div className="flex flex-col gap-1">
-                                    {collection.dropoffConfirmed ? (
-                                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 w-fit">
-                                        <CheckCircle2 className="h-3 w-3 mr-1" />
-                                        Delivered
-                                      </Badge>
-                                    ) : confirmingDropoffId === collection.id ? (
-                                      <div className="flex items-center gap-1.5">
-                                        <input
-                                          value={dropoffCodeInput}
-                                          onChange={(e) => setDropoffCodeInput(e.target.value.toUpperCase())}
-                                          placeholder="Enter code"
-                                          className="w-[100px] h-7 text-xs font-mono border rounded px-2 bg-background"
-                                        />
+                                <span className="text-sm">{collection.city || '—'}</span>
+                              </TableCell>
+                            ) : (
+                              <>
+                                <TableCell>
+                                  <div className="flex items-center">
+                                    <MapPin className="mr-2 h-4 w-4 text-muted-foreground" />
+                                    {formatAddress(collection.address)}
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex items-center">
+                                    <CreditCard className="mr-2 h-4 w-4 text-green-500" />
+                                    <Badge variant="outline" className="bg-green-50 text-green-800 border-green-200 font-medium">
+                                      {formatNumber(calculateWasteValue(collection.wasteType, collection.wasteAmount || 10))} KSh
+                                    </Badge>
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  {collection.dropoffCenterId ? (
+                                    <div className="flex flex-col gap-1">
+                                      {collection.dropoffConfirmed ? (
+                                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 w-fit">
+                                          <CheckCircle2 className="h-3 w-3 mr-1" />
+                                          Delivered
+                                        </Badge>
+                                      ) : confirmingDropoffId === collection.id ? (
+                                        <div className="flex items-center gap-1.5">
+                                          <input
+                                            value={dropoffCodeInput}
+                                            onChange={(e) => setDropoffCodeInput(e.target.value.toUpperCase())}
+                                            placeholder="Enter code"
+                                            className="w-[100px] h-7 text-xs font-mono border rounded px-2 bg-background"
+                                          />
+                                          <Button
+                                            size="sm"
+                                            className="h-7 px-2"
+                                            onClick={() => confirmDropoffMutation.mutate({ collectionId: collection.id, dropoffCode: dropoffCodeInput })}
+                                            disabled={!dropoffCodeInput || confirmDropoffMutation.isPending}
+                                          >
+                                            {confirmDropoffMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />}
+                                          </Button>
+                                          <Button size="sm" variant="ghost" className="h-7 px-1" onClick={() => { setConfirmingDropoffId(null); setDropoffCodeInput(''); }}>
+                                            <XCircle className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      ) : (
                                         <Button
                                           size="sm"
-                                          className="h-7 px-2"
-                                          onClick={() => confirmDropoffMutation.mutate({ collectionId: collection.id, dropoffCode: dropoffCodeInput })}
-                                          disabled={!dropoffCodeInput || confirmDropoffMutation.isPending}
+                                          variant="outline"
+                                          className="h-7 text-xs"
+                                          onClick={() => setConfirmingDropoffId(collection.id)}
                                         >
-                                          {confirmDropoffMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />}
+                                          Confirm Delivery
                                         </Button>
-                                        <Button size="sm" variant="ghost" className="h-7 px-1" onClick={() => { setConfirmingDropoffId(null); setDropoffCodeInput(''); }}>
-                                          <XCircle className="h-3 w-3" />
-                                        </Button>
-                                      </div>
-                                    ) : (
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        className="h-7 text-xs"
-                                        onClick={() => setConfirmingDropoffId(collection.id)}
-                                      >
-                                        Confirm Delivery
-                                      </Button>
-                                    )}
-                                  </div>
-                                ) : (
-                                  <span className="text-xs text-muted-foreground">—</span>
-                                )}
-                              </TableCell>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <span className="text-xs text-muted-foreground">—</span>
+                                  )}
+                                </TableCell>
+                              </>
                             )}
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-2">
