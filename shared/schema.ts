@@ -575,6 +575,7 @@ export const WalletTransactionType = {
   TOPUP: 'topup',
   PAYMENT: 'payment',
   REFUND: 'refund',
+  EARNING: 'earning',
 } as const;
 
 export type WalletTransactionTypeValue = typeof WalletTransactionType[keyof typeof WalletTransactionType];
