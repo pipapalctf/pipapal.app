@@ -744,7 +744,7 @@ export default function CollectorCollectionsPage() {
                             )}
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-2">
-                                {getActionButton(collection)}
+                                {!isUnassignedView && getActionButton(collection)}
                                 <Button 
                                   size="sm" 
                                   variant="outline"
