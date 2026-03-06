@@ -225,6 +225,94 @@ function getPersonalizedFallbackTips(context: UserBehaviorContext): Personalized
   return { tips: tips.slice(0, 4) };
 }
 
+export type MetricsAskResponse = {
+  title: string;
+  answer: string;
+  suggestions: string[];
+};
+
+export async function askAboutMetrics(question: string, context: UserBehaviorContext): Promise<MetricsAskResponse> {
+  try {
+    if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === "dummy-key-for-development") {
+      return getMetricsFallbackAnswer(question, context);
+    }
+
+    const prompt = `You are an eco-advisor for PipaPal, a waste management app in Kenya. A user is asking a question about their waste management habits and how to improve. Answer ONLY based on their actual metrics data.
+
+USER METRICS:
+- Role: ${context.role}
+- Total waste managed: ${context.totalWasteKg} kg
+- Top waste types: ${context.topWasteTypes.map(t => `${t.name}: ${t.value} kg`).join(', ') || 'None yet'}
+- CO₂ reduced: ${context.co2Reduced} kg
+- Water saved: ${context.waterSaved} L
+- Collections: ${context.completedCollections}/${context.totalCollections} completed
+- Recycling rate: ${context.recyclingRate}%
+- Badges earned: ${context.badges.join(', ') || 'None yet'}
+
+USER QUESTION: "${question}"
+
+RULES:
+1. Reference the user's ACTUAL numbers in your answer
+2. Give actionable advice specific to their waste profile
+3. If they ask about a waste type they don't produce much of, acknowledge that and still give helpful advice
+4. Keep advice relevant to Kenya
+5. Provide 2-3 follow-up suggestions they could ask about
+
+Format as JSON: { "title": "short title", "answer": "detailed answer (150-250 words)", "suggestions": ["suggestion 1", "suggestion 2", "suggestion 3"] }`;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        { role: "system", content: "You are a sustainability advisor for PipaPal. Answer questions using the user's actual waste management metrics. Be specific, reference their numbers, and give Kenya-relevant advice." },
+        { role: "user", content: prompt },
+      ],
+      response_format: { type: "json_object" },
+    });
+
+    const content = response.choices[0].message.content || '{}';
+    return JSON.parse(content) as MetricsAskResponse;
+  } catch (error) {
+    console.error("Error in askAboutMetrics:", error);
+    return getMetricsFallbackAnswer(question, context);
+  }
+}
+
+function getMetricsFallbackAnswer(question: string, context: UserBehaviorContext): MetricsAskResponse {
+  const q = question.toLowerCase();
+  const topType = context.topWasteTypes[0]?.name || 'general';
+  const topAmount = context.topWasteTypes[0]?.value || 0;
+
+  if (q.includes('recycl') || q.includes('rate')) {
+    return {
+      title: "Your Recycling Performance",
+      answer: `Your current recycling rate is ${context.recyclingRate}%. ${context.recyclingRate < 50 ? `This means more than half of your ${context.totalWasteKg} kg of waste could potentially be diverted from landfills. Focus on sorting your ${topType} waste (${topAmount} kg) — it's your largest category and likely the easiest win.` : `That's a solid rate! You're already diverting most of your ${context.totalWasteKg} kg from landfills. To push higher, look at reducing your general waste through better sorting at the source.`} In Kenya, clean sorted materials fetch better prices at recycling centres like Mr. Green Africa or Takataka Solutions.`,
+      suggestions: ["How can I reduce my general waste?", `Best ways to recycle ${topType}?`, "How does my impact compare to averages?"]
+    };
+  }
+
+  if (q.includes('improve') || q.includes('better') || q.includes('reduce')) {
+    return {
+      title: "Ways to Improve Your Impact",
+      answer: `Based on your data, you've managed ${context.totalWasteKg} kg of waste across ${context.totalCollections} collections, reducing ${context.co2Reduced.toFixed(0)} kg of CO₂. Your top waste type is ${topType} at ${topAmount} kg. To improve: 1) Sort waste at the point of generation — keep separate bins for recyclables and organics. 2) For your ${topType} waste specifically, ${topType === 'plastic' ? 'switch to reusable alternatives where possible' : topType === 'organic' ? 'start composting to turn waste into garden soil' : topType === 'paper' ? 'go digital for bills and documents' : 'explore specialized recycling centres near you'}. 3) Schedule regular pickups to maintain consistency — your completion rate is ${context.totalCollections > 0 ? Math.round((context.completedCollections / context.totalCollections) * 100) : 0}%.`,
+      suggestions: [`Tips for reducing ${topType} waste`, "What should I compost?", "How to increase my recycling rate"]
+    };
+  }
+
+  if (q.includes('impact') || q.includes('co2') || q.includes('carbon') || q.includes('environment')) {
+    return {
+      title: "Your Environmental Impact",
+      answer: `Here's what your waste management efforts have achieved: You've helped reduce ${context.co2Reduced.toFixed(0)} kg of CO₂ emissions — that's equivalent to ${(context.co2Reduced / 21.77).toFixed(0)} trees absorbing carbon for a year. You've also saved ${context.waterSaved.toFixed(0)} litres of water through proper waste disposal. Your ${context.totalWasteKg} kg of managed waste, with ${topType} being your primary category at ${topAmount} kg, shows meaningful commitment. ${context.completedCollections > 10 ? "You're an active participant — keep up the great work!" : "Keep scheduling regular collections to grow your impact over time."}`,
+      suggestions: ["How can I double my CO₂ reduction?", "What waste types save the most water?", "How to earn more badges"]
+    };
+  }
+
+  return {
+    title: `About Your ${topType.charAt(0).toUpperCase() + topType.slice(1)} Waste`,
+    answer: `Looking at your metrics, you've managed ${context.totalWasteKg} kg of waste total, with ${topType} being your largest category at ${topAmount} kg (${context.totalWasteKg > 0 ? Math.round((topAmount / context.totalWasteKg) * 100) : 0}% of your total). Your recycling rate is ${context.recyclingRate}% and you've completed ${context.completedCollections} out of ${context.totalCollections} scheduled collections. To improve, focus on consistent sorting — separate ${topType} from other waste at home, and schedule regular pickups. Every kilogram properly recycled saves about 2 kg of CO₂ and 50 litres of water.`,
+    suggestions: [`How to sort ${topType} properly?`, "Tips to improve my recycling rate", "What's my environmental impact so far?"]
+  };
+}
+
 export async function generateEcoTip(category: string, customPrompt?: string): Promise<EcoTipResponse> {
   try {
     if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === "dummy-key-for-development") {

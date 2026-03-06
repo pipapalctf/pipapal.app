@@ -6,13 +6,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import {
   Loader2, Sparkles, Lightbulb, Search, Leaf, Droplet, Zap, Car, Recycle,
-  Trash2, TreePine, Award, TrendingUp, Scale, BarChart3, ArrowRight,
-  RefreshCw, ChevronRight, Target, Flame, Globe, AlertCircle
+  Trash2, Award, TrendingUp, Scale, BarChart3, ArrowRight,
+  RefreshCw, ChevronRight, Target, Flame, Globe, AlertCircle, MessageCircle, Send
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { EcoTip } from "@shared/schema";
-import { ecoTipCategories } from "@/lib/types";
+import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { useState } from "react";
@@ -47,30 +45,22 @@ type PersonalizedResponse = {
   tips: PersonalizedTip[];
 };
 
-const getCategoryIcon = (categoryValue: string) => {
-  switch (categoryValue) {
-    case 'water': return <Droplet className="h-5 w-5" />;
-    case 'energy': return <Zap className="h-5 w-5" />;
-    case 'waste': return <Trash2 className="h-5 w-5" />;
-    case 'plastic': return <Recycle className="h-5 w-5" />;
-    case 'composting': return <Leaf className="h-5 w-5" />;
-    case 'recycling': return <Recycle className="h-5 w-5" />;
-    case 'transportation': return <Car className="h-5 w-5" />;
-    default: return <Lightbulb className="h-5 w-5" />;
-  }
+type AskResponse = {
+  title: string;
+  answer: string;
+  suggestions: string[];
 };
 
-const getCategoryColors = (categoryValue: string) => {
-  switch (categoryValue) {
-    case 'water': return { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200', iconBg: 'bg-blue-100' };
-    case 'energy': return { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200', iconBg: 'bg-amber-100' };
-    case 'waste': return { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200', iconBg: 'bg-orange-100' };
-    case 'plastic': return { bg: 'bg-indigo-50', text: 'text-indigo-700', border: 'border-indigo-200', iconBg: 'bg-indigo-100' };
-    case 'composting': return { bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-200', iconBg: 'bg-green-100' };
-    case 'recycling': return { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', iconBg: 'bg-emerald-100' };
-    case 'transportation': return { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200', iconBg: 'bg-purple-100' };
-    default: return { bg: 'bg-gray-50', text: 'text-gray-700', border: 'border-gray-200', iconBg: 'bg-gray-100' };
-  }
+const wasteTypeCategories: Record<string, { label: string; color: string; bgColor: string; borderColor: string }> = {
+  plastic: { label: 'Plastic', color: 'text-indigo-700', bgColor: 'bg-indigo-50', borderColor: 'border-indigo-200' },
+  paper: { label: 'Paper', color: 'text-amber-700', bgColor: 'bg-amber-50', borderColor: 'border-amber-200' },
+  organic: { label: 'Organic', color: 'text-green-700', bgColor: 'bg-green-50', borderColor: 'border-green-200' },
+  metal: { label: 'Metal', color: 'text-gray-700', bgColor: 'bg-gray-50', borderColor: 'border-gray-200' },
+  glass: { label: 'Glass', color: 'text-cyan-700', bgColor: 'bg-cyan-50', borderColor: 'border-cyan-200' },
+  electronic: { label: 'Electronic', color: 'text-purple-700', bgColor: 'bg-purple-50', borderColor: 'border-purple-200' },
+  hazardous: { label: 'Hazardous', color: 'text-red-700', bgColor: 'bg-red-50', borderColor: 'border-red-200' },
+  cardboard: { label: 'Cardboard', color: 'text-orange-700', bgColor: 'bg-orange-50', borderColor: 'border-orange-200' },
+  general: { label: 'General', color: 'text-gray-600', bgColor: 'bg-gray-50', borderColor: 'border-gray-200' },
 };
 
 const getPriorityConfig = (priority: string) => {
@@ -85,10 +75,10 @@ const getPriorityConfig = (priority: string) => {
 export default function EcoTipsPage() {
   const { toast } = useToast();
   const { user } = useAuth();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [customTipPrompt, setCustomTipPrompt] = useState("");
   const [activeTab, setActiveTab] = useState("personalized");
+  const [askInput, setAskInput] = useState("");
+  const [askResult, setAskResult] = useState<AskResponse | null>(null);
+  const [selectedWasteFilter, setSelectedWasteFilter] = useState<string | null>(null);
 
   const { data: personalizedData, isLoading: personalizedLoading, refetch: refetchPersonalized } = useQuery<PersonalizedResponse>({
     queryKey: ['/api/ecotips/personalized'],
@@ -96,36 +86,41 @@ export default function EcoTipsPage() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const { data: ecoTips = [], isLoading: tipsLoading } = useQuery<EcoTip[]>({
-    queryKey: ["/api/ecotips"],
-  });
-
-  const generateTipMutation = useMutation({
-    mutationFn: async (payload: { category: string; customPrompt?: string }) => {
-      const res = await apiRequest("POST", "/api/ecotips/generate", payload);
-      return res.json();
+  const askMutation = useMutation({
+    mutationFn: async (question: string) => {
+      const res = await apiRequest("POST", "/api/ecotips/ask", { question });
+      return res.json() as Promise<AskResponse>;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/ecotips"] });
-      setActiveTab("library");
-      setCustomTipPrompt("");
-      toast({ title: "Tip generated", description: `"${data.title}" has been added` });
+      setAskResult(data);
     },
     onError: (error: Error) => {
-      toast({ title: "Failed to generate tip", description: error.message, variant: "destructive" });
+      toast({ title: "Failed to get answer", description: error.message, variant: "destructive" });
     }
   });
+
+  const handleAsk = (question?: string) => {
+    const q = question || askInput.trim();
+    if (!q) {
+      toast({ title: "Enter a question", description: "Type a question about your waste management habits", variant: "destructive" });
+      return;
+    }
+    if (question) setAskInput(question);
+    askMutation.mutate(q);
+  };
 
   const profile = personalizedData?.profile;
   const personalizedTips = personalizedData?.tips || [];
 
-  const filteredLibraryTips = ecoTips.filter(tip => {
-    const matchesSearch = !searchTerm ||
-      tip.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      tip.content.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = !selectedCategory || tip.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
+  const filteredTips = selectedWasteFilter
+    ? personalizedTips.filter(tip =>
+        tip.title.toLowerCase().includes(selectedWasteFilter) ||
+        tip.content.toLowerCase().includes(selectedWasteFilter) ||
+        tip.reason.toLowerCase().includes(selectedWasteFilter)
+      )
+    : personalizedTips;
+
+  const userWasteTypes = profile?.topWasteTypes.map(wt => wt.name.toLowerCase()) || [];
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -138,14 +133,14 @@ export default function EcoTipsPage() {
               <div className="inline-flex items-center gap-2 mb-3">
                 <Badge variant="outline" className="bg-white/60 border-green-200 text-green-700 px-3 py-1">
                   <Sparkles className="h-3.5 w-3.5 mr-1.5" />
-                  Personalized for You
+                  Based on Your Impact
                 </Badge>
               </div>
               <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-3">
                 Your Eco Tips
               </h1>
               <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-                Tips and insights tailored to your waste management habits, helping you make a bigger environmental impact.
+                Personalized tips based on your waste management data and environmental impact metrics.
               </p>
             </div>
           </div>
@@ -156,7 +151,7 @@ export default function EcoTipsPage() {
             <div className="mb-6">
               <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3 flex items-center gap-2">
                 <BarChart3 className="h-4 w-4" />
-                Your Impact Summary
+                Your Impact Metrics
               </h2>
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
                 <Card className="bg-gradient-to-br from-emerald-50 to-white border-emerald-100">
@@ -192,9 +187,7 @@ export default function EcoTipsPage() {
                       <Recycle className="h-4 w-4 text-teal-600" />
                       <span className="text-xs text-muted-foreground">Recycling Rate</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="text-xl font-bold text-teal-700">{profile.recyclingRate}%</div>
-                    </div>
+                    <div className="text-xl font-bold text-teal-700">{profile.recyclingRate}%</div>
                     <Progress value={profile.recyclingRate} className="h-1.5 mt-1" />
                   </CardContent>
                 </Card>
@@ -214,12 +207,15 @@ export default function EcoTipsPage() {
               {profile.topWasteTypes.length > 0 && (
                 <div className="mt-3">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs text-muted-foreground">Top waste types:</span>
-                    {profile.topWasteTypes.slice(0, 4).map((wt) => (
-                      <Badge key={wt.name} variant="outline" className="capitalize text-xs">
-                        {wt.name} ({formatNumber(wt.value)} kg)
-                      </Badge>
-                    ))}
+                    <span className="text-xs text-muted-foreground">Your waste profile:</span>
+                    {profile.topWasteTypes.slice(0, 5).map((wt) => {
+                      const config = wasteTypeCategories[wt.name.toLowerCase()] || wasteTypeCategories.general;
+                      return (
+                        <Badge key={wt.name} variant="outline" className={`capitalize text-xs ${config.bgColor} ${config.color} ${config.borderColor}`}>
+                          {wt.name} ({formatNumber(wt.value)} kg)
+                        </Badge>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -234,10 +230,10 @@ export default function EcoTipsPage() {
               </TabsTrigger>
               <TabsTrigger value="library" className="gap-1.5">
                 <Lightbulb className="h-4 w-4" />
-                Tip Library
+                By Waste Type
               </TabsTrigger>
               <TabsTrigger value="ask" className="gap-1.5">
-                <Search className="h-4 w-4" />
+                <MessageCircle className="h-4 w-4" />
                 Ask AI
               </TabsTrigger>
             </TabsList>
@@ -246,19 +242,19 @@ export default function EcoTipsPage() {
               {personalizedLoading ? (
                 <div className="flex flex-col items-center justify-center py-16">
                   <Loader2 className="h-8 w-8 animate-spin text-primary mb-3" />
-                  <p className="text-muted-foreground">Analyzing your behavior and generating tips...</p>
+                  <p className="text-muted-foreground">Analyzing your impact data...</p>
                 </div>
               ) : !user ? (
                 <Card className="p-8 text-center">
                   <AlertCircle className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
                   <h3 className="font-semibold text-lg mb-1">Sign in for personalized tips</h3>
-                  <p className="text-muted-foreground">Log in to get eco-tips based on your waste management activity.</p>
+                  <p className="text-muted-foreground">Log in to get eco-tips based on your waste management data.</p>
                 </Card>
               ) : personalizedTips.length === 0 ? (
                 <Card className="p-8 text-center">
                   <Leaf className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
                   <h3 className="font-semibold text-lg mb-1">No tips yet</h3>
-                  <p className="text-muted-foreground mb-4">Start scheduling waste collections to get personalized tips based on your activity.</p>
+                  <p className="text-muted-foreground mb-4">Start scheduling waste collections to get tips based on your activity.</p>
                   <Button onClick={() => refetchPersonalized()} variant="outline">
                     <RefreshCw className="h-4 w-4 mr-2" />
                     Try Again
@@ -269,7 +265,7 @@ export default function EcoTipsPage() {
                   <div className="flex items-center justify-between">
                     <h2 className="text-lg font-semibold flex items-center gap-2">
                       <Sparkles className="h-5 w-5 text-primary" />
-                      Based on Your Activity
+                      Based on Your Impact Data
                     </h2>
                     <Button
                       variant="ghost"
@@ -312,82 +308,77 @@ export default function EcoTipsPage() {
             </TabsContent>
 
             <TabsContent value="library" className="mt-0 space-y-4">
-              <div className="flex flex-col sm:flex-row gap-3">
-                <div className="relative flex-grow">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search tips..."
-                    className="pl-10"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  variant={!selectedCategory ? "default" : "outline"}
-                  size="sm"
-                  className="rounded-full"
-                  onClick={() => setSelectedCategory(null)}
-                >
-                  All
-                </Button>
-                {ecoTipCategories.map(category => {
-                  const colors = getCategoryColors(category.value);
-                  return (
-                    <Button
-                      key={category.value}
-                      variant="outline"
-                      size="sm"
-                      className={`rounded-full ${selectedCategory === category.value ? `${colors.bg} ${colors.text} ${colors.border}` : ''}`}
-                      onClick={() => setSelectedCategory(selectedCategory === category.value ? null : category.value)}
-                    >
-                      <span className="mr-1.5">{getCategoryIcon(category.value)}</span>
-                      {category.label}
-                    </Button>
-                  );
-                })}
-              </div>
-
-              {tipsLoading ? (
+              {personalizedLoading ? (
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="h-6 w-6 animate-spin text-primary" />
                 </div>
-              ) : filteredLibraryTips.length === 0 ? (
+              ) : !user ? (
                 <Card className="p-8 text-center">
-                  <Lightbulb className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-                  <h3 className="font-semibold text-lg mb-1">No tips found</h3>
-                  <p className="text-muted-foreground">
-                    {searchTerm ? "Try a different search term." : "Generate some tips using the Ask AI tab."}
-                  </p>
+                  <AlertCircle className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                  <h3 className="font-semibold text-lg mb-1">Sign in to view tips</h3>
+                  <p className="text-muted-foreground">Log in to see tips organized by your waste types.</p>
                 </Card>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {filteredLibraryTips.map(tip => {
-                    const colors = getCategoryColors(tip.category);
-                    return (
-                      <Card key={tip.id} className="overflow-hidden hover:shadow-md transition-shadow">
-                        <CardHeader className="pb-2">
-                          <div className="flex items-start gap-2">
-                            <div className={`p-1.5 rounded-md ${colors.iconBg} ${colors.text} shrink-0`}>
-                              {getCategoryIcon(tip.category)}
-                            </div>
-                            <div className="min-w-0">
-                              <CardTitle className="text-sm leading-tight">{tip.title}</CardTitle>
-                              <Badge variant="outline" className={`text-xs mt-1 ${colors.bg} ${colors.text} ${colors.border}`}>
-                                {tip.category}
-                              </Badge>
-                            </div>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="pt-0">
-                          <TipContent content={tip.content} />
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </div>
+                <>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant={!selectedWasteFilter ? "default" : "outline"}
+                      size="sm"
+                      className="rounded-full"
+                      onClick={() => setSelectedWasteFilter(null)}
+                    >
+                      All Tips
+                    </Button>
+                    {userWasteTypes.map(wt => {
+                      const config = wasteTypeCategories[wt] || wasteTypeCategories.general;
+                      return (
+                        <Button
+                          key={wt}
+                          variant="outline"
+                          size="sm"
+                          className={`rounded-full capitalize ${selectedWasteFilter === wt ? `${config.bgColor} ${config.color} ${config.borderColor}` : ''}`}
+                          onClick={() => setSelectedWasteFilter(selectedWasteFilter === wt ? null : wt)}
+                        >
+                          {config.label}
+                        </Button>
+                      );
+                    })}
+                  </div>
+
+                  {filteredTips.length === 0 ? (
+                    <Card className="p-8 text-center">
+                      <Lightbulb className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                      <h3 className="font-semibold text-lg mb-1">No tips for this waste type</h3>
+                      <p className="text-muted-foreground">Try selecting a different waste type or view all tips.</p>
+                    </Card>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {filteredTips.map((tip, index) => {
+                        const priorityConfig = getPriorityConfig(tip.priority);
+                        return (
+                          <Card key={index} className="overflow-hidden hover:shadow-md transition-shadow">
+                            <CardHeader className="pb-2">
+                              <div className="flex items-start justify-between gap-2">
+                                <CardTitle className="text-base leading-tight">{tip.title}</CardTitle>
+                                <Badge variant="outline" className={`shrink-0 text-xs ${priorityConfig.color}`}>
+                                  {priorityConfig.icon}
+                                  <span className="ml-1">{priorityConfig.label}</span>
+                                </Badge>
+                              </div>
+                              <div className="flex items-center gap-1.5 mt-1">
+                                <ArrowRight className="h-3 w-3 text-primary shrink-0" />
+                                <span className="text-xs text-primary font-medium">{tip.reason}</span>
+                              </div>
+                            </CardHeader>
+                            <CardContent className="pt-0">
+                              <TipContent content={tip.content} />
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
               )}
             </TabsContent>
 
@@ -395,99 +386,100 @@ export default function EcoTipsPage() {
               <Card className="max-w-2xl mx-auto">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Sparkles className="h-5 w-5 text-primary" />
-                    Ask for a Specific Tip
+                    <MessageCircle className="h-5 w-5 text-primary" />
+                    Ask About Your Impact
                   </CardTitle>
                   <CardDescription>
-                    Enter a topic or question and our AI will generate a detailed, actionable eco-tip for you.
+                    Ask questions about your waste management data and get personalized advice based on your metrics.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div>
+                  <div className="flex gap-2">
                     <Input
-                      placeholder="e.g., how to recycle old tires in Kenya"
-                      value={customTipPrompt}
-                      onChange={(e) => setCustomTipPrompt(e.target.value)}
+                      placeholder="e.g., How can I improve my recycling rate?"
+                      value={askInput}
+                      onChange={(e) => setAskInput(e.target.value)}
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter' && customTipPrompt.trim()) {
-                          generateTipMutation.mutate({
-                            category: selectedCategory || "recycling",
-                            customPrompt: customTipPrompt.trim()
-                          });
-                        }
+                        if (e.key === 'Enter' && askInput.trim()) handleAsk();
                       }}
+                      className="flex-1"
                     />
+                    <Button
+                      onClick={() => handleAsk()}
+                      disabled={askMutation.isPending || !askInput.trim()}
+                    >
+                      {askMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4" />
+                      )}
+                    </Button>
                   </div>
 
                   <div className="flex flex-wrap gap-2">
-                    <span className="text-sm text-muted-foreground self-center">Category:</span>
-                    {ecoTipCategories.map(cat => (
+                    <span className="text-xs text-muted-foreground self-center">Try asking:</span>
+                    {[
+                      "How can I improve my recycling rate?",
+                      "What's my environmental impact?",
+                      "How to reduce my waste?",
+                      ...(userWasteTypes[0] ? [`Tips for my ${userWasteTypes[0]} waste`] : []),
+                      "How can I earn more badges?",
+                    ].map(suggestion => (
                       <Button
-                        key={cat.value}
-                        variant={selectedCategory === cat.value ? "default" : "outline"}
+                        key={suggestion}
+                        variant="outline"
                         size="sm"
-                        className="rounded-full text-xs"
-                        onClick={() => setSelectedCategory(cat.value)}
+                        className="text-xs h-7"
+                        onClick={() => handleAsk(suggestion)}
+                        disabled={askMutation.isPending}
                       >
-                        {cat.label}
+                        <ChevronRight className="h-3 w-3 mr-1 shrink-0" />
+                        {suggestion}
                       </Button>
                     ))}
                   </div>
 
-                  <Button
-                    className="w-full"
-                    onClick={() => {
-                      if (customTipPrompt.trim()) {
-                        generateTipMutation.mutate({
-                          category: selectedCategory || "recycling",
-                          customPrompt: customTipPrompt.trim()
-                        });
-                      } else {
-                        generateTipMutation.mutate({
-                          category: selectedCategory || ecoTipCategories[Math.floor(Math.random() * ecoTipCategories.length)].value
-                        });
-                      }
-                    }}
-                    disabled={generateTipMutation.isPending}
-                  >
-                    {generateTipMutation.isPending ? (
-                      <><Loader2 className="h-4 w-4 animate-spin mr-2" />Generating...</>
-                    ) : (
-                      <><Sparkles className="h-4 w-4 mr-2" />{customTipPrompt.trim() ? 'Generate Tip' : 'Generate Random Tip'}</>
-                    )}
-                  </Button>
-
-                  <div className="pt-4 border-t">
-                    <h4 className="text-sm font-medium text-muted-foreground mb-3">Quick topics to try:</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {[
-                        "Composting in an apartment",
-                        "Reducing plastic at home",
-                        "E-waste disposal in Kenya",
-                        "Rainwater harvesting",
-                        "Energy saving cooking tips",
-                        "Zero waste shopping"
-                      ].map(topic => (
-                        <Button
-                          key={topic}
-                          variant="outline"
-                          size="sm"
-                          className="text-xs"
-                          onClick={() => {
-                            setCustomTipPrompt(topic);
-                            generateTipMutation.mutate({
-                              category: selectedCategory || "recycling",
-                              customPrompt: topic
-                            });
-                          }}
-                          disabled={generateTipMutation.isPending}
-                        >
-                          <ChevronRight className="h-3 w-3 mr-1" />
-                          {topic}
-                        </Button>
-                      ))}
+                  {askMutation.isPending && (
+                    <div className="flex flex-col items-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-primary mb-2" />
+                      <p className="text-sm text-muted-foreground">Analyzing your data...</p>
                     </div>
-                  </div>
+                  )}
+
+                  {askResult && !askMutation.isPending && (
+                    <div className="space-y-4 pt-4 border-t">
+                      <div>
+                        <h3 className="font-semibold text-lg flex items-center gap-2 mb-2">
+                          <Sparkles className="h-5 w-5 text-primary" />
+                          {askResult.title}
+                        </h3>
+                        <div className="bg-muted/30 rounded-lg p-4 text-sm leading-relaxed">
+                          {askResult.answer}
+                        </div>
+                      </div>
+
+                      {askResult.suggestions.length > 0 && (
+                        <div>
+                          <h4 className="text-sm font-medium text-muted-foreground mb-2">Follow-up questions:</h4>
+                          <div className="flex flex-wrap gap-2">
+                            {askResult.suggestions.map((suggestion, i) => (
+                              <Button
+                                key={i}
+                                variant="outline"
+                                size="sm"
+                                className="text-xs"
+                                onClick={() => handleAsk(suggestion)}
+                                disabled={askMutation.isPending}
+                              >
+                                <ChevronRight className="h-3 w-3 mr-1" />
+                                {suggestion}
+                              </Button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>

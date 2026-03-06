@@ -854,6 +854,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   );
 
+  app.post("/api/ecotips/ask",
+    (req, res, next) => {
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+      next();
+    },
+    async (req: any, res: any) => {
+      try {
+        const { question } = req.body;
+        if (!question || typeof question !== 'string') {
+          return res.status(400).json({ error: "question is required" });
+        }
+
+        const user = req.user;
+        let impact: any = { waterSaved: 0, co2Reduced: 0, treesEquivalent: 0, energyConserved: 0, wasteAmount: 0 };
+        let collectionsData: any[] = [];
+
+        switch (user.role) {
+          case UserRole.COLLECTOR:
+            impact = await storage.getTotalImpactByCollector(user.id);
+            collectionsData = await storage.getCompletedCollectionsByCollector(user.id);
+            break;
+          case UserRole.RECYCLER:
+            impact = await storage.getTotalImpactByRecycler(user.id);
+            collectionsData = await storage.getAllCompletedCollections();
+            break;
+          default:
+            impact = await storage.getTotalImpactByUser(user.id);
+            collectionsData = await storage.getCollectionsByUser(user.id);
+            break;
+        }
+
+        const allCollections = Array.isArray(collectionsData) ? collectionsData : [];
+        const completedCollections = allCollections.filter((c: any) => c.status === CollectionStatus.COMPLETED);
+
+        const wasteByType: Record<string, number> = {};
+        completedCollections.forEach((c: any) => {
+          const type = c.wasteType || 'general';
+          wasteByType[type] = (wasteByType[type] || 0) + (c.wasteAmount || 10);
+        });
+
+        const topWasteTypes = Object.entries(wasteByType)
+          .map(([name, value]) => ({ name, value }))
+          .sort((a, b) => b.value - a.value)
+          .slice(0, 5);
+
+        const totalWaste = topWasteTypes.reduce((sum, t) => sum + t.value, 0);
+        const generalWaste = wasteByType['general'] || 0;
+        const recyclingRate = totalWaste > 0 ? Math.round(((totalWaste - generalWaste) / totalWaste) * 100) : 0;
+
+        const badges = await storage.getBadgesByUser(user.id);
+        const badgeNames = badges.map((b: any) => b.badgeType || b.name || '');
+
+        const behaviorContext: import('./openai').UserBehaviorContext = {
+          role: user.role,
+          totalWasteKg: impact?.wasteAmount || totalWaste,
+          topWasteTypes,
+          co2Reduced: impact?.co2Reduced || 0,
+          waterSaved: impact?.waterSaved || 0,
+          totalCollections: allCollections.length,
+          completedCollections: completedCollections.length,
+          recyclingRate,
+          badges: badgeNames,
+          recentActivity: completedCollections.length > 0 ? 'active' : 'new',
+        };
+
+        const { askAboutMetrics } = await import('./openai');
+        const result = await askAboutMetrics(question, behaviorContext);
+        res.json(result);
+      } catch (error) {
+        console.error("Error in ask endpoint:", error);
+        res.status(500).json({ error: "Failed to generate answer" });
+      }
+    }
+  );
+
   // Generate AI EcoTip - Available to all authenticated users
   app.post("/api/ecotips/generate", 
     (req, res, next) => {
