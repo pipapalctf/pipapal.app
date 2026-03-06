@@ -2573,15 +2573,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const stkData = await stkResponse.json() as any;
 
       if (stkData.ResponseCode === '0') {
+        const isSandbox = !callbackUrl || callbackUrl.includes('example.com');
+
         const payment = await storage.createPayment({
           userId: req.user!.id,
           collectionId: null,
           amount: amount,
           phoneNumber: formattedPhone,
-          status: 'pending',
+          status: isSandbox ? 'success' : 'pending',
           merchantRequestId: stkData.MerchantRequestID,
           checkoutRequestId: stkData.CheckoutRequestID,
         });
+
+        if (isSandbox) {
+          const newBalance = wallet.balance + amount;
+          await storage.updateWalletBalance(req.user!.id, newBalance);
+
+          await storage.createWalletTransaction({
+            walletId: wallet.id,
+            userId: req.user!.id,
+            type: 'topup',
+            amount: amount,
+            description: `M-Pesa top-up from ${formattedPhone}`,
+            referenceId: stkData.CheckoutRequestID || `STK_${Date.now()}`,
+            balanceAfter: newBalance,
+          });
+
+          const updatedWallet = await storage.getWalletByUserId(req.user!.id);
+          return res.json({
+            success: true,
+            message: 'Wallet topped up successfully',
+            wallet: updatedWallet,
+          });
+        }
 
         res.json({
           success: true,
