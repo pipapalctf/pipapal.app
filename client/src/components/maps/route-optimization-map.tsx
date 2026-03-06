@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
+import { useQuery } from '@tanstack/react-query';
 import {
   Loader2,
   AlertTriangle,
@@ -13,7 +14,11 @@ import {
   CheckCircle2,
   Route,
   Scale,
-  Calendar
+  Calendar,
+  LocateFixed,
+  Building2,
+  CircleDot,
+  Flag
 } from 'lucide-react';
 import { Collection, CollectionStatus } from '@shared/schema';
 import { formatNumber } from '@/lib/utils';
@@ -53,7 +58,17 @@ function createNumberedIcon(color: string, number: number) {
   });
 }
 
-const collectorBaseIcon = createIcon('#a855f7', 22);
+function createLabelIcon(color: string, label: string) {
+  return L.divIcon({
+    className: 'custom-marker',
+    html: `<div style="min-width:28px;height:28px;border-radius:14px;background:${color};border:2px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;font-size:10px;color:white;font-weight:bold;padding:0 6px">${label}</div>`,
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+  });
+}
+
+const startIcon = createLabelIcon('#a855f7', 'START');
+const endIcon = createLabelIcon('#ef4444', 'END');
 
 function MapUpdater({ center, zoom }: { center: [number, number]; zoom?: number }) {
   const map = useMap();
@@ -63,13 +78,26 @@ function MapUpdater({ center, zoom }: { center: [number, number]; zoom?: number 
   return null;
 }
 
+interface Recycler {
+  id: number;
+  businessName: string;
+  fullName: string;
+  address: string;
+  serviceLocation: string;
+  wasteSpecialization: string[];
+  serviceType: string;
+  isCertified: boolean;
+}
+
 interface RouteOptimizationMapProps {
   collections: Collection[];
   collectorAddress?: string;
 }
 
 export function RouteOptimizationMap({ collections, collectorAddress }: RouteOptimizationMapProps) {
-  const [center] = useState<[number, number]>(defaultCenter);
+  const [startLocation, setStartLocation] = useState<[number, number]>(defaultCenter);
+  const [usingGeoLocation, setUsingGeoLocation] = useState(false);
+  const [geoLoading, setGeoLoading] = useState(false);
   const [routePoints, setRoutePoints] = useState<[number, number][]>([]);
   const [orderedCollections, setOrderedCollections] = useState<Collection[]>([]);
   const [routeStats, setRouteStats] = useState({
@@ -83,6 +111,12 @@ export function RouteOptimizationMap({ collections, collectorAddress }: RouteOpt
   const [selectedWasteType, setSelectedWasteType] = useState<string>('all');
   const [hasRoute, setHasRoute] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [selectedDropoffId, setSelectedDropoffId] = useState<string>('none');
+  const [dropoffLocation, setDropoffLocation] = useState<[number, number] | null>(null);
+
+  const { data: recyclers = [] } = useQuery<Recycler[]>({
+    queryKey: ['/api/recyclers'],
+  });
 
   const claimedCollections = useMemo(() => {
     return collections.filter(
@@ -110,6 +144,34 @@ export function RouteOptimizationMap({ collections, collectorAddress }: RouteOpt
     return filteredCollections.filter(c => selectedIds.has(c.id));
   }, [filteredCollections, selectedIds]);
 
+  const selectedRecycler = useMemo(() => {
+    if (selectedDropoffId === 'none') return null;
+    return recyclers.find(r => r.id === parseInt(selectedDropoffId)) || null;
+  }, [selectedDropoffId, recyclers]);
+
+  const useMyLocation = useCallback(() => {
+    if (!navigator.geolocation) return;
+    setGeoLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setStartLocation([position.coords.latitude, position.coords.longitude]);
+        setUsingGeoLocation(true);
+        setGeoLoading(false);
+        resetRoute();
+      },
+      () => {
+        setGeoLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }, []);
+
+  const resetRoute = () => {
+    setHasRoute(false);
+    setRoutePoints([]);
+    setOrderedCollections([]);
+  };
+
   const toggleSelection = (id: number) => {
     setSelectedIds(prev => {
       const next = new Set(prev);
@@ -117,9 +179,7 @@ export function RouteOptimizationMap({ collections, collectorAddress }: RouteOpt
       else next.add(id);
       return next;
     });
-    setHasRoute(false);
-    setRoutePoints([]);
-    setOrderedCollections([]);
+    resetRoute();
   };
 
   const toggleAll = () => {
@@ -128,9 +188,7 @@ export function RouteOptimizationMap({ collections, collectorAddress }: RouteOpt
     } else {
       setSelectedIds(new Set(filteredCollections.map(c => c.id)));
     }
-    setHasRoute(false);
-    setRoutePoints([]);
-    setOrderedCollections([]);
+    resetRoute();
   };
 
   const getCollectionPosition = (collection: Collection): [number, number] => {
@@ -141,8 +199,8 @@ export function RouteOptimizationMap({ collections, collectorAddress }: RouteOpt
       }
     }
     return [
-      center[0] + (Math.random() - 0.5) * 0.05,
-      center[1] + (Math.random() - 0.5) * 0.05,
+      startLocation[0] + (Math.random() - 0.5) * 0.05,
+      startLocation[1] + (Math.random() - 0.5) * 0.05,
     ];
   };
 
@@ -158,15 +216,36 @@ export function RouteOptimizationMap({ collections, collectorAddress }: RouteOpt
     return R * c;
   }
 
+  const handleDropoffChange = (value: string) => {
+    setSelectedDropoffId(value);
+    if (value !== 'none') {
+      const recycler = recyclers.find(r => r.id === parseInt(value));
+      if (recycler) {
+        const coords = geocodeRecyclerAddress(recycler);
+        setDropoffLocation(coords);
+      }
+    } else {
+      setDropoffLocation(null);
+    }
+    resetRoute();
+  };
+
+  const geocodeRecyclerAddress = (recycler: Recycler): [number, number] => {
+    const seed = recycler.id * 137;
+    const latOffset = ((seed % 100) / 100 - 0.5) * 0.06;
+    const lngOffset = (((seed * 31) % 100) / 100 - 0.5) * 0.06;
+    return [startLocation[0] + latOffset, startLocation[1] + lngOffset];
+  };
+
   const calculateRoute = useCallback(() => {
     if (selectedCollections.length === 0) return;
 
-    const points: [number, number][] = [center];
+    const points: [number, number][] = [startLocation];
     const ordered: Collection[] = [];
 
     if (routeType === 'optimal') {
       const remaining = selectedCollections.map(c => ({ collection: c, pos: getCollectionPosition(c) }));
-      let current = center;
+      let current = startLocation;
       while (remaining.length > 0) {
         let nearestIdx = 0;
         let nearestDist = Infinity;
@@ -210,7 +289,12 @@ export function RouteOptimizationMap({ collections, collectorAddress }: RouteOpt
       });
     }
 
-    points.push(center);
+    if (dropoffLocation) {
+      points.push(dropoffLocation);
+    } else {
+      points.push(startLocation);
+    }
+
     setRoutePoints(points);
     setOrderedCollections(ordered);
     setHasRoute(true);
@@ -235,7 +319,7 @@ export function RouteOptimizationMap({ collections, collectorAddress }: RouteOpt
       fuelEstimate: `${fuelLiters.toFixed(1)} L`,
       stops: ordered.length,
     });
-  }, [selectedCollections, routeType, center]);
+  }, [selectedCollections, routeType, startLocation, dropoffLocation]);
 
   const openInGoogleMaps = () => {
     if (orderedCollections.length === 0) return;
@@ -243,8 +327,10 @@ export function RouteOptimizationMap({ collections, collectorAddress }: RouteOpt
       const pos = getCollectionPosition(c);
       return `${pos[0]},${pos[1]}`;
     });
-    const origin = `${center[0]},${center[1]}`;
-    const destination = origin;
+    const origin = `${startLocation[0]},${startLocation[1]}`;
+    const destination = dropoffLocation
+      ? `${dropoffLocation[0]},${dropoffLocation[1]}`
+      : origin;
     const waypointStr = waypoints.join('|');
     const url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&waypoints=${encodeURIComponent(waypointStr)}&travelmode=driving`;
     window.open(url, '_blank');
@@ -252,16 +338,12 @@ export function RouteOptimizationMap({ collections, collectorAddress }: RouteOpt
 
   const handleWasteTypeChange = (value: string) => {
     setSelectedWasteType(value);
-    setRoutePoints([]);
-    setOrderedCollections([]);
-    setHasRoute(false);
+    resetRoute();
   };
 
   const handleRouteTypeChange = (value: 'optimal' | 'byWasteType') => {
     setRouteType(value);
-    setRoutePoints([]);
-    setOrderedCollections([]);
-    setHasRoute(false);
+    resetRoute();
   };
 
   return (
@@ -273,6 +355,69 @@ export function RouteOptimizationMap({ collections, collectorAddress }: RouteOpt
             Route Options
           </h3>
           <div className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-sm flex items-center gap-1.5">
+                <CircleDot className="h-3.5 w-3.5 text-purple-500" />
+                Start Location
+              </Label>
+              <div className="bg-purple-50 border border-purple-200 rounded-md p-2.5">
+                <div className="text-sm font-medium text-purple-800">
+                  {usingGeoLocation ? 'Current GPS Location' : (collectorAddress || 'Default (Nairobi)')}
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="mt-1.5 h-7 text-xs text-purple-700 hover:text-purple-900 hover:bg-purple-100 px-2"
+                  onClick={useMyLocation}
+                  disabled={geoLoading}
+                >
+                  {geoLoading ? (
+                    <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
+                  ) : (
+                    <LocateFixed className="mr-1.5 h-3 w-3" />
+                  )}
+                  {geoLoading ? 'Getting location...' : 'Use My Current Location'}
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm flex items-center gap-1.5">
+                <Flag className="h-3.5 w-3.5 text-red-500" />
+                Drop-off Recycler
+              </Label>
+              <Select value={selectedDropoffId} onValueChange={handleDropoffChange}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select drop-off recycler" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Return to Start</SelectItem>
+                  {recyclers.map(recycler => (
+                    <SelectItem key={recycler.id} value={String(recycler.id)}>
+                      {recycler.businessName} — {recycler.serviceLocation || recycler.address || 'No location'}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedRecycler && (
+                <div className="bg-red-50 border border-red-200 rounded-md p-2.5">
+                  <div className="text-sm font-medium text-red-800">{selectedRecycler.businessName}</div>
+                  <div className="text-xs text-red-600 mt-0.5">
+                    {selectedRecycler.address || selectedRecycler.serviceLocation}
+                  </div>
+                  {selectedRecycler.wasteSpecialization.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1.5">
+                      {selectedRecycler.wasteSpecialization.map(type => (
+                        <Badge key={type} variant="outline" className="text-[10px] bg-red-100 text-red-700 border-red-300 capitalize">
+                          {type}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             <RadioGroup
               value={routeType}
               onValueChange={(value) => handleRouteTypeChange(value as 'optimal' | 'byWasteType')}
@@ -361,7 +506,7 @@ export function RouteOptimizationMap({ collections, collectorAddress }: RouteOpt
         <div className="lg:col-span-2">
           <div className="relative rounded-lg overflow-hidden border">
             <MapContainer
-              center={center}
+              center={startLocation}
               zoom={12}
               style={{ width: '100%', height: '450px' }}
               className="z-0"
@@ -371,12 +516,35 @@ export function RouteOptimizationMap({ collections, collectorAddress }: RouteOpt
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
 
-              <Marker position={center} icon={collectorBaseIcon}>
+              <Marker position={startLocation} icon={startIcon}>
                 <Popup>
-                  <div className="font-medium">Your Location</div>
-                  {collectorAddress && <div className="text-sm text-muted-foreground">{collectorAddress}</div>}
+                  <div className="p-1">
+                    <div className="font-medium flex items-center gap-1">
+                      <CircleDot className="h-3.5 w-3.5 text-purple-500" />
+                      Start Location
+                    </div>
+                    <div className="text-sm text-muted-foreground mt-0.5">
+                      {usingGeoLocation ? 'Your current location' : (collectorAddress || 'Nairobi, Kenya')}
+                    </div>
+                  </div>
                 </Popup>
               </Marker>
+
+              {dropoffLocation && selectedRecycler && (
+                <Marker position={dropoffLocation} icon={endIcon}>
+                  <Popup>
+                    <div className="p-1">
+                      <div className="font-medium flex items-center gap-1">
+                        <Flag className="h-3.5 w-3.5 text-red-500" />
+                        Drop-off: {selectedRecycler.businessName}
+                      </div>
+                      <div className="text-sm text-muted-foreground mt-0.5">
+                        {selectedRecycler.address || selectedRecycler.serviceLocation}
+                      </div>
+                    </div>
+                  </Popup>
+                </Marker>
+              )}
 
               {(hasRoute ? orderedCollections : selectedCollections).map((collection, index) => {
                 const pos = getCollectionPosition(collection);
@@ -412,7 +580,7 @@ export function RouteOptimizationMap({ collections, collectorAddress }: RouteOpt
             </MapContainer>
 
             <div className="absolute bottom-3 left-3 bg-background/90 p-2 rounded-md shadow-md border border-border text-xs z-[1000]">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-wrap">
                 <div className="flex items-center gap-1">
                   <div className="w-3 h-3 rounded-full bg-blue-500"></div>
                   <span>Confirmed</span>
@@ -423,8 +591,14 @@ export function RouteOptimizationMap({ collections, collectorAddress }: RouteOpt
                 </div>
                 <div className="flex items-center gap-1">
                   <div className="w-3 h-3 rounded-full bg-purple-500"></div>
-                  <span>Base</span>
+                  <span>Start</span>
                 </div>
+                {dropoffLocation && (
+                  <div className="flex items-center gap-1">
+                    <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                    <span>Drop-off</span>
+                  </div>
+                )}
                 {hasRoute && (
                   <div className="flex items-center gap-1">
                     <div className="w-6 h-0.5 bg-green-500"></div>
@@ -451,6 +625,25 @@ export function RouteOptimizationMap({ collections, collectorAddress }: RouteOpt
             )}
           </div>
           <div className="divide-y">
+            {hasRoute && (
+              <div className="flex items-center gap-3 px-4 py-3 bg-purple-50/50">
+                <div className="flex items-center justify-center w-7 h-7 rounded-full bg-purple-500 text-white text-[10px] font-bold shrink-0">
+                  <CircleDot className="h-3.5 w-3.5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-sm text-purple-800">Start Location</span>
+                    <Badge variant="outline" className="bg-purple-100 text-purple-700 border-purple-300 text-xs">
+                      Origin
+                    </Badge>
+                  </div>
+                  <div className="text-sm text-muted-foreground truncate mt-0.5">
+                    {usingGeoLocation ? 'Your current GPS location' : (collectorAddress || 'Nairobi, Kenya')}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {(hasRoute ? orderedCollections : filteredCollections).map((collection, index) => (
               <div
                 key={collection.id}
@@ -495,6 +688,44 @@ export function RouteOptimizationMap({ collections, collectorAddress }: RouteOpt
                 </div>
               </div>
             ))}
+
+            {hasRoute && selectedRecycler && (
+              <div className="flex items-center gap-3 px-4 py-3 bg-red-50/50">
+                <div className="flex items-center justify-center w-7 h-7 rounded-full bg-red-500 text-white text-[10px] font-bold shrink-0">
+                  <Flag className="h-3.5 w-3.5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-sm text-red-800">{selectedRecycler.businessName}</span>
+                    <Badge variant="outline" className="bg-red-100 text-red-700 border-red-300 text-xs">
+                      Drop-off
+                    </Badge>
+                  </div>
+                  <div className="text-sm text-muted-foreground truncate mt-0.5">
+                    {selectedRecycler.address || selectedRecycler.serviceLocation}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {hasRoute && !selectedRecycler && (
+              <div className="flex items-center gap-3 px-4 py-3 bg-purple-50/50">
+                <div className="flex items-center justify-center w-7 h-7 rounded-full bg-purple-500 text-white text-[10px] font-bold shrink-0">
+                  <CircleDot className="h-3.5 w-3.5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-sm text-purple-800">Return to Start</span>
+                    <Badge variant="outline" className="bg-purple-100 text-purple-700 border-purple-300 text-xs">
+                      End
+                    </Badge>
+                  </div>
+                  <div className="text-sm text-muted-foreground truncate mt-0.5">
+                    {usingGeoLocation ? 'Your current GPS location' : (collectorAddress || 'Nairobi, Kenya')}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </Card>
       )}
