@@ -46,11 +46,11 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    // Handle array query keys (e.g., ['/api/users', userId])
     let url = queryKey[0] as string;
-    if (queryKey.length > 1 && typeof queryKey[0] === 'string' && queryKey[1] !== undefined) {
-      // If the URL is something like '/api/users' and there's a second parameter, append it
-      url = `${url}/${queryKey[1]}`;
+    for (let i = 1; i < queryKey.length; i++) {
+      if (queryKey[i] !== undefined && queryKey[i] !== null) {
+        url = `${url}/${queryKey[i]}`;
+      }
     }
     
     console.log('Fetching URL:', url);

@@ -86,7 +86,7 @@ function InterestsSection({ collectionId, showForRoles }: InterestsSectionProps)
     );
   }
   
-  if (!interests || interests.length === 0) {
+  if (!interests || !Array.isArray(interests) || interests.length === 0) {
     return (
       <div className="grid gap-2">
         <h3 className="text-sm font-medium">Recycler Interests</h3>
