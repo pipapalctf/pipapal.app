@@ -472,6 +472,15 @@ export default function SchedulePickupPage() {
                             <TableRow>
                               <TableHead>
                                 <button 
+                                  onClick={() => handleSort('date')} 
+                                  className="flex items-center hover:text-primary"
+                                >
+                                  Date & Time
+                                  {getSortIcon('date')}
+                                </button>
+                              </TableHead>
+                              <TableHead>
+                                <button 
                                   onClick={() => handleSort('wasteType')} 
                                   className="flex items-center hover:text-primary"
                                 >
@@ -479,26 +488,6 @@ export default function SchedulePickupPage() {
                                   {getSortIcon('wasteType')}
                                 </button>
                               </TableHead>
-                              <TableHead>
-                                <button 
-                                  onClick={() => handleSort('date')} 
-                                  className="flex items-center hover:text-primary"
-                                >
-                                  Date
-                                  {getSortIcon('date')}
-                                </button>
-                              </TableHead>
-                              <TableHead>Time</TableHead>
-                              <TableHead>
-                                <button 
-                                  onClick={() => handleSort('address')} 
-                                  className="flex items-center hover:text-primary"
-                                >
-                                  Location
-                                  {getSortIcon('address')}
-                                </button>
-                              </TableHead>
-                              <TableHead>Amount</TableHead>
                               <TableHead>
                                 <button 
                                   onClick={() => handleSort('status')} 
@@ -520,45 +509,14 @@ export default function SchedulePickupPage() {
                               const paidPayment = collectionPayments.find(p => p.status === 'success');
                               return (
                                 <TableRow key={collection.id}>
+                                  <TableCell>
+                                    <div>
+                                      <div className="text-sm font-medium">{format(scheduledDate, 'MMM dd')}</div>
+                                      <div className="text-xs text-muted-foreground">{format(scheduledDate, 'h:mm a')}</div>
+                                    </div>
+                                  </TableCell>
                                   <TableCell className="font-medium capitalize">
-                                    <div className="flex items-center gap-2">
-                                      <div className={`p-2 rounded-full ${
-                                        collection.status === CollectionStatus.PENDING 
-                                          ? "bg-yellow-100" 
-                                          : collection.status === CollectionStatus.CONFIRMED 
-                                          ? "bg-blue-100" 
-                                          : "bg-primary/10"
-                                      }`}>
-                                        <Truck className="h-4 w-4 text-primary" />
-                                      </div>
-                                      <span>{collection.wasteType}</span>
-                                    </div>
-                                  </TableCell>
-                                  <TableCell>
-                                    <div className="flex items-center">
-                                      <Calendar className="h-4 w-4 mr-1 text-muted-foreground" />
-                                      <span>{format(scheduledDate, 'MMM dd, yyyy')}</span>
-                                    </div>
-                                  </TableCell>
-                                  <TableCell>
-                                    <div className="flex items-center">
-                                      <Clock className="h-4 w-4 mr-1 text-muted-foreground" />
-                                      <span>{format(scheduledDate, 'h:mm a')}</span>
-                                    </div>
-                                  </TableCell>
-                                  <TableCell>
-                                    <div className="flex items-center">
-                                      <MapPin className="h-4 w-4 mr-1 text-muted-foreground" />
-                                      <span className="truncate max-w-[120px]" title={collection.address}>
-                                        {collection.address}
-                                      </span>
-                                    </div>
-                                  </TableCell>
-                                  <TableCell>
-                                    <div className="flex items-center">
-                                      <Scale className="h-4 w-4 mr-1 text-muted-foreground" />
-                                      <span>{collection.wasteAmount || 10}kg</span>
-                                    </div>
+                                    <span>{collection.wasteType}</span>
                                   </TableCell>
                                   <TableCell>
                                     {getStatusBadge(collection.status)}
