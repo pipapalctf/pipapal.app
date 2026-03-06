@@ -120,6 +120,8 @@ function InterestsSection({ collectionId, showForRoles }: InterestsSectionProps)
                     ? "bg-green-50 text-green-700 border-green-200" 
                     : interest.status === 'rejected'
                     ? "bg-red-50 text-red-700 border-red-200"
+                    : interest.status === 'completed'
+                    ? "bg-green-50 text-green-700 border-green-200"
                     : "bg-blue-50 text-blue-700 border-blue-200"
                 }
               >
@@ -127,32 +129,36 @@ function InterestsSection({ collectionId, showForRoles }: InterestsSectionProps)
               </Badge>
             </div>
             
-            {interest.message && (
-              <div className="mb-2">
-                <p className="text-sm">{interest.message}</p>
-              </div>
-            )}
+            <div className="grid gap-1.5 mt-1">
+              {interest.recycler?.email && (
+                <div className="flex items-center text-sm">
+                  <Mail className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                  <span>{interest.recycler.email}</span>
+                </div>
+              )}
+              {interest.recycler?.phone && (
+                <div className="flex items-center text-sm">
+                  <Phone className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                  <span>{interest.recycler.phone}</span>
+                </div>
+              )}
+            </div>
             
-            <div className="text-xs text-muted-foreground flex items-center justify-between mt-1">
-              <span>Requested {new Date(interest.timestamp).toLocaleDateString()}</span>
-              
-              <div className="flex gap-2">
+            <div className="flex justify-end gap-2 mt-2">
+              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" asChild>
+                <a href={`mailto:${interest.recycler?.email}`}>
+                  <Mail className="h-3 w-3 mr-1" />
+                  Email
+                </a>
+              </Button>
+              {interest.recycler?.phone && (
                 <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" asChild>
-                  <a href={`mailto:${interest.recycler?.email}`}>
-                    <Mail className="h-3 w-3 mr-1" />
-                    Contact
+                  <a href={`tel:${interest.recycler.phone}`}>
+                    <Phone className="h-3 w-3 mr-1" />
+                    Call
                   </a>
                 </Button>
-                
-                {interest.recycler?.phone && (
-                  <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" asChild>
-                    <a href={`tel:${interest.recycler.phone}`}>
-                      <Phone className="h-3 w-3 mr-1" />
-                      Call
-                    </a>
-                  </Button>
-                )}
-              </div>
+              )}
             </div>
           </div>
         ))}
