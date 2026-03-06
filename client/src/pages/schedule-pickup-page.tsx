@@ -33,7 +33,8 @@ import {
   ArrowUpDown,
   FileText,
   AlertCircle,
-  CheckCircle
+  CheckCircle,
+  KeyRound
 } from "lucide-react";
 import { 
   DropdownMenu, 
@@ -492,6 +493,7 @@ export default function SchedulePickupPage() {
                                 </button>
                               </TableHead>
                               <TableHead>Amount</TableHead>
+                              <TableHead>Code</TableHead>
                               <TableHead className="w-[80px]">Actions</TableHead>
                             </TableRow>
                           </TableHeader>
@@ -539,6 +541,18 @@ export default function SchedulePickupPage() {
                                         );
                                       }
                                     })()}
+                                  </TableCell>
+                                  <TableCell>
+                                    {collection.status === CollectionStatus.IN_PROGRESS && collection.verificationCode ? (
+                                      <div className="flex items-center gap-1.5">
+                                        <KeyRound className="h-4 w-4 text-amber-500" />
+                                        <span className="font-mono font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded text-sm tracking-wider">
+                                          {collection.verificationCode}
+                                        </span>
+                                      </div>
+                                    ) : (
+                                      <span className="text-muted-foreground text-xs">—</span>
+                                    )}
                                   </TableCell>
                                   <TableCell>
                                     <DropdownMenu>

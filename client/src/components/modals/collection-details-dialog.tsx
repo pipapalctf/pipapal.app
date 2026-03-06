@@ -28,7 +28,8 @@ import {
   CheckCircle2,
   ThumbsUp,
   Building,
-  ShoppingBag
+  ShoppingBag,
+  KeyRound
 } from 'lucide-react';
 import { formatNumber } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
@@ -375,6 +376,24 @@ export function CollectionDetailsDialog({
                     </div>
                   </div>
                 </div>
+                
+                {collection.status === 'in_progress' && collection.verificationCode && user?.role !== 'collector' && (
+                  <div className="grid gap-2">
+                    <h3 className="text-sm font-medium">Pickup Verification</h3>
+                    <div className="bg-amber-50 border border-amber-200 p-3 rounded-md">
+                      <div className="flex items-center gap-2 mb-1">
+                        <KeyRound className="h-4 w-4 text-amber-600" />
+                        <span className="text-sm font-medium text-amber-800">Your verification code:</span>
+                      </div>
+                      <div className="text-center py-2">
+                        <span className="font-mono font-bold text-2xl tracking-[0.3em] text-amber-900 bg-amber-100 px-4 py-1 rounded">
+                          {collection.verificationCode}
+                        </span>
+                      </div>
+                      <p className="text-xs text-amber-700 text-center mt-1">Share this code with the collector to confirm your pickup</p>
+                    </div>
+                  </div>
+                )}
                 
                 {/* Requester Information - For collectors and recyclers */}
                 {(collection.userId && (user?.role === UserRole.COLLECTOR || user?.role === UserRole.RECYCLER)) && (

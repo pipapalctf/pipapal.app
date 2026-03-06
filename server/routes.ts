@@ -402,7 +402,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         key !== 'wasteAmount' && 
         key !== 'completedDate' &&
         key !== 'dropoffCenterId' &&
-        key !== 'dropoffStatus')) {
+        key !== 'dropoffStatus' &&
+        key !== 'verificationCode')) {
         return res.status(403).json({
           error: 'Access denied',
           message: 'Collectors can only update status, claim collections, or add notes'
@@ -415,6 +416,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const code = 'DP-' + Math.random().toString(36).substring(2, 8).toUpperCase();
         updates.dropoffCode = code;
         updates.dropoffStatus = 'pending';
+      }
+      
+      if (updates.status === CollectionStatus.IN_PROGRESS && collection.status !== CollectionStatus.IN_PROGRESS) {
+        const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+        updates.verificationCode = verificationCode;
+      }
+      
+      if (updates.status === CollectionStatus.COMPLETED) {
+        if (!updates.verificationCode) {
+          return res.status(400).json({ error: 'Verification code is required to complete a collection' });
+        }
+        if (collection.verificationCode && updates.verificationCode !== collection.verificationCode) {
+          return res.status(400).json({ error: 'Invalid verification code' });
+        }
+        delete updates.verificationCode;
       }
       
       const updatedCollection = await storage.updateCollection(id, updates);

@@ -46,6 +46,7 @@ export default function CollectorCollectionsPage() {
   const [bulkClaimDialogOpen, setBulkClaimDialogOpen] = useState(false);
   const [confirmingDropoffId, setConfirmingDropoffId] = useState<number | null>(null);
   const [dropoffCodeInput, setDropoffCodeInput] = useState('');
+  const [verificationCodeInput, setVerificationCodeInput] = useState('');
   
   const [sortField, setSortField] = useState<string>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
@@ -295,11 +296,16 @@ export default function CollectorCollectionsPage() {
   });
 
   const updateCollectionStatusMutation = useMutation({
-    mutationFn: async ({ id, status, notes, wasteAmount }: { id: number; status: string; notes?: string; wasteAmount?: number }) => {
+    mutationFn: async ({ id, status, notes, wasteAmount, verificationCode }: { id: number; status: string; notes?: string; wasteAmount?: number; verificationCode?: string }) => {
       const updateData: any = { status };
       if (notes) updateData.notes = notes;
       if (wasteAmount && status === CollectionStatus.COMPLETED) updateData.wasteAmount = wasteAmount;
+      if (verificationCode && status === CollectionStatus.COMPLETED) updateData.verificationCode = verificationCode;
       const res = await apiRequest('PATCH', `/api/collections/${id}`, updateData);
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to update collection');
+      }
       return await res.json();
     },
     onSuccess: () => {
@@ -308,6 +314,7 @@ export default function CollectorCollectionsPage() {
       setSelectedCollection(null);
       setWasteAmount('');
       setNotesInput('');
+      setVerificationCodeInput('');
       toast({
         title: 'Collection updated',
         description: 'The collection status has been updated successfully.',
@@ -994,30 +1001,50 @@ export default function CollectorCollectionsPage() {
             
             <div className="grid gap-4 py-4">
               {getNextStatus(selectedCollection.status) === CollectionStatus.COMPLETED && (
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="wasteAmount" className="text-right">
-                    Waste Amount (kg)
-                  </Label>
-                  <div className="col-span-3">
-                    <Input
-                      id="wasteAmount"
-                      className="w-full"
-                      type="number"
-                      value={wasteAmount}
-                      onChange={(e) => setWasteAmount(e.target.value)}
-                      placeholder="Enter amount in kg"
-                    />
-                    {wasteAmount && (
-                      <div className="mt-2 flex items-center text-sm">
-                        <CreditCard className="h-4 w-4 text-green-500 mr-2" />
-                        <span className="text-muted-foreground">Your earnings: </span>
-                        <Badge className="ml-2 bg-green-50 text-green-800 border-green-200">
-                          {formatNumber(calculateWasteValue(selectedCollection.wasteType, parseFloat(wasteAmount)))} KSh
-                        </Badge>
-                      </div>
-                    )}
+                <>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="wasteAmount" className="text-right">
+                      Waste Amount (kg)
+                    </Label>
+                    <div className="col-span-3">
+                      <Input
+                        id="wasteAmount"
+                        className="w-full"
+                        type="number"
+                        value={wasteAmount}
+                        onChange={(e) => setWasteAmount(e.target.value)}
+                        placeholder="Enter amount in kg"
+                      />
+                      {wasteAmount && (
+                        <div className="mt-2 flex items-center text-sm">
+                          <CreditCard className="h-4 w-4 text-green-500 mr-2" />
+                          <span className="text-muted-foreground">Your earnings: </span>
+                          <Badge className="ml-2 bg-green-50 text-green-800 border-green-200">
+                            {formatNumber(calculateWasteValue(selectedCollection.wasteType, parseFloat(wasteAmount)))} KSh
+                          </Badge>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="verificationCode" className="text-right">
+                      Verification Code
+                    </Label>
+                    <div className="col-span-3">
+                      <Input
+                        id="verificationCode"
+                        className="w-full font-mono tracking-wider text-center text-lg"
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={6}
+                        value={verificationCodeInput}
+                        onChange={(e) => setVerificationCodeInput(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        placeholder="Enter 6-digit code from customer"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">Ask the customer for the code shown on their portal</p>
+                    </div>
+                  </div>
+                </>
               )}
               
               <div className="grid grid-cols-4 items-start gap-4">
@@ -1049,14 +1076,17 @@ export default function CollectorCollectionsPage() {
                   if (nextStatus === CollectionStatus.COMPLETED && wasteAmount) {
                     data.wasteAmount = parseFloat(wasteAmount);
                   }
+                  if (nextStatus === CollectionStatus.COMPLETED && verificationCodeInput) {
+                    data.verificationCode = verificationCodeInput;
+                  }
                   updateCollectionStatusMutation.mutate(data);
                 }}
                 disabled={
                   updateCollectionStatusMutation.isPending || 
-                  (getNextStatus(selectedCollection.status) === CollectionStatus.COMPLETED && !wasteAmount)
+                  (getNextStatus(selectedCollection.status) === CollectionStatus.COMPLETED && (!wasteAmount || verificationCodeInput.length !== 6))
                 }
               >
-                Update Status
+                {getNextStatus(selectedCollection.status) === CollectionStatus.COMPLETED ? 'Confirm Pickup' : 'Update Status'}
               </Button>
             </DialogFooter>
           </DialogContent>
