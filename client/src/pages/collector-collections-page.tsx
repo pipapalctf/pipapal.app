@@ -647,7 +647,7 @@ export default function CollectorCollectionsPage() {
                         </TableHead>
                         <TableHead>City</TableHead>
                         {!isUnassignedView && <TableHead>Drop-off</TableHead>}
-                        <TableHead className="text-right">Actions</TableHead>
+                        <TableHead className="text-right">Details</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
