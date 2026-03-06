@@ -5,11 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   Loader2,
   AlertTriangle,
-  MapPin,
   Navigation,
-  Clock,
-  Fuel,
-  Truck,
   ExternalLink,
   CheckCircle2,
   Route,
@@ -523,40 +519,9 @@ export function RouteOptimizationMap({ collections, collectorAddress }: RouteOpt
           </div>
 
           {hasRoute && (
-            <div className="mt-4 pt-4 border-t space-y-3">
-              <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Route Stats</h4>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-primary shrink-0" />
-                  <div>
-                    <div className="text-xs text-muted-foreground">Distance</div>
-                    <div className="text-sm font-medium">{routeStats.totalDistance}</div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-primary shrink-0" />
-                  <div>
-                    <div className="text-xs text-muted-foreground">Duration</div>
-                    <div className="text-sm font-medium">{routeStats.totalDuration}</div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Truck className="h-4 w-4 text-primary shrink-0" />
-                  <div>
-                    <div className="text-xs text-muted-foreground">Stops</div>
-                    <div className="text-sm font-medium">{routeStats.stops}</div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Fuel className="h-4 w-4 text-primary shrink-0" />
-                  <div>
-                    <div className="text-xs text-muted-foreground">Fuel Est.</div>
-                    <div className="text-sm font-medium">{routeStats.fuelEstimate}</div>
-                  </div>
-                </div>
-              </div>
-              <div className="text-xs text-muted-foreground text-center">
-                ETA: {routeStats.etaTime} (incl. ~10 min/stop)
+            <div className="mt-4 pt-4 border-t">
+              <div className="text-center text-sm text-muted-foreground">
+                Route calculated. See itinerary on the right.
               </div>
             </div>
           )}
@@ -667,108 +632,115 @@ export function RouteOptimizationMap({ collections, collectorAddress }: RouteOpt
               </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      {hasRoute && (
-        <Card className="overflow-hidden">
-          <div className="p-4 bg-muted/30 border-b">
-            <h3 className="font-semibold flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-primary" />
-              Optimized Route — {orderedCollections.length} Stops
-            </h3>
-          </div>
-          <div className="divide-y">
-            <div className="flex items-center gap-3 px-4 py-3 bg-purple-50/50">
-              <div className="flex items-center justify-center w-7 h-7 rounded-full bg-purple-500 text-white text-[10px] font-bold shrink-0">
-                <CircleDot className="h-3.5 w-3.5" />
+          {hasRoute && (
+            <div className="mt-3 border rounded-lg overflow-hidden bg-background">
+              <div className="px-4 py-2.5 bg-muted/30 border-b flex items-center justify-between">
+                <h4 className="font-semibold text-sm flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-primary" />
+                  Route Itinerary
+                </h4>
+                <Badge variant="outline" className="text-xs">
+                  {orderedCollections.length} stops
+                </Badge>
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-sm text-purple-800">Start Location</span>
-                  <Badge variant="outline" className="bg-purple-100 text-purple-700 border-purple-300 text-xs">
-                    Origin
-                  </Badge>
+              <div className="px-4 py-3">
+                <div className="relative">
+                  <div className="absolute left-[13px] top-3 bottom-3 w-0.5 bg-gradient-to-b from-purple-400 via-primary to-red-400 rounded-full" />
+
+                  <div className="relative flex items-start gap-3 pb-3">
+                    <div className="relative z-10 flex items-center justify-center w-7 h-7 rounded-full bg-purple-500 text-white shrink-0 shadow-sm">
+                      <CircleDot className="h-3.5 w-3.5" />
+                    </div>
+                    <div className="pt-1 min-w-0">
+                      <div className="text-sm font-medium text-purple-800">Start</div>
+                      <div className="text-xs text-muted-foreground truncate">
+                        {usingGeoLocation ? 'GPS Location' : (collectorAddress || 'Nairobi, Kenya')}
+                      </div>
+                    </div>
+                  </div>
+
+                  {orderedCollections.map((collection, index) => (
+                    <div key={collection.id} className="relative flex items-start gap-3 pb-3">
+                      <div className="relative z-10 flex items-center justify-center w-7 h-7 rounded-full bg-primary text-white text-xs font-bold shrink-0 shadow-sm">
+                        {index + 1}
+                      </div>
+                      <div className="pt-0.5 min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-sm font-medium capitalize">{collection.wasteType}</span>
+                          {collection.wasteAmount && (
+                            <span className="text-xs text-teal-700 font-medium">{formatNumber(collection.wasteAmount)} kg</span>
+                          )}
+                          <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-4 ${
+                            collection.status === CollectionStatus.IN_PROGRESS
+                              ? 'bg-yellow-50 text-yellow-700 border-yellow-200'
+                              : 'bg-blue-50 text-blue-700 border-blue-200'
+                          }`}>
+                            {collection.status === CollectionStatus.IN_PROGRESS ? 'In Progress' : 'Confirmed'}
+                          </Badge>
+                        </div>
+                        <div className="text-xs text-muted-foreground truncate mt-0.5">{collection.address}</div>
+                        <div className="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-1">
+                          <Calendar className="h-2.5 w-2.5" />
+                          {format(new Date(collection.scheduledDate), 'MMM d, yyyy')}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  {selectedRecycler ? (
+                    <div className="relative flex items-start gap-3">
+                      <div className="relative z-10 flex items-center justify-center w-7 h-7 rounded-full bg-red-500 text-white shrink-0 shadow-sm">
+                        <Flag className="h-3.5 w-3.5" />
+                      </div>
+                      <div className="pt-1 min-w-0">
+                        <div className="text-sm font-medium text-red-800">Drop-off</div>
+                        <div className="text-xs text-muted-foreground truncate">{selectedRecycler.businessName}</div>
+                        <div className="text-[10px] text-muted-foreground truncate">
+                          {selectedRecycler.address || selectedRecycler.serviceLocation}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="relative flex items-start gap-3">
+                      <div className="relative z-10 flex items-center justify-center w-7 h-7 rounded-full bg-purple-500 text-white shrink-0 shadow-sm">
+                        <CircleDot className="h-3.5 w-3.5" />
+                      </div>
+                      <div className="pt-1 min-w-0">
+                        <div className="text-sm font-medium text-purple-800">Return to Start</div>
+                        <div className="text-xs text-muted-foreground truncate">
+                          {usingGeoLocation ? 'GPS Location' : (collectorAddress || 'Nairobi, Kenya')}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div className="text-sm text-muted-foreground truncate mt-0.5">
-                  {usingGeoLocation ? 'Your current GPS location' : (collectorAddress || 'Nairobi, Kenya')}
+              </div>
+
+              <div className="px-4 py-2.5 bg-muted/20 border-t">
+                <div className="grid grid-cols-4 gap-2 text-center">
+                  <div>
+                    <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Distance</div>
+                    <div className="text-sm font-semibold">{routeStats.totalDistance}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Duration</div>
+                    <div className="text-sm font-semibold">{routeStats.totalDuration}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Fuel</div>
+                    <div className="text-sm font-semibold">{routeStats.fuelEstimate}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] text-muted-foreground uppercase tracking-wide">ETA</div>
+                    <div className="text-sm font-semibold">{routeStats.etaTime}</div>
+                  </div>
                 </div>
               </div>
             </div>
-
-            {orderedCollections.map((collection, index) => (
-              <div
-                key={collection.id}
-                className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors"
-              >
-                <div className="flex items-center justify-center w-7 h-7 rounded-full bg-primary text-white text-sm font-bold shrink-0">
-                  {index + 1}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium capitalize text-sm">{collection.wasteType}</span>
-                    {collection.wasteAmount && (
-                      <Badge variant="outline" className="bg-teal-50 text-teal-700 border-teal-200 text-xs">
-                        {formatNumber(collection.wasteAmount)} kg
-                      </Badge>
-                    )}
-                    <Badge variant="outline" className={
-                      collection.status === CollectionStatus.IN_PROGRESS
-                        ? 'bg-purple-50 text-purple-700 border-purple-200 text-xs'
-                        : 'bg-blue-50 text-blue-700 border-blue-200 text-xs'
-                    }>
-                      {collection.status === CollectionStatus.IN_PROGRESS ? 'In Progress' : 'Confirmed'}
-                    </Badge>
-                  </div>
-                  <div className="text-sm text-muted-foreground truncate mt-0.5">
-                    {collection.address}
-                  </div>
-                </div>
-                <div className="text-xs text-muted-foreground shrink-0 flex items-center gap-1">
-                  <Calendar className="h-3 w-3" />
-                  {format(new Date(collection.scheduledDate), 'MMM d')}
-                </div>
-              </div>
-            ))}
-
-            {selectedRecycler ? (
-              <div className="flex items-center gap-3 px-4 py-3 bg-red-50/50">
-                <div className="flex items-center justify-center w-7 h-7 rounded-full bg-red-500 text-white text-[10px] font-bold shrink-0">
-                  <Flag className="h-3.5 w-3.5" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-sm text-red-800">{selectedRecycler.businessName}</span>
-                    <Badge variant="outline" className="bg-red-100 text-red-700 border-red-300 text-xs">
-                      Drop-off
-                    </Badge>
-                  </div>
-                  <div className="text-sm text-muted-foreground truncate mt-0.5">
-                    {selectedRecycler.address || selectedRecycler.serviceLocation}
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="flex items-center gap-3 px-4 py-3 bg-purple-50/50">
-                <div className="flex items-center justify-center w-7 h-7 rounded-full bg-purple-500 text-white text-[10px] font-bold shrink-0">
-                  <CircleDot className="h-3.5 w-3.5" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-sm text-purple-800">Return to Start</span>
-                    <Badge variant="outline" className="bg-purple-100 text-purple-700 border-purple-300 text-xs">
-                      End
-                    </Badge>
-                  </div>
-                  <div className="text-sm text-muted-foreground truncate mt-0.5">
-                    {usingGeoLocation ? 'Your current GPS location' : (collectorAddress || 'Nairobi, Kenya')}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </Card>
-      )}
+          )}
+        </div>
+      </div>
 
       {claimedCollections.length === 0 && (
         <div className="bg-amber-50 border-amber-200 border p-4 rounded-lg text-amber-800">
