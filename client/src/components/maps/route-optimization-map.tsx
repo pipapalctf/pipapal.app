@@ -13,12 +13,11 @@ import {
   ExternalLink,
   CheckCircle2,
   Route,
-  Scale,
   Calendar,
   LocateFixed,
-  Building2,
   CircleDot,
-  Flag
+  Flag,
+  Filter
 } from 'lucide-react';
 import { Collection, CollectionStatus } from '@shared/schema';
 import { formatNumber } from '@/lib/utils';
@@ -26,7 +25,6 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
   Select,
@@ -35,19 +33,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { format } from 'date-fns';
+import { format, isToday, isThisWeek } from 'date-fns';
 import 'leaflet/dist/leaflet.css';
 
 const defaultCenter: [number, number] = [-1.2921, 36.8219];
-
-function createIcon(color: string, size = 14) {
-  return L.divIcon({
-    className: 'custom-marker',
-    html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;font-size:9px;color:white;font-weight:bold"></div>`,
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size / 2],
-  });
-}
 
 function createNumberedIcon(color: string, number: number) {
   return L.divIcon({
@@ -109,12 +98,13 @@ export function RouteOptimizationMap({ collections, collectorAddress }: RouteOpt
   });
   const [routeType, setRouteType] = useState<'optimal' | 'byWasteType'>('optimal');
   const [selectedWasteType, setSelectedWasteType] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [dateFilter, setDateFilter] = useState<string>('all');
   const [hasRoute, setHasRoute] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [selectedDropoffId, setSelectedDropoffId] = useState<string>('none');
   const [dropoffLocation, setDropoffLocation] = useState<[number, number] | null>(null);
 
-  const { data: recyclers = [] } = useQuery<Recycler[]>({
+  const { data: allRecyclers = [] } = useQuery<Recycler[]>({
     queryKey: ['/api/recyclers'],
   });
 
@@ -130,24 +120,74 @@ export function RouteOptimizationMap({ collections, collectorAddress }: RouteOpt
 
   const filteredCollections = useMemo(() => {
     let filtered = claimedCollections;
+
     if (selectedWasteType !== 'all') {
       filtered = filtered.filter(c => c.wasteType === selectedWasteType);
     }
+
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(c => c.status === statusFilter);
+    }
+
+    if (dateFilter === 'today') {
+      filtered = filtered.filter(c => {
+        const d = new Date(c.scheduledDate);
+        return isToday(d);
+      });
+    } else if (dateFilter === 'this_week') {
+      filtered = filtered.filter(c => {
+        const d = new Date(c.scheduledDate);
+        return isThisWeek(d, { weekStartsOn: 1 });
+      });
+    }
+
     return filtered;
-  }, [claimedCollections, selectedWasteType]);
+  }, [claimedCollections, selectedWasteType, statusFilter, dateFilter]);
 
-  useEffect(() => {
-    setSelectedIds(new Set(filteredCollections.map(c => c.id)));
-  }, [filteredCollections]);
+  const geocodeRecyclerAddress = useCallback((recycler: Recycler): [number, number] => {
+    const seed = recycler.id * 137;
+    const latOffset = ((seed % 100) / 100 - 0.5) * 0.06;
+    const lngOffset = (((seed * 31) % 100) / 100 - 0.5) * 0.06;
+    return [startLocation[0] + latOffset, startLocation[1] + lngOffset];
+  }, [startLocation]);
 
-  const selectedCollections = useMemo(() => {
-    return filteredCollections.filter(c => selectedIds.has(c.id));
-  }, [filteredCollections, selectedIds]);
+  function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
+    const R = 6371;
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  const filteredRecyclers = useMemo(() => {
+    let recyclers = allRecyclers;
+
+    if (selectedWasteType !== 'all') {
+      recyclers = recyclers.filter(r => {
+        if (r.wasteSpecialization.length === 0) return true;
+        return r.wasteSpecialization.some(
+          s => s.toLowerCase() === selectedWasteType.toLowerCase()
+        );
+      });
+    }
+
+    return recyclers
+      .map(r => {
+        const pos = geocodeRecyclerAddress(r);
+        const dist = getDistanceKm(startLocation[0], startLocation[1], pos[0], pos[1]);
+        return { ...r, distance: dist };
+      })
+      .sort((a, b) => a.distance - b.distance);
+  }, [allRecyclers, selectedWasteType, startLocation, geocodeRecyclerAddress]);
 
   const selectedRecycler = useMemo(() => {
     if (selectedDropoffId === 'none') return null;
-    return recyclers.find(r => r.id === parseInt(selectedDropoffId)) || null;
-  }, [selectedDropoffId, recyclers]);
+    return filteredRecyclers.find(r => r.id === parseInt(selectedDropoffId)) || null;
+  }, [selectedDropoffId, filteredRecyclers]);
 
   const useMyLocation = useCallback(() => {
     if (!navigator.geolocation) return;
@@ -172,25 +212,6 @@ export function RouteOptimizationMap({ collections, collectorAddress }: RouteOpt
     setOrderedCollections([]);
   };
 
-  const toggleSelection = (id: number) => {
-    setSelectedIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-    resetRoute();
-  };
-
-  const toggleAll = () => {
-    if (selectedIds.size === filteredCollections.length) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(filteredCollections.map(c => c.id)));
-    }
-    resetRoute();
-  };
-
   const getCollectionPosition = (collection: Collection): [number, number] => {
     if (collection.location && typeof collection.location === 'object' && collection.location !== null) {
       const loc = collection.location as any;
@@ -204,25 +225,12 @@ export function RouteOptimizationMap({ collections, collectorAddress }: RouteOpt
     ];
   };
 
-  function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
-    const R = 6371;
-    const dLat = ((lat2 - lat1) * Math.PI) / 180;
-    const dLon = ((lon2 - lon1) * Math.PI) / 180;
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  }
-
   const handleDropoffChange = (value: string) => {
     setSelectedDropoffId(value);
     if (value !== 'none') {
-      const recycler = recyclers.find(r => r.id === parseInt(value));
+      const recycler = allRecyclers.find(r => r.id === parseInt(value));
       if (recycler) {
-        const coords = geocodeRecyclerAddress(recycler);
-        setDropoffLocation(coords);
+        setDropoffLocation(geocodeRecyclerAddress(recycler));
       }
     } else {
       setDropoffLocation(null);
@@ -230,21 +238,25 @@ export function RouteOptimizationMap({ collections, collectorAddress }: RouteOpt
     resetRoute();
   };
 
-  const geocodeRecyclerAddress = (recycler: Recycler): [number, number] => {
-    const seed = recycler.id * 137;
-    const latOffset = ((seed % 100) / 100 - 0.5) * 0.06;
-    const lngOffset = (((seed * 31) % 100) / 100 - 0.5) * 0.06;
-    return [startLocation[0] + latOffset, startLocation[1] + lngOffset];
-  };
+  useEffect(() => {
+    if (selectedDropoffId !== 'none') {
+      const stillExists = filteredRecyclers.find(r => r.id === parseInt(selectedDropoffId));
+      if (!stillExists) {
+        setSelectedDropoffId('none');
+        setDropoffLocation(null);
+        resetRoute();
+      }
+    }
+  }, [filteredRecyclers, selectedDropoffId]);
 
   const calculateRoute = useCallback(() => {
-    if (selectedCollections.length === 0) return;
+    if (filteredCollections.length === 0) return;
 
     const points: [number, number][] = [startLocation];
     const ordered: Collection[] = [];
 
     if (routeType === 'optimal') {
-      const remaining = selectedCollections.map(c => ({ collection: c, pos: getCollectionPosition(c) }));
+      const remaining = filteredCollections.map(c => ({ collection: c, pos: getCollectionPosition(c) }));
       let current = startLocation;
       while (remaining.length > 0) {
         let nearestIdx = 0;
@@ -262,8 +274,8 @@ export function RouteOptimizationMap({ collections, collectorAddress }: RouteOpt
         ordered.push(nearest.collection);
       }
     } else {
-      const byType: Record<string, typeof selectedCollections> = {};
-      selectedCollections.forEach(c => {
+      const byType: Record<string, Collection[]> = {};
+      filteredCollections.forEach(c => {
         const t = c.wasteType || 'general';
         if (!byType[t]) byType[t] = [];
         byType[t].push(c);
@@ -319,7 +331,7 @@ export function RouteOptimizationMap({ collections, collectorAddress }: RouteOpt
       fuelEstimate: `${fuelLiters.toFixed(1)} L`,
       stops: ordered.length,
     });
-  }, [selectedCollections, routeType, startLocation, dropoffLocation]);
+  }, [filteredCollections, routeType, startLocation, dropoffLocation]);
 
   const openInGoogleMaps = () => {
     if (orderedCollections.length === 0) return;
@@ -338,6 +350,16 @@ export function RouteOptimizationMap({ collections, collectorAddress }: RouteOpt
 
   const handleWasteTypeChange = (value: string) => {
     setSelectedWasteType(value);
+    resetRoute();
+  };
+
+  const handleStatusChange = (value: string) => {
+    setStatusFilter(value);
+    resetRoute();
+  };
+
+  const handleDateChange = (value: string) => {
+    setDateFilter(value);
     resetRoute();
   };
 
@@ -383,8 +405,62 @@ export function RouteOptimizationMap({ collections, collectorAddress }: RouteOpt
 
             <div className="space-y-2">
               <Label className="text-sm flex items-center gap-1.5">
+                <Filter className="h-3.5 w-3.5" />
+                Filter by Status
+              </Label>
+              <Select value={statusFilter} onValueChange={handleStatusChange}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value={CollectionStatus.CONFIRMED}>Confirmed</SelectItem>
+                  <SelectItem value={CollectionStatus.IN_PROGRESS}>In Progress</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm flex items-center gap-1.5">
+                <Calendar className="h-3.5 w-3.5" />
+                Filter by Date
+              </Label>
+              <Select value={dateFilter} onValueChange={handleDateChange}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Dates</SelectItem>
+                  <SelectItem value="today">Today</SelectItem>
+                  <SelectItem value="this_week">This Week</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="wasteType" className="text-sm">Filter by Waste Type</Label>
+              <Select value={selectedWasteType} onValueChange={handleWasteTypeChange}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select Waste Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  {availableWasteTypes.map(type => (
+                    <SelectItem key={type} value={type}>
+                      {type.charAt(0).toUpperCase() + type.slice(1)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm flex items-center gap-1.5">
                 <Flag className="h-3.5 w-3.5 text-red-500" />
                 Drop-off Recycler
+                {selectedWasteType !== 'all' && (
+                  <Badge variant="outline" className="text-[10px] ml-1 capitalize">{selectedWasteType}</Badge>
+                )}
               </Label>
               <Select value={selectedDropoffId} onValueChange={handleDropoffChange}>
                 <SelectTrigger className="w-full">
@@ -392,9 +468,9 @@ export function RouteOptimizationMap({ collections, collectorAddress }: RouteOpt
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">Return to Start</SelectItem>
-                  {recyclers.map(recycler => (
+                  {filteredRecyclers.map(recycler => (
                     <SelectItem key={recycler.id} value={String(recycler.id)}>
-                      {recycler.businessName} — {recycler.serviceLocation || recycler.address || 'No location'}
+                      {recycler.businessName} — {recycler.distance.toFixed(1)} km
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -403,7 +479,7 @@ export function RouteOptimizationMap({ collections, collectorAddress }: RouteOpt
                 <div className="bg-red-50 border border-red-200 rounded-md p-2.5">
                   <div className="text-sm font-medium text-red-800">{selectedRecycler.businessName}</div>
                   <div className="text-xs text-red-600 mt-0.5">
-                    {selectedRecycler.address || selectedRecycler.serviceLocation}
+                    {selectedRecycler.address || selectedRecycler.serviceLocation} ({selectedRecycler.distance.toFixed(1)} km away)
                   </div>
                   {selectedRecycler.wasteSpecialization.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-1.5">
@@ -433,26 +509,9 @@ export function RouteOptimizationMap({ collections, collectorAddress }: RouteOpt
               </div>
             </RadioGroup>
 
-            <div className="space-y-2">
-              <Label htmlFor="wasteType" className="text-sm">Filter by Waste Type</Label>
-              <Select value={selectedWasteType} onValueChange={handleWasteTypeChange}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select Waste Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  {availableWasteTypes.map(type => (
-                    <SelectItem key={type} value={type}>
-                      {type.charAt(0).toUpperCase() + type.slice(1)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <Button onClick={calculateRoute} disabled={selectedCollections.length === 0} className="w-full">
+            <Button onClick={calculateRoute} disabled={filteredCollections.length === 0} className="w-full">
               <Navigation className="mr-2 h-4 w-4" />
-              Calculate Route ({selectedCollections.length} stops)
+              Calculate Route ({filteredCollections.length} stops)
             </Button>
 
             {hasRoute && (
@@ -546,7 +605,7 @@ export function RouteOptimizationMap({ collections, collectorAddress }: RouteOpt
                 </Marker>
               )}
 
-              {(hasRoute ? orderedCollections : selectedCollections).map((collection, index) => {
+              {(hasRoute ? orderedCollections : filteredCollections).map((collection, index) => {
                 const pos = getCollectionPosition(collection);
                 const color = collection.status === CollectionStatus.IN_PROGRESS ? '#eab308' : '#3b82f6';
                 return (
@@ -611,57 +670,40 @@ export function RouteOptimizationMap({ collections, collectorAddress }: RouteOpt
         </div>
       </div>
 
-      {filteredCollections.length > 0 && (
+      {hasRoute && (
         <Card className="overflow-hidden">
-          <div className="p-4 bg-muted/30 border-b flex items-center justify-between">
+          <div className="p-4 bg-muted/30 border-b">
             <h3 className="font-semibold flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-primary" />
-              {hasRoute ? 'Optimized Stop Order' : 'Select Collections to Route'}
+              Optimized Route — {orderedCollections.length} Stops
             </h3>
-            {!hasRoute && (
-              <Button variant="ghost" size="sm" onClick={toggleAll}>
-                {selectedIds.size === filteredCollections.length ? 'Deselect All' : 'Select All'}
-              </Button>
-            )}
           </div>
           <div className="divide-y">
-            {hasRoute && (
-              <div className="flex items-center gap-3 px-4 py-3 bg-purple-50/50">
-                <div className="flex items-center justify-center w-7 h-7 rounded-full bg-purple-500 text-white text-[10px] font-bold shrink-0">
-                  <CircleDot className="h-3.5 w-3.5" />
+            <div className="flex items-center gap-3 px-4 py-3 bg-purple-50/50">
+              <div className="flex items-center justify-center w-7 h-7 rounded-full bg-purple-500 text-white text-[10px] font-bold shrink-0">
+                <CircleDot className="h-3.5 w-3.5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-sm text-purple-800">Start Location</span>
+                  <Badge variant="outline" className="bg-purple-100 text-purple-700 border-purple-300 text-xs">
+                    Origin
+                  </Badge>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-sm text-purple-800">Start Location</span>
-                    <Badge variant="outline" className="bg-purple-100 text-purple-700 border-purple-300 text-xs">
-                      Origin
-                    </Badge>
-                  </div>
-                  <div className="text-sm text-muted-foreground truncate mt-0.5">
-                    {usingGeoLocation ? 'Your current GPS location' : (collectorAddress || 'Nairobi, Kenya')}
-                  </div>
+                <div className="text-sm text-muted-foreground truncate mt-0.5">
+                  {usingGeoLocation ? 'Your current GPS location' : (collectorAddress || 'Nairobi, Kenya')}
                 </div>
               </div>
-            )}
+            </div>
 
-            {(hasRoute ? orderedCollections : filteredCollections).map((collection, index) => (
+            {orderedCollections.map((collection, index) => (
               <div
                 key={collection.id}
-                className={`flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors ${
-                  selectedIds.has(collection.id) ? '' : 'opacity-50'
-                }`}
+                className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors"
               >
-                {!hasRoute && (
-                  <Checkbox
-                    checked={selectedIds.has(collection.id)}
-                    onCheckedChange={() => toggleSelection(collection.id)}
-                  />
-                )}
-                {hasRoute && (
-                  <div className="flex items-center justify-center w-7 h-7 rounded-full bg-primary text-white text-sm font-bold shrink-0">
-                    {index + 1}
-                  </div>
-                )}
+                <div className="flex items-center justify-center w-7 h-7 rounded-full bg-primary text-white text-sm font-bold shrink-0">
+                  {index + 1}
+                </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="font-medium capitalize text-sm">{collection.wasteType}</span>
@@ -689,7 +731,7 @@ export function RouteOptimizationMap({ collections, collectorAddress }: RouteOpt
               </div>
             ))}
 
-            {hasRoute && selectedRecycler && (
+            {selectedRecycler ? (
               <div className="flex items-center gap-3 px-4 py-3 bg-red-50/50">
                 <div className="flex items-center justify-center w-7 h-7 rounded-full bg-red-500 text-white text-[10px] font-bold shrink-0">
                   <Flag className="h-3.5 w-3.5" />
@@ -706,9 +748,7 @@ export function RouteOptimizationMap({ collections, collectorAddress }: RouteOpt
                   </div>
                 </div>
               </div>
-            )}
-
-            {hasRoute && !selectedRecycler && (
+            ) : (
               <div className="flex items-center gap-3 px-4 py-3 bg-purple-50/50">
                 <div className="flex items-center justify-center w-7 h-7 rounded-full bg-purple-500 text-white text-[10px] font-bold shrink-0">
                   <CircleDot className="h-3.5 w-3.5" />
