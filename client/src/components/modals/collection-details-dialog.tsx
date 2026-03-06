@@ -298,7 +298,7 @@ export function CollectionDetailsDialog({
                     <div className="flex items-center">
                       <CircleDollarSign className="h-4 w-4 mr-2 text-muted-foreground" />
                       <span className="text-sm text-muted-foreground mr-1">Est. Value:</span>
-                      <span className="text-sm font-medium">${formatNumber((collection.wasteAmount || 0) * 0.2, 2)}</span>
+                      <span className="text-sm font-medium">KSh {formatNumber((collection.wasteAmount || 0) * 0.2, 2)}</span>
                     </div>
                     
                     {collection.wasteDescription && (
