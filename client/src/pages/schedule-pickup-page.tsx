@@ -666,7 +666,7 @@ export default function SchedulePickupPage() {
                                   const amount = collection.wasteAmount || 0;
                                   const estimate = amount > 0 ? getCustomerCostEstimate(pricingKey, amount) : null;
                                   return (
-                                    <TableRow key={collection.id} className="cursor-pointer" onClick={() => handleViewDetails(collection)}>
+                                    <TableRow key={collection.id}>
                                       <TableCell>
                                         <div className="flex items-center gap-2">
                                           <div className={`p-1.5 rounded-full shrink-0 ${
@@ -703,8 +703,14 @@ export default function SchedulePickupPage() {
                                         )}
                                       </TableCell>
                                       <TableCell>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); handleViewDetails(collection); }}>
-                                          <MoreHorizontal className="h-4 w-4" />
+                                        <Button 
+                                          variant="ghost" 
+                                          size="sm" 
+                                          className="h-8 text-xs"
+                                          onClick={() => handleViewDetails(collection)}
+                                        >
+                                          <FileText className="h-3.5 w-3.5 mr-1" />
+                                          Details
                                         </Button>
                                       </TableCell>
                                     </TableRow>
