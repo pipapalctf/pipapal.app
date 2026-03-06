@@ -45,13 +45,25 @@ The application uses a comprehensive PostgreSQL schema with the following core e
 - **Feedback**: User feedback and support system
 - **User Ratings**: User-to-user rating system (1-5 stars with optional comments, tied to collections, unique constraint on collectionId+raterId+rateeId)
 
+### Pricing Model
+- **Shared pricing config** in `shared/schema.ts`: `wastePricingConfig` with per-waste-type rates (customerRate, collectorRate, recyclerRate, pipaPalMargin)
+- **Pricing categories**:
+  - HIGH_VALUE (metal, electronic, plastic PET): Customer EARNS (wallet credit), negative customerRate
+  - BREAK_EVEN (cardboard, paper white, plastic rigid): Free collection, customerRate = 0
+  - DISPOSAL_FEE (glass, organic, paper mixed, plastic flexible, general): Customer PAYS (wallet debit)
+  - HIGH_COST (hazardous, electronic bulky): Premium disposal fee
+- **On collection completion**: customer wallet auto-credited/debited, collector wallet auto-credited with earnings
+- Helper functions: `getCustomerCostEstimate()`, `getCollectorEarnings()`, `getRecyclerCost()`
+- Pickup form shows pricing estimate per waste type (earn/free/fee)
+- Collector page shows "Your earnings" per collection
+
 ### Billing & Wallet
 - **Virtual Wallet**: Per-user wallet with balance tracking (schema: `wallets` + `wallet_transactions` tables)
-  - Top-up via M-Pesa STK Push (sandbox mode auto-credits balance when no M-Pesa keys configured)
+  - Top-up via M-Pesa STK Push (sandbox mode auto-credits balance when callback URL is placeholder)
   - Transaction types: topup, payment, refund, earning
   - API: GET `/api/wallet`, GET `/api/wallet/transactions`, POST `/api/wallet/topup`
 - **Billing Page** (`/billing`): Wallet card (green gradient, balance display, top-up dialog) + tabbed view: "Wallet Activity" and "Payment History"
-  - Wallet Activity: timeline of wallet transactions with type icons, amounts, running balance
+  - Wallet Activity: timeline of wallet transactions with type icons (earning uses TrendingUp icon), amounts, running balance
   - Payment History: M-Pesa payment list with date, amount, status badges, phone, receipt
   - Filter by payment status (All, Paid, Pending, Failed, Cancelled)
   - Currency: KSh (Kenyan Shillings) throughout

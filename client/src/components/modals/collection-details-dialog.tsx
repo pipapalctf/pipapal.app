@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Collection, User, UserRole } from '@shared/schema';
+import { Collection, User, UserRole, wastePricingConfig, getCustomerCostEstimate, getCollectorEarnings, PricingCategory } from '@shared/schema';
 import { Badge } from '@/components/ui/badge';
 import { wasteTypeConfig } from '@/lib/types';
 import { 
@@ -295,11 +295,31 @@ export function CollectionDetailsDialog({
                       <span className="text-sm font-medium">{collection.wasteAmount ? `${formatNumber(collection.wasteAmount)} kg` : 'Not recorded'}</span>
                     </div>
                     
-                    <div className="flex items-center">
-                      <CircleDollarSign className="h-4 w-4 mr-2 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground mr-1">Est. Value:</span>
-                      <span className="text-sm font-medium">KSh {formatNumber((collection.wasteAmount || 0) * 0.2, 2)}</span>
-                    </div>
+                    {(() => {
+                      const estimate = getCustomerCostEstimate(collection.wasteType, collection.wasteAmount || 0);
+                      const isHighValue = estimate.category === PricingCategory.HIGH_VALUE;
+                      const isBreakEven = estimate.category === PricingCategory.BREAK_EVEN;
+                      return (
+                        <div className="flex items-center">
+                          <CircleDollarSign className={`h-4 w-4 mr-2 ${isHighValue ? 'text-green-500' : isBreakEven ? 'text-blue-500' : 'text-orange-500'}`} />
+                          <span className="text-sm text-muted-foreground mr-1">Est. Value:</span>
+                          {isHighValue ? (
+                            <span className="text-sm font-medium text-green-700">You earned KSh {formatNumber(Math.abs(estimate.total), 2)}</span>
+                          ) : isBreakEven ? (
+                            <span className="text-sm font-medium text-blue-700">Free collection</span>
+                          ) : (
+                            <span className="text-sm font-medium text-orange-700">Fee: KSh {formatNumber(estimate.total, 2)}</span>
+                          )}
+                        </div>
+                      );
+                    })()}
+                    {user?.role === UserRole.COLLECTOR && collection.wasteAmount && (
+                      <div className="flex items-center">
+                        <CircleDollarSign className="h-4 w-4 mr-2 text-green-500" />
+                        <span className="text-sm text-muted-foreground mr-1">Your earnings:</span>
+                        <span className="text-sm font-medium text-green-700">KSh {formatNumber(getCollectorEarnings(collection.wasteType, collection.wasteAmount), 2)}</span>
+                      </div>
+                    )}
                     
                     {collection.wasteDescription && (
                       <div className="flex">

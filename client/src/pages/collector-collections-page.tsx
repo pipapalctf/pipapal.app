@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { CollectionStatus, UserRole } from '@shared/schema';
+import { CollectionStatus, UserRole, getCollectorEarnings } from '@shared/schema';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -345,11 +345,7 @@ export default function CollectorCollectionsPage() {
   };
   
   const calculateWasteValue = (wasteType: string, estimatedAmount: number = 10) => {
-    const valuePerKg: Record<string, number> = {
-      'hazardous': 20, 'electronic': 15, 'metal': 12, 'glass': 10, 'plastic': 10,
-      'paper': 8, 'organic': 8, 'cardboard': 8, 'general': 5
-    };
-    return (valuePerKg[wasteType] || 5) * estimatedAmount;
+    return getCollectorEarnings(wasteType, estimatedAmount);
   };
 
   const getActionButton = (collection: any) => {
@@ -916,11 +912,11 @@ export default function CollectorCollectionsPage() {
               )}
               
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label className="text-right">Value</Label>
+                <Label className="text-right">Your Earnings</Label>
                 <div className="col-span-3 flex items-center">
                   <CreditCard className="mr-2 h-4 w-4 text-green-500" />
                   <Badge variant="outline" className="bg-green-50 text-green-800 border-green-200 font-medium">
-                    {formatNumber(calculateWasteValue(selectedCollection.wasteType, selectedCollection.wasteAmount || 10))} KSh
+                    KSh {formatNumber(calculateWasteValue(selectedCollection.wasteType, selectedCollection.wasteAmount || 10))}
                   </Badge>
                 </div>
               </div>
@@ -1014,7 +1010,7 @@ export default function CollectorCollectionsPage() {
                     {wasteAmount && (
                       <div className="mt-2 flex items-center text-sm">
                         <CreditCard className="h-4 w-4 text-green-500 mr-2" />
-                        <span className="text-muted-foreground">Calculated value: </span>
+                        <span className="text-muted-foreground">Your earnings: </span>
                         <Badge className="ml-2 bg-green-50 text-green-800 border-green-200">
                           {formatNumber(calculateWasteValue(selectedCollection.wasteType, parseFloat(wasteAmount)))} KSh
                         </Badge>

@@ -366,12 +366,16 @@ export default function BillingPage() {
                           <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 ${
                             tx.type === WalletTransactionType.TOPUP
                               ? 'bg-green-100'
+                              : tx.type === WalletTransactionType.EARNING
+                              ? 'bg-emerald-100'
                               : tx.type === WalletTransactionType.REFUND
                               ? 'bg-blue-100'
                               : 'bg-orange-100'
                           }`}>
                             {tx.type === WalletTransactionType.TOPUP ? (
                               <ArrowDownCircle className="h-5 w-5 text-green-600" />
+                            ) : tx.type === WalletTransactionType.EARNING ? (
+                              <TrendingUp className="h-5 w-5 text-emerald-600" />
                             ) : tx.type === WalletTransactionType.REFUND ? (
                               <ArrowDownCircle className="h-5 w-5 text-blue-600" />
                             ) : (

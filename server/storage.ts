@@ -14,7 +14,9 @@ import {
   wasteAcceptanceLimits, type WasteAcceptanceLimit, type InsertWasteAcceptanceLimit,
   wallets, type Wallet, type InsertWallet,
   walletTransactions, type WalletTransaction, type InsertWalletTransaction,
-  CollectionStatus
+  CollectionStatus,
+  wastePricingConfig, getCustomerCostEstimate, getCollectorEarnings,
+  WalletTransactionType
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
@@ -398,9 +400,75 @@ export class MemStorage implements IStorage {
           description: `Sustainability score increased by ${scoreIncrease} points`
         });
       }
+
+      await this.processCollectionWalletTransactions(collection.userId, collection.collectorId, collection.wasteType, wasteAmount, id);
     }
     
     return updatedCollection;
+  }
+
+  private async processCollectionWalletTransactions(
+    customerId: number,
+    collectorId: number | null,
+    wasteType: string,
+    wasteAmount: number,
+    collectionId: number
+  ): Promise<void> {
+    const customerEstimate = getCustomerCostEstimate(wasteType, wasteAmount);
+
+    if (customerEstimate.ratePerKg !== 0) {
+      let customerWallet = await this.getWalletByUserId(customerId);
+      if (!customerWallet) {
+        customerWallet = await this.createWallet({ userId: customerId, balance: 0 });
+      }
+
+      if (customerEstimate.ratePerKg < 0) {
+        const creditAmount = Math.abs(customerEstimate.total);
+        const newBalance = (customerWallet.balance || 0) + creditAmount;
+        await this.updateWalletBalance(customerId, newBalance);
+        await this.createWalletTransaction({
+          walletId: customerWallet.id,
+          userId: customerId,
+          type: WalletTransactionType.EARNING,
+          amount: creditAmount,
+          description: `Earned from ${wasteType} waste collection #${collectionId}`,
+          referenceId: `collection_${collectionId}`,
+          balanceAfter: newBalance,
+        });
+      } else {
+        const debitAmount = customerEstimate.total;
+        const newBalance = (customerWallet.balance || 0) - debitAmount;
+        await this.updateWalletBalance(customerId, newBalance);
+        await this.createWalletTransaction({
+          walletId: customerWallet.id,
+          userId: customerId,
+          type: WalletTransactionType.PAYMENT,
+          amount: -debitAmount,
+          description: `Collection fee for ${wasteType} waste collection #${collectionId}`,
+          referenceId: `collection_${collectionId}`,
+          balanceAfter: newBalance,
+        });
+      }
+    }
+
+    if (collectorId) {
+      const collectorEarnings = getCollectorEarnings(wasteType, wasteAmount);
+      let collectorWallet = await this.getWalletByUserId(collectorId);
+      if (!collectorWallet) {
+        collectorWallet = await this.createWallet({ userId: collectorId, balance: 0 });
+      }
+      const newBalance = (collectorWallet.balance || 0) + collectorEarnings;
+      await this.updateWalletBalance(collectorId, newBalance);
+      await this.createWalletTransaction({
+        walletId: collectorWallet.id,
+        userId: collectorId,
+        type: WalletTransactionType.EARNING,
+        amount: collectorEarnings,
+        description: `Earnings from ${wasteType} waste collection #${collectionId}`,
+        referenceId: `collection_${collectionId}`,
+        balanceAfter: newBalance,
+      });
+    }
   }
   
   // Impact
@@ -1302,9 +1370,75 @@ export class DatabaseStorage implements IStorage {
           description: `Sustainability score increased by ${scoreIncrease} points`
         });
       }
+
+      await this.processCollectionWalletTransactions(collection.userId, collection.collectorId, collection.wasteType, wasteAmount, id);
     }
     
     return updatedCollection;
+  }
+
+  private async processCollectionWalletTransactions(
+    customerId: number,
+    collectorId: number | null,
+    wasteType: string,
+    wasteAmount: number,
+    collectionId: number
+  ): Promise<void> {
+    const customerEstimate = getCustomerCostEstimate(wasteType, wasteAmount);
+
+    if (customerEstimate.ratePerKg !== 0) {
+      let customerWallet = await this.getWalletByUserId(customerId);
+      if (!customerWallet) {
+        customerWallet = await this.createWallet({ userId: customerId, balance: 0 });
+      }
+
+      if (customerEstimate.ratePerKg < 0) {
+        const creditAmount = Math.abs(customerEstimate.total);
+        const newBalance = (customerWallet.balance || 0) + creditAmount;
+        await this.updateWalletBalance(customerId, newBalance);
+        await this.createWalletTransaction({
+          walletId: customerWallet.id,
+          userId: customerId,
+          type: WalletTransactionType.EARNING,
+          amount: creditAmount,
+          description: `Earned from ${wasteType} waste collection #${collectionId}`,
+          referenceId: `collection_${collectionId}`,
+          balanceAfter: newBalance,
+        });
+      } else {
+        const debitAmount = customerEstimate.total;
+        const newBalance = (customerWallet.balance || 0) - debitAmount;
+        await this.updateWalletBalance(customerId, newBalance);
+        await this.createWalletTransaction({
+          walletId: customerWallet.id,
+          userId: customerId,
+          type: WalletTransactionType.PAYMENT,
+          amount: -debitAmount,
+          description: `Collection fee for ${wasteType} waste collection #${collectionId}`,
+          referenceId: `collection_${collectionId}`,
+          balanceAfter: newBalance,
+        });
+      }
+    }
+
+    if (collectorId) {
+      const collectorEarnings = getCollectorEarnings(wasteType, wasteAmount);
+      let collectorWallet = await this.getWalletByUserId(collectorId);
+      if (!collectorWallet) {
+        collectorWallet = await this.createWallet({ userId: collectorId, balance: 0 });
+      }
+      const newBalance = (collectorWallet.balance || 0) + collectorEarnings;
+      await this.updateWalletBalance(collectorId, newBalance);
+      await this.createWalletTransaction({
+        walletId: collectorWallet.id,
+        userId: collectorId,
+        type: WalletTransactionType.EARNING,
+        amount: collectorEarnings,
+        description: `Earnings from ${wasteType} waste collection #${collectionId}`,
+        referenceId: `collection_${collectionId}`,
+        balanceAfter: newBalance,
+      });
+    }
   }
   
   // Impact
