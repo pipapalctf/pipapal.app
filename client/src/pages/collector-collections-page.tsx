@@ -628,7 +628,7 @@ export default function CollectorCollectionsPage() {
                             />
                           </TableHead>
                         )}
-                        {!isUnassignedView && (
+                        {isAllMineView && (
                           <TableHead>
                             <button onClick={() => handleSort('status')} className="flex items-center hover:text-primary">
                               Status{getSortIcon('status')}
@@ -646,13 +646,8 @@ export default function CollectorCollectionsPage() {
                           </button>
                         </TableHead>
                         <TableHead>City</TableHead>
-                        <TableHead>
-                          <button onClick={() => handleSort('value')} className="flex items-center hover:text-primary">
-                            Est. Value{getSortIcon('value')}
-                          </button>
-                        </TableHead>
                         {!isUnassignedView && <TableHead>Drop-off</TableHead>}
-                        <TableHead className="text-right">Actions</TableHead>
+                        <TableHead className="text-right">Details</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -676,10 +671,10 @@ export default function CollectorCollectionsPage() {
                                 )}
                               </TableCell>
                             )}
-                            {!isUnassignedView && (
+                            {isAllMineView && (
                               <TableCell>
                                 <Badge variant="outline" className={getStatusColor(collection.status)}>
-                                  {collection.status === 'in_progress' ? 'In Progress' : collection.status.charAt(0).toUpperCase() + collection.status.slice(1)}
+                                  {collection.status.charAt(0).toUpperCase() + collection.status.slice(1)}
                                 </Badge>
                               </TableCell>
                             )}
@@ -701,11 +696,6 @@ export default function CollectorCollectionsPage() {
                             </TableCell>
                             <TableCell>
                               <span className="text-sm">{collection.city || '—'}</span>
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="outline" className="bg-green-50 text-green-800 border-green-200 font-medium">
-                                {formatNumber(calculateWasteValue(collection.wasteType, collection.wasteAmount || 10))} KSh
-                              </Badge>
                             </TableCell>
                             {!isUnassignedView && (
                               <TableCell>
@@ -754,7 +744,7 @@ export default function CollectorCollectionsPage() {
                             )}
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-2">
-                                {getActionButton(collection)}
+                                {!isUnassignedView && getActionButton(collection)}
                                 <Button 
                                   size="sm" 
                                   variant="outline"
@@ -1109,31 +1099,6 @@ export default function CollectorCollectionsPage() {
           }}
           isPending={bulkClaimMutation.isPending}
         />
-      )}
-
-      {selectedIds.size > 0 && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50">
-          <div className="bg-primary text-primary-foreground rounded-lg shadow-lg px-6 py-3 flex items-center gap-4">
-            <span className="text-sm font-medium">{selectedIds.size} collection{selectedIds.size !== 1 ? 's' : ''} selected</span>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setBulkClaimDialogOpen(true)}
-              className="gap-1.5"
-            >
-              <Truck className="h-4 w-4" />
-              Claim Selected
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setSelectedIds(new Set())}
-              className="text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
       )}
 
       <Footer />

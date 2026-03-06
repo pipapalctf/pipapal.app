@@ -59,15 +59,9 @@ The application uses a comprehensive PostgreSQL schema with the following core e
 - **Organizations**: Bulk waste management, organizational reporting
 - **Admins**: Platform management and oversight
 
-### Eco-Tips System
-- **Personalized Tips**: `/api/ecotips/personalized` endpoint gathers user metrics (waste types, recycling rate, collections, badges, CO₂ impact) and generates behavior-driven tips via OpenAI (with smart fallbacks)
-- **Tip Library**: Browse all previously generated tips by category with search
-- **Ask AI**: Custom topic-based tip generation via `/api/ecotips/generate`
-- Tips are role-aware (household, collector, recycler, organization) and Kenya-specific
-
 ### External Integrations
 - **Firebase**: Authentication and email verification
-- **OpenAI**: Behavior-based eco-tip generation (with comprehensive fallback content)
+- **Anthropic AI**: Eco-tip generation (with fallback content)
 - **SendGrid**: Email notifications and communication
 - **Leaflet / OpenStreetMap**: Interactive maps and location services (free, no API key required)
 - **Neon Database**: Serverless PostgreSQL hosting
