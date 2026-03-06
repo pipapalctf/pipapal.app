@@ -2462,5 +2462,198 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get('/api/wallet', requireAuthentication, async (req: any, res: any) => {
+    try {
+      let wallet = await storage.getWalletByUserId(req.user!.id);
+      if (!wallet) {
+        wallet = await storage.createWallet({ userId: req.user!.id, balance: 0 });
+      }
+      res.json(wallet);
+    } catch (error) {
+      console.error('Error fetching wallet:', error);
+      res.status(500).json({ error: 'Failed to fetch wallet' });
+    }
+  });
+
+  app.get('/api/wallet/transactions', requireAuthentication, async (req: any, res: any) => {
+    try {
+      const transactions = await storage.getWalletTransactions(req.user!.id);
+      res.json(transactions);
+    } catch (error) {
+      console.error('Error fetching wallet transactions:', error);
+      res.status(500).json({ error: 'Failed to fetch wallet transactions' });
+    }
+  });
+
+  app.post('/api/wallet/topup', requireAuthentication, async (req: any, res: any) => {
+    try {
+      const { amount, phoneNumber } = req.body;
+      if (!amount || amount <= 0) {
+        return res.status(400).json({ error: 'Invalid amount' });
+      }
+      if (!phoneNumber) {
+        return res.status(400).json({ error: 'Phone number is required' });
+      }
+
+      let formattedPhone = phoneNumber.replace(/\s+/g, '').replace(/[^0-9+]/g, '');
+      if (formattedPhone.startsWith('+254')) {
+        formattedPhone = formattedPhone.substring(1);
+      } else if (formattedPhone.startsWith('0')) {
+        formattedPhone = '254' + formattedPhone.substring(1);
+      }
+
+      const consumerKey = process.env.MPESA_CONSUMER_KEY;
+      const consumerSecret = process.env.MPESA_CONSUMER_SECRET;
+      const shortcode = process.env.MPESA_SHORTCODE || '174379';
+      const passkey = process.env.MPESA_PASSKEY || 'bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919';
+      const callbackUrl = process.env.MPESA_CALLBACK_URL || 'https://example.com/api/wallet/topup/callback';
+
+      let wallet = await storage.getWalletByUserId(req.user!.id);
+      if (!wallet) {
+        wallet = await storage.createWallet({ userId: req.user!.id, balance: 0 });
+      }
+
+      if (!consumerKey || !consumerSecret) {
+        const newBalance = wallet.balance + amount;
+        await storage.updateWalletBalance(req.user!.id, newBalance);
+
+        await storage.createWalletTransaction({
+          walletId: wallet.id,
+          userId: req.user!.id,
+          type: 'topup',
+          amount: amount,
+          description: `M-Pesa top-up from ${formattedPhone}`,
+          referenceId: `SIM_${Date.now()}`,
+          balanceAfter: newBalance,
+        });
+
+        const updatedWallet = await storage.getWalletByUserId(req.user!.id);
+        return res.json({ 
+          success: true, 
+          message: 'Wallet topped up successfully (sandbox mode)',
+          wallet: updatedWallet 
+        });
+      }
+
+      const auth = Buffer.from(`${consumerKey}:${consumerSecret}`).toString('base64');
+      const tokenResponse = await fetch(
+        'https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials',
+        { headers: { Authorization: `Basic ${auth}` } }
+      );
+      const tokenData = await tokenResponse.json() as any;
+      const accessToken = tokenData.access_token;
+
+      const timestamp = new Date().toISOString().replace(/[-:T.Z]/g, '').slice(0, 14);
+      const password = Buffer.from(`${shortcode}${passkey}${timestamp}`).toString('base64');
+
+      const stkResponse = await fetch(
+        'https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest',
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            BusinessShortCode: shortcode,
+            Password: password,
+            Timestamp: timestamp,
+            TransactionType: 'CustomerPayBillOnline',
+            Amount: Math.round(amount),
+            PartyA: formattedPhone,
+            PartyB: shortcode,
+            PhoneNumber: formattedPhone,
+            CallBackURL: callbackUrl.replace('/api/payments/callback', '/api/wallet/topup/callback'),
+            AccountReference: `PipaPal-Wallet-${req.user!.id}`,
+            TransactionDesc: 'PipaPal Wallet Top Up',
+          }),
+        }
+      );
+
+      const stkData = await stkResponse.json() as any;
+
+      if (stkData.ResponseCode === '0') {
+        const payment = await storage.createPayment({
+          userId: req.user!.id,
+          collectionId: null,
+          amount: amount,
+          phoneNumber: formattedPhone,
+          status: 'pending',
+          merchantRequestId: stkData.MerchantRequestID,
+          checkoutRequestId: stkData.CheckoutRequestID,
+        });
+
+        res.json({
+          success: true,
+          message: 'STK push sent to your phone',
+          checkoutRequestId: stkData.CheckoutRequestID,
+          paymentId: payment.id,
+        });
+      } else {
+        res.status(400).json({ error: stkData.errorMessage || 'STK push failed' });
+      }
+    } catch (error) {
+      console.error('Error processing wallet top-up:', error);
+      res.status(500).json({ error: 'Failed to process top-up' });
+    }
+  });
+
+  app.post('/api/wallet/topup/callback', async (req: any, res: any) => {
+    try {
+      const { Body } = req.body;
+      if (!Body?.stkCallback) {
+        return res.json({ ResultCode: 0, ResultDesc: 'Accepted' });
+      }
+
+      const { ResultCode, CheckoutRequestID, CallbackMetadata } = Body.stkCallback;
+      const payment = await storage.getPaymentByCheckoutRequestId(CheckoutRequestID);
+      if (!payment) {
+        return res.json({ ResultCode: 0, ResultDesc: 'Accepted' });
+      }
+
+      if (ResultCode === 0) {
+        let mpesaReceipt = '';
+        if (CallbackMetadata?.Item) {
+          const receiptItem = CallbackMetadata.Item.find((i: any) => i.Name === 'MpesaReceiptNumber');
+          if (receiptItem) mpesaReceipt = receiptItem.Value;
+        }
+
+        await storage.updatePayment(payment.id, {
+          status: 'success',
+          resultCode: ResultCode,
+          mpesaReceiptNumber: mpesaReceipt,
+        });
+
+        let wallet = await storage.getWalletByUserId(payment.userId);
+        if (!wallet) {
+          wallet = await storage.createWallet({ userId: payment.userId, balance: 0 });
+        }
+
+        const newBalance = wallet.balance + payment.amount;
+        await storage.updateWalletBalance(payment.userId, newBalance);
+
+        await storage.createWalletTransaction({
+          walletId: wallet.id,
+          userId: payment.userId,
+          type: 'topup',
+          amount: payment.amount,
+          description: `M-Pesa top-up (${mpesaReceipt})`,
+          referenceId: mpesaReceipt || CheckoutRequestID,
+          balanceAfter: newBalance,
+        });
+      } else {
+        await storage.updatePayment(payment.id, {
+          status: ResultCode === 1032 ? 'cancelled' : 'failed',
+          resultCode: ResultCode,
+        });
+      }
+
+      res.json({ ResultCode: 0, ResultDesc: 'Accepted' });
+    } catch (error) {
+      console.error('Error processing wallet callback:', error);
+      res.json({ ResultCode: 0, ResultDesc: 'Accepted' });
+    }
+  });
+
   return httpServer;
 }

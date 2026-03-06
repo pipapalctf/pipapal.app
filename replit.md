@@ -45,11 +45,16 @@ The application uses a comprehensive PostgreSQL schema with the following core e
 - **Feedback**: User feedback and support system
 - **User Ratings**: User-to-user rating system (1-5 stars with optional comments, tied to collections, unique constraint on collectionId+raterId+rateeId)
 
-### Billing & Statements
-- **Billing Page** (`/billing`): Shows payment history, transaction details, and billing summary
-- Summary cards: Total Paid, Pending, Failed, and total transaction count
-- Transaction list with date, amount, status badges, phone number, and M-Pesa receipt number
-- Filter by payment status (All, Paid, Pending, Failed, Cancelled)
+### Billing & Wallet
+- **Virtual Wallet**: Per-user wallet with balance tracking (schema: `wallets` + `wallet_transactions` tables)
+  - Top-up via M-Pesa STK Push (sandbox mode auto-credits balance when no M-Pesa keys configured)
+  - Transaction types: topup, payment, refund, earning
+  - API: GET `/api/wallet`, GET `/api/wallet/transactions`, POST `/api/wallet/topup`
+- **Billing Page** (`/billing`): Wallet card (green gradient, balance display, top-up dialog) + tabbed view: "Wallet Activity" and "Payment History"
+  - Wallet Activity: timeline of wallet transactions with type icons, amounts, running balance
+  - Payment History: M-Pesa payment list with date, amount, status badges, phone, receipt
+  - Filter by payment status (All, Paid, Pending, Failed, Cancelled)
+  - Currency: KSh (Kenyan Shillings) throughout
 - Accessible from My Account dropdown and mobile menu in navbar
 
 ### User Roles and Permissions

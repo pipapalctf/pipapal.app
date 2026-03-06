@@ -12,6 +12,8 @@ import {
   userRatings, type UserRating, type InsertUserRating,
   payments, type Payment, type InsertPayment,
   wasteAcceptanceLimits, type WasteAcceptanceLimit, type InsertWasteAcceptanceLimit,
+  wallets, type Wallet, type InsertWallet,
+  walletTransactions, type WalletTransaction, type InsertWalletTransaction,
   CollectionStatus
 } from "@shared/schema";
 import session from "express-session";
@@ -122,6 +124,13 @@ export interface IStorage {
   getPaymentsByUser(userId: number): Promise<Payment[]>;
   getPaymentsByCollection(collectionId: number): Promise<Payment[]>;
   
+  // Wallet
+  getWalletByUserId(userId: number): Promise<Wallet | undefined>;
+  createWallet(wallet: InsertWallet): Promise<Wallet>;
+  updateWalletBalance(userId: number, newBalance: number): Promise<Wallet | undefined>;
+  createWalletTransaction(transaction: InsertWalletTransaction): Promise<WalletTransaction>;
+  getWalletTransactions(userId: number): Promise<WalletTransaction[]>;
+
   // Waste acceptance limits
   getWasteAcceptanceLimits(recyclerId: number): Promise<WasteAcceptanceLimit[]>;
   upsertWasteAcceptanceLimit(recyclerId: number, wasteType: string, limitAmount: number, period: string): Promise<WasteAcceptanceLimit>;
@@ -870,6 +879,59 @@ export class MemStorage implements IStorage {
   async getPaymentsByCollection(collectionId: number): Promise<Payment[]> {
     return Array.from(this.paymentsMap.values())
       .filter(p => p.collectionId === collectionId)
+      .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+  }
+
+  private walletsMap = new Map<number, Wallet>();
+  private walletTransactionsMap = new Map<number, WalletTransaction>();
+  private currentWalletId = 1;
+  private currentWalletTransactionId = 1;
+
+  async getWalletByUserId(userId: number): Promise<Wallet | undefined> {
+    return Array.from(this.walletsMap.values()).find(w => w.userId === userId);
+  }
+
+  async createWallet(wallet: InsertWallet): Promise<Wallet> {
+    const id = this.currentWalletId++;
+    const newWallet: Wallet = {
+      id,
+      userId: wallet.userId,
+      balance: wallet.balance ?? 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.walletsMap.set(id, newWallet);
+    return newWallet;
+  }
+
+  async updateWalletBalance(userId: number, newBalance: number): Promise<Wallet | undefined> {
+    const wallet = Array.from(this.walletsMap.values()).find(w => w.userId === userId);
+    if (!wallet) return undefined;
+    const updated = { ...wallet, balance: newBalance, updatedAt: new Date() };
+    this.walletsMap.set(wallet.id, updated);
+    return updated;
+  }
+
+  async createWalletTransaction(transaction: InsertWalletTransaction): Promise<WalletTransaction> {
+    const id = this.currentWalletTransactionId++;
+    const newTx: WalletTransaction = {
+      id,
+      walletId: transaction.walletId,
+      userId: transaction.userId,
+      type: transaction.type,
+      amount: transaction.amount,
+      description: transaction.description ?? null,
+      referenceId: transaction.referenceId ?? null,
+      balanceAfter: transaction.balanceAfter,
+      createdAt: new Date(),
+    };
+    this.walletTransactionsMap.set(id, newTx);
+    return newTx;
+  }
+
+  async getWalletTransactions(userId: number): Promise<WalletTransaction[]> {
+    return Array.from(this.walletTransactionsMap.values())
+      .filter(t => t.userId === userId)
       .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
   }
 
@@ -1869,6 +1931,37 @@ export class DatabaseStorage implements IStorage {
       .where(eq(wasteAcceptanceLimits.id, id))
       .returning();
     return updated;
+  }
+
+  async getWalletByUserId(userId: number): Promise<Wallet | undefined> {
+    const [wallet] = await db.select().from(wallets)
+      .where(eq(wallets.userId, userId))
+      .limit(1);
+    return wallet;
+  }
+
+  async createWallet(wallet: InsertWallet): Promise<Wallet> {
+    const [newWallet] = await db.insert(wallets).values(wallet).returning();
+    return newWallet;
+  }
+
+  async updateWalletBalance(userId: number, newBalance: number): Promise<Wallet | undefined> {
+    const [updated] = await db.update(wallets)
+      .set({ balance: newBalance, updatedAt: new Date() })
+      .where(eq(wallets.userId, userId))
+      .returning();
+    return updated;
+  }
+
+  async createWalletTransaction(transaction: InsertWalletTransaction): Promise<WalletTransaction> {
+    const [newTx] = await db.insert(walletTransactions).values(transaction).returning();
+    return newTx;
+  }
+
+  async getWalletTransactions(userId: number): Promise<WalletTransaction[]> {
+    return db.select().from(walletTransactions)
+      .where(eq(walletTransactions.userId, userId))
+      .orderBy(desc(walletTransactions.createdAt));
   }
 }
 
