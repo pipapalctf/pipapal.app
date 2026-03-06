@@ -6,10 +6,9 @@ import MobileNavigation from "@/components/shared/mobile-navigation";
 import SchedulePickupForm from "@/components/forms/schedule-pickup-form";
 import MultiStepPickupForm from "@/components/forms/multi-step-pickup-form-fixed";
 import { useQuery } from "@tanstack/react-query";
-import { Collection, CollectionStatus } from "@shared/schema";
+import { Collection, CollectionStatus, getCustomerCostEstimate, PricingCategory } from "@shared/schema";
 import { CollectionDetailsDialog } from "@/components/modals/collection-details-dialog";
-import PaymentDialog from "@/components/payment-dialog";
-import { Payment } from "@shared/schema";
+import { wasteTypeConfig } from "@/lib/types";
 import { 
   CalendarCheck, 
   CalendarPlus, 
@@ -34,7 +33,6 @@ import {
   ArrowUpDown,
   FileText,
   AlertCircle,
-  Smartphone,
   CheckCircle
 } from "lucide-react";
 import { 
@@ -122,10 +120,6 @@ export default function SchedulePickupPage() {
     queryKey: ['/api/collections/upcoming'],
   });
 
-  const { data: userPayments = [] } = useQuery<Payment[]>({
-    queryKey: ['/api/payments/user'],
-  });
-  
   // Cancel collection mutation
   const cancelCollectionMutation = useMutation({
     mutationFn: async (collectionId: number) => {
@@ -497,16 +491,13 @@ export default function SchedulePickupPage() {
                                   {getSortIcon('status')}
                                 </button>
                               </TableHead>
-                              <TableHead>Payment</TableHead>
+                              <TableHead>Amount</TableHead>
                               <TableHead className="w-[80px]">Actions</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
                             {paginatedUpcomingCollections.map((collection) => {
                               const scheduledDate = new Date(collection.scheduledDate);
-                              const collectionPayments = userPayments.filter(p => p.collectionId === collection.id);
-                              const hasPaid = collectionPayments.some(p => p.status === 'success');
-                              const paidPayment = collectionPayments.find(p => p.status === 'success');
                               return (
                                 <TableRow key={collection.id}>
                                   <TableCell>
@@ -522,25 +513,32 @@ export default function SchedulePickupPage() {
                                     {getStatusBadge(collection.status)}
                                   </TableCell>
                                   <TableCell>
-                                    {hasPaid ? (
-                                      <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200">
-                                        <CheckCircle className="h-3 w-3 mr-1" />
-                                        Paid
-                                      </Badge>
-                                    ) : collection.status !== 'cancelled' ? (
-                                      <PaymentDialog
-                                        collectionId={collection.id}
-                                        suggestedAmount={collection.wasteAmount ? Math.round(collection.wasteAmount * 50) : 500}
-                                        trigger={
-                                          <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white">
-                                            <Smartphone className="h-3 w-3 mr-1" />
-                                            Pay Now
-                                          </Button>
-                                        }
-                                      />
-                                    ) : (
-                                      <span className="text-muted-foreground text-sm">—</span>
-                                    )}
+                                    {(() => {
+                                      const wt = collection.wasteType as string;
+                                      const pricingKey = (wasteTypeConfig as any)[wt]?.pricingKey || wt;
+                                      const amount = collection.wasteAmount || 0;
+                                      if (amount <= 0) return <span className="text-muted-foreground text-sm">—</span>;
+                                      const estimate = getCustomerCostEstimate(pricingKey, amount);
+                                      if (estimate.category === PricingCategory.HIGH_VALUE) {
+                                        return (
+                                          <span className="text-green-600 font-semibold text-sm">
+                                            +KSh {Math.abs(estimate.total).toFixed(0)}
+                                          </span>
+                                        );
+                                      } else if (estimate.category === PricingCategory.BREAK_EVEN) {
+                                        return (
+                                          <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200">
+                                            Free
+                                          </Badge>
+                                        );
+                                      } else {
+                                        return (
+                                          <span className="text-orange-600 font-semibold text-sm">
+                                            KSh {estimate.total.toFixed(0)}
+                                          </span>
+                                        );
+                                      }
+                                    })()}
                                   </TableCell>
                                   <TableCell>
                                     <DropdownMenu>

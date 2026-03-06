@@ -57,7 +57,7 @@ import {
   LocateFixed
 } from "lucide-react";
 import { iconMap } from "@/components/ui/icon-badge";
-import { WasteType, WasteTypeValue, Collection, wastePricingConfig, PricingCategory, getCustomerCostEstimate } from "@shared/schema";
+import { WasteType, WasteTypeValue, Collection } from "@shared/schema";
 import { wasteTypeConfig } from "@/lib/types";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -357,7 +357,6 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
               </FormControl>
               <SelectContent>
                 {Object.entries(wasteTypeConfig).map(([value, config]) => {
-                  const pricing = wastePricingConfig[config.pricingKey];
                   return (
                     <SelectItem key={value} value={value}>
                       <div className="flex items-center justify-between w-full">
@@ -373,21 +372,6 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
                           <span className="px-2 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
                             +{config.points} pts/kg
                           </span>
-                          {pricing && pricing.category === PricingCategory.HIGH_VALUE && (
-                            <span className="px-2 py-1 rounded-full bg-green-100 text-green-700 text-xs font-medium">
-                              You earn KSh {Math.abs(pricing.customerRate)}/kg
-                            </span>
-                          )}
-                          {pricing && pricing.category === PricingCategory.BREAK_EVEN && (
-                            <span className="px-2 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-medium">
-                              Free collection
-                            </span>
-                          )}
-                          {pricing && (pricing.category === PricingCategory.DISPOSAL_FEE || pricing.category === PricingCategory.HIGH_COST) && (
-                            <span className="px-2 py-1 rounded-full bg-orange-100 text-orange-700 text-xs font-medium">
-                              KSh {pricing.customerRate}/kg fee
-                            </span>
-                          )}
                         </div>
                       </div>
                     </SelectItem>
@@ -497,35 +481,6 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
                       </span>
                     </div>
 
-                    {(() => {
-                      const wt = watchedValues.wasteType as WasteTypeValue;
-                      const pricingKey = wasteTypeConfig[wt]?.pricingKey || wt;
-                      const estimate = getCustomerCostEstimate(pricingKey, watchedValues.wasteAmount);
-                      if (estimate.category === PricingCategory.HIGH_VALUE) {
-                        return (
-                          <div className="flex justify-between items-center bg-green-50 rounded-md p-2 mt-1">
-                            <span className="text-green-700 text-sm font-medium">You'll earn</span>
-                            <span className="font-semibold text-green-700">KSh {Math.abs(estimate.total).toFixed(0)}</span>
-                          </div>
-                        );
-                      } else if (estimate.category === PricingCategory.BREAK_EVEN) {
-                        return (
-                          <div className="flex justify-between items-center bg-blue-50 rounded-md p-2 mt-1">
-                            <span className="text-blue-700 text-sm font-medium">Free — no charge</span>
-                          </div>
-                        );
-                      } else {
-                        return (
-                          <div className="flex flex-col bg-orange-50 rounded-md p-2 mt-1 gap-0.5">
-                            <div className="flex justify-between items-center">
-                              <span className="text-orange-700 text-sm font-medium">Collection fee</span>
-                              <span className="font-semibold text-orange-700">KSh {estimate.total.toFixed(0)}</span>
-                            </div>
-                            <span className="text-orange-600 text-xs">Will be deducted from wallet</span>
-                          </div>
-                        );
-                      }
-                    })()}
                   </div>
                 )}
               </div>
@@ -915,36 +870,6 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
                       </div>
                     </div>
                   )}
-                  {values.wasteType && values.wasteAmount > 0 && (() => {
-                    const wt = values.wasteType as WasteTypeValue;
-                    const pricingKey = wasteTypeConfig[wt]?.pricingKey || wt;
-                    const estimate = getCustomerCostEstimate(pricingKey, values.wasteAmount);
-                    return (
-                      <div className="pt-2 mt-2 border-t">
-                        <div className="text-sm text-muted-foreground mb-1">Cost / Earnings Estimate:</div>
-                        {estimate.category === PricingCategory.HIGH_VALUE && (
-                          <div className="flex justify-between items-center bg-green-50 rounded-md p-2">
-                            <span className="text-green-700 text-sm font-medium">You'll earn</span>
-                            <span className="font-semibold text-green-700">KSh {Math.abs(estimate.total).toFixed(0)}</span>
-                          </div>
-                        )}
-                        {estimate.category === PricingCategory.BREAK_EVEN && (
-                          <div className="flex justify-between items-center bg-blue-50 rounded-md p-2">
-                            <span className="text-blue-700 text-sm font-medium">Free — no charge</span>
-                          </div>
-                        )}
-                        {(estimate.category === PricingCategory.DISPOSAL_FEE || estimate.category === PricingCategory.HIGH_COST) && (
-                          <div className="flex flex-col bg-orange-50 rounded-md p-2 gap-0.5">
-                            <div className="flex justify-between items-center">
-                              <span className="text-orange-700 text-sm font-medium">Collection fee</span>
-                              <span className="font-semibold text-orange-700">KSh {estimate.total.toFixed(0)}</span>
-                            </div>
-                            <span className="text-orange-600 text-xs">Will be deducted from wallet</span>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })()}
                 </div>
               </CardContent>
             </Card>
