@@ -98,6 +98,7 @@ export const users = pgTable("users", {
   serviceLocation: text("service_location"), // Where they operate
   serviceType: text("service_type"), // "pickup", "drop_off", or "both"
   operatingHours: text("operating_hours"), // Operating hours information
+  acceptingWaste: boolean("accepting_waste").default(true), // Whether recycler is currently accepting waste
   
   // Consent fields (Kenya DPA 2019)
   consentPrivacyPolicy: boolean("consent_privacy_policy").default(false),
@@ -124,6 +125,22 @@ export const collections = pgTable("collections", {
   city: text("city"), // Added city field to replace coordinates (nullable for existing data)
   location: json("location"), // Keeping for backward compatibility but no longer used
   notes: text("notes"),
+  verificationCode: text("verification_code"),
+  dropoffCenterId: integer("dropoff_center_id"),
+  dropoffStatus: text("dropoff_status"),
+  dropoffCode: text("dropoff_code"),
+  dropoffConfirmed: boolean("dropoff_confirmed").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const wasteAcceptanceLimits = pgTable("waste_acceptance_limits", {
+  id: serial("id").primaryKey(),
+  recyclerId: integer("recycler_id").notNull(),
+  wasteType: text("waste_type").notNull(),
+  limitAmount: real("limit_amount").notNull(),
+  period: text("period").notNull(),
+  currentUsed: real("current_used").default(0),
+  periodStartDate: timestamp("period_start_date").defaultNow(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -238,6 +255,17 @@ export const insertCollectionSchema = createInsertSchema(collections, {
     location: true, // Kept for backward compatibility
     notes: true,
   });
+
+export const insertWasteAcceptanceLimitSchema = createInsertSchema(wasteAcceptanceLimits)
+  .pick({
+    recyclerId: true,
+    wasteType: true,
+    limitAmount: true,
+    period: true,
+  });
+
+export type WasteAcceptanceLimit = typeof wasteAcceptanceLimits.$inferSelect;
+export type InsertWasteAcceptanceLimit = z.infer<typeof insertWasteAcceptanceLimitSchema>;
 
 export const insertImpactSchema = createInsertSchema(impacts)
   .pick({
@@ -543,3 +571,222 @@ export const insertPaymentSchema = createInsertSchema(payments)
 
 export type InsertPayment = z.infer<typeof insertPaymentSchema>;
 export type Payment = typeof payments.$inferSelect;
+
+export const WalletTransactionType = {
+  TOPUP: 'topup',
+  PAYMENT: 'payment',
+  REFUND: 'refund',
+  EARNING: 'earning',
+} as const;
+
+export type WalletTransactionTypeValue = typeof WalletTransactionType[keyof typeof WalletTransactionType];
+
+export const wallets = pgTable("wallets", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id).unique(),
+  balance: real("balance").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const walletsRelations = relations(wallets, ({ one }) => ({
+  user: one(users, {
+    fields: [wallets.userId],
+    references: [users.id],
+  }),
+}));
+
+export const walletTransactions = pgTable("wallet_transactions", {
+  id: serial("id").primaryKey(),
+  walletId: integer("wallet_id").notNull().references(() => wallets.id),
+  userId: integer("user_id").notNull().references(() => users.id),
+  type: text("type").notNull(),
+  amount: real("amount").notNull(),
+  description: text("description"),
+  referenceId: text("reference_id"),
+  balanceAfter: real("balance_after").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const walletTransactionsRelations = relations(walletTransactions, ({ one }) => ({
+  wallet: one(wallets, {
+    fields: [walletTransactions.walletId],
+    references: [wallets.id],
+  }),
+  user: one(users, {
+    fields: [walletTransactions.userId],
+    references: [users.id],
+  }),
+}));
+
+export const insertWalletSchema = createInsertSchema(wallets).pick({
+  userId: true,
+  balance: true,
+});
+
+export const insertWalletTransactionSchema = createInsertSchema(walletTransactions).pick({
+  walletId: true,
+  userId: true,
+  type: true,
+  amount: true,
+  description: true,
+  referenceId: true,
+  balanceAfter: true,
+});
+
+export type Wallet = typeof wallets.$inferSelect;
+export type InsertWallet = z.infer<typeof insertWalletSchema>;
+export type WalletTransaction = typeof walletTransactions.$inferSelect;
+export type InsertWalletTransaction = z.infer<typeof insertWalletTransactionSchema>;
+
+export const PricingCategory = {
+  HIGH_VALUE: 'high_value',
+  BREAK_EVEN: 'break_even',
+  DISPOSAL_FEE: 'disposal_fee',
+  HIGH_COST: 'high_cost',
+} as const;
+
+export type PricingCategoryType = typeof PricingCategory[keyof typeof PricingCategory];
+
+export interface WastePricing {
+  label: string;
+  category: PricingCategoryType;
+  customerRate: number;
+  collectorRate: number;
+  recyclerRate: number;
+  pipaPalMargin: number;
+}
+
+export const wastePricingConfig: Record<string, WastePricing> = {
+  'metal': {
+    label: 'Metal (scrap steel)',
+    category: PricingCategory.HIGH_VALUE,
+    customerRate: -5,
+    collectorRate: 18,
+    recyclerRate: 35,
+    pipaPalMargin: 7,
+  },
+  'metal_premium': {
+    label: 'Metal (copper / aluminium)',
+    category: PricingCategory.HIGH_VALUE,
+    customerRate: -20,
+    collectorRate: 30,
+    recyclerRate: 140,
+    pipaPalMargin: 30,
+  },
+  'electronic': {
+    label: 'Electronic (boards / wire)',
+    category: PricingCategory.HIGH_VALUE,
+    customerRate: -10,
+    collectorRate: 25,
+    recyclerRate: 50,
+    pipaPalMargin: 15,
+  },
+  'plastic': {
+    label: 'Plastic (PET rigid bottles)',
+    category: PricingCategory.HIGH_VALUE,
+    customerRate: -3,
+    collectorRate: 14,
+    recyclerRate: 26,
+    pipaPalMargin: 11,
+  },
+  'cardboard': {
+    label: 'Cardboard (OCC)',
+    category: PricingCategory.BREAK_EVEN,
+    customerRate: 0,
+    collectorRate: 7,
+    recyclerRate: 12,
+    pipaPalMargin: 5,
+  },
+  'paper': {
+    label: 'Paper (white / sorted)',
+    category: PricingCategory.BREAK_EVEN,
+    customerRate: 0,
+    collectorRate: 6,
+    recyclerRate: 10,
+    pipaPalMargin: 4,
+  },
+  'plastic_rigid': {
+    label: 'Plastic (HDPE / PP rigid)',
+    category: PricingCategory.BREAK_EVEN,
+    customerRate: 0,
+    collectorRate: 10,
+    recyclerRate: 18,
+    pipaPalMargin: 7,
+  },
+  'glass': {
+    label: 'Glass',
+    category: PricingCategory.DISPOSAL_FEE,
+    customerRate: 8,
+    collectorRate: 4,
+    recyclerRate: 5,
+    pipaPalMargin: 9,
+  },
+  'organic': {
+    label: 'Organic / Food waste',
+    category: PricingCategory.DISPOSAL_FEE,
+    customerRate: 10,
+    collectorRate: 3,
+    recyclerRate: 3,
+    pipaPalMargin: 10,
+  },
+  'paper_mixed': {
+    label: 'Paper (mixed / newspaper)',
+    category: PricingCategory.DISPOSAL_FEE,
+    customerRate: 4,
+    collectorRate: 4,
+    recyclerRate: 6,
+    pipaPalMargin: 5,
+  },
+  'plastic_flexible': {
+    label: 'Plastic (flexible / LDPE)',
+    category: PricingCategory.DISPOSAL_FEE,
+    customerRate: 12,
+    collectorRate: 4,
+    recyclerRate: 7,
+    pipaPalMargin: 14,
+  },
+  'general': {
+    label: 'General / Mixed waste',
+    category: PricingCategory.DISPOSAL_FEE,
+    customerRate: 18,
+    collectorRate: 3,
+    recyclerRate: 1,
+    pipaPalMargin: 17,
+  },
+  'hazardous': {
+    label: 'Hazardous waste',
+    category: PricingCategory.HIGH_COST,
+    customerRate: 25,
+    collectorRate: 5,
+    recyclerRate: 0,
+    pipaPalMargin: 20,
+  },
+  'electronic_bulky': {
+    label: 'Electronic (bulky: TVs, printers)',
+    category: PricingCategory.HIGH_COST,
+    customerRate: 15,
+    collectorRate: 5,
+    recyclerRate: 2,
+    pipaPalMargin: 12,
+  },
+};
+
+export function getCustomerCostEstimate(wasteType: string, amountKg: number): { total: number; ratePerKg: number; category: PricingCategoryType; label: string } {
+  const pricing = wastePricingConfig[wasteType];
+  if (!pricing) {
+    const fallback = wastePricingConfig['general'];
+    return { total: fallback.customerRate * amountKg, ratePerKg: fallback.customerRate, category: fallback.category, label: fallback.label };
+  }
+  return { total: pricing.customerRate * amountKg, ratePerKg: pricing.customerRate, category: pricing.category, label: pricing.label };
+}
+
+export function getCollectorEarnings(wasteType: string, amountKg: number): number {
+  const pricing = wastePricingConfig[wasteType];
+  return (pricing?.collectorRate || 3) * amountKg;
+}
+
+export function getRecyclerCost(wasteType: string, amountKg: number): number {
+  const pricing = wastePricingConfig[wasteType];
+  return (pricing?.recyclerRate || 1) * amountKg;
+}

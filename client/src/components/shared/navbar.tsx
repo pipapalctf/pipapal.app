@@ -62,16 +62,16 @@ export default function Navbar() {
         active: location === "/impact",
         icon: <BarChart className="w-4 h-4 mr-1" />
       },
-      { 
-        href: "/recycling-centers", 
-        label: "Recycling Centers", 
-        active: location === "/recycling-centers",
-        icon: <MapPin className="w-4 h-4 mr-1" />
-      },
     ];
     
     // Add collector-specific links
     if (user?.role === UserRole.COLLECTOR) {
+      links.push({
+        href: "/recycling-centers", 
+        label: "Recycling Centers", 
+        active: location === "/recycling-centers",
+        icon: <MapPin className="w-4 h-4 mr-1" />
+      });
       links.push({
         href: "/collections",
         label: "Collections",

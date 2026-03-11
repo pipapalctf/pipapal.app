@@ -19,8 +19,9 @@ export const wasteTypeConfig: Record<WasteTypeValue, {
   icon: string;
   bgColor: string;
   textColor: string;
-  points: number; // Points awarded for this waste type
-  description?: string; // Description of the waste type
+  points: number;
+  description?: string;
+  pricingKey: string;
 }> = {
   general: { 
     label: 'General Waste', 
@@ -28,7 +29,8 @@ export const wasteTypeConfig: Record<WasteTypeValue, {
     bgColor: 'bg-primary/20',
     textColor: 'text-primary',
     points: 5,
-    description: 'Mixed waste that cannot be separated into recyclable categories'
+    description: 'Mixed waste that cannot be separated into recyclable categories',
+    pricingKey: 'general',
   },
   plastic: { 
     label: 'Plastic', 
@@ -36,7 +38,8 @@ export const wasteTypeConfig: Record<WasteTypeValue, {
     bgColor: 'bg-blue-100',
     textColor: 'text-blue-600',
     points: 10,
-    description: 'Bottles, containers, packaging and other plastic items'
+    description: 'Bottles, containers, packaging and other plastic items',
+    pricingKey: 'plastic',
   },
   paper: { 
     label: 'Paper', 
@@ -44,7 +47,8 @@ export const wasteTypeConfig: Record<WasteTypeValue, {
     bgColor: 'bg-yellow-100',
     textColor: 'text-yellow-600',
     points: 8,
-    description: 'Newspapers, magazines, office paper, and printed materials'
+    description: 'Newspapers, magazines, office paper, and printed materials',
+    pricingKey: 'paper',
   },
   glass: { 
     label: 'Glass', 
@@ -52,7 +56,8 @@ export const wasteTypeConfig: Record<WasteTypeValue, {
     bgColor: 'bg-blue-100',
     textColor: 'text-blue-600',
     points: 10,
-    description: 'Bottles, jars, and other glass containers'
+    description: 'Bottles, jars, and other glass containers',
+    pricingKey: 'glass',
   },
   metal: { 
     label: 'Metal', 
@@ -60,7 +65,8 @@ export const wasteTypeConfig: Record<WasteTypeValue, {
     bgColor: 'bg-gray-200',
     textColor: 'text-gray-600',
     points: 12,
-    description: 'Cans, aluminum foil, metal containers and scrap metal'
+    description: 'Cans, aluminum foil, metal containers and scrap metal',
+    pricingKey: 'metal',
   },
   electronic: { 
     label: 'Electronic', 
@@ -68,7 +74,8 @@ export const wasteTypeConfig: Record<WasteTypeValue, {
     bgColor: 'bg-purple-100',
     textColor: 'text-purple-600',
     points: 15,
-    description: 'Old computers, phones, appliances and electronic equipment'
+    description: 'Old computers, phones, appliances and electronic equipment',
+    pricingKey: 'electronic',
   },
   organic: { 
     label: 'Organic', 
@@ -76,7 +83,8 @@ export const wasteTypeConfig: Record<WasteTypeValue, {
     bgColor: 'bg-green-100',
     textColor: 'text-green-600',
     points: 8,
-    description: 'Food waste, kitchen scraps, garden trimmings and compostable items'
+    description: 'Food waste, kitchen scraps, garden trimmings and compostable items',
+    pricingKey: 'organic',
   },
   hazardous: { 
     label: 'Hazardous', 
@@ -84,7 +92,8 @@ export const wasteTypeConfig: Record<WasteTypeValue, {
     bgColor: 'bg-red-100',
     textColor: 'text-red-600',
     points: 20,
-    description: 'Batteries, chemicals, paint and other potentially harmful materials'
+    description: 'Batteries, chemicals, paint and other potentially harmful materials',
+    pricingKey: 'hazardous',
   },
   cardboard: { 
     label: 'Cardboard', 
@@ -92,7 +101,8 @@ export const wasteTypeConfig: Record<WasteTypeValue, {
     bgColor: 'bg-orange-100',
     textColor: 'text-orange-600',
     points: 8,
-    description: 'Boxes, packaging materials and corrugated cardboard'
+    description: 'Boxes, packaging materials and corrugated cardboard',
+    pricingKey: 'cardboard',
   }
 };
 

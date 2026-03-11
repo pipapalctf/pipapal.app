@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { CollectionStatus, UserRole, WasteType } from '@shared/schema';
+import { CollectionStatus, UserRole, getCollectorEarnings } from '@shared/schema';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
@@ -13,8 +13,9 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Checkbox } from '@/components/ui/checkbox';
 import { apiRequest, queryClient } from '@/lib/queryClient';
-import { Calendar, CheckCircle, Clock, Filter, MapPin, Search, Truck, Package, AlertTriangle, Trash2, ClipboardCheck, ArrowRight, CalendarClock, CheckCheck, X, Map, XCircle, Activity, Scale, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Loader2, MoreHorizontal, Route, CreditCard } from 'lucide-react';
+import { Calendar, CheckCircle, CheckCircle2, Clock, Filter, MapPin, Search, Truck, Package, AlertTriangle, Trash2, ClipboardCheck, ArrowRight, CalendarClock, CheckCheck, X, Map, XCircle, Activity, Scale, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Loader2, MoreHorizontal, Route, CreditCard } from 'lucide-react';
 import { formatNumber } from '@/lib/utils';
 import { wasteTypeConfig } from '@/lib/types';
 import { format } from 'date-fns';
@@ -24,43 +25,45 @@ import { Separator } from '@/components/ui/separator';
 import { MaterialInterestsTab } from '@/components/material-interests-tab';
 import { RouteOptimizationMap } from '@/components/maps/route-optimization-map';
 import { useLocation } from 'wouter';
+import { ClaimPickupDialog } from '@/components/claim-pickup-dialog';
 
 export default function CollectorCollectionsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [location] = useLocation();
   const [activeTab, setActiveTab] = useState<string>('collections');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('unassigned');
   const [searchQuery, setSearchQuery] = useState('');
+  const [wasteTypeFilter, setWasteTypeFilter] = useState<string>('all');
+  const [cityFilter, setCityFilter] = useState<string>('all');
   const [selectedCollection, setSelectedCollection] = useState<any>(null);
   const [wasteAmount, setWasteAmount] = useState<string>('');
   const [statusUpdateModal, setStatusUpdateModal] = useState(false);
-  const [cancelDialog, setCancelDialog] = useState(false);
   const [notesInput, setNotesInput] = useState('');
+  const [claimDialogOpen, setClaimDialogOpen] = useState(false);
+  const [claimingCollection, setClaimingCollection] = useState<any>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [bulkClaimDialogOpen, setBulkClaimDialogOpen] = useState(false);
+  const [confirmingDropoffId, setConfirmingDropoffId] = useState<number | null>(null);
+  const [dropoffCodeInput, setDropoffCodeInput] = useState('');
+  const [verificationCodeInput, setVerificationCodeInput] = useState('');
   
-  // Sorting state
   const [sortField, setSortField] = useState<string>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   
-  // Check URL parameters for tab selection
   useEffect(() => {
-    // Parse the URL search params to check for tab parameter
     const searchParams = new URLSearchParams(window.location.search);
     const tabParam = searchParams.get('tab');
-    
-    // Set the active tab if the parameter exists and is valid
     if (tabParam === 'interests') {
       setActiveTab('interests');
     }
   }, [location]);
   
-  // Fetch users for requester information
   const { data: users = [] } = useQuery({
     queryKey: ['/api/users'],
     enabled: !!user,
   });
 
-  // Make sure only collectors can access this page
   if (user?.role !== UserRole.COLLECTOR) {
     return (
       <div className="container mx-auto py-10 text-center">
@@ -70,12 +73,10 @@ export default function CollectorCollectionsPage() {
     );
   }
 
-  // Fetch collections from the API
   const { data: collections = [], isLoading } = useQuery({
     queryKey: ['/api/collections'],
   });
   
-  // Fetch material interests for collections assigned to this collector
   const { data: materialInterests = [] } = useQuery({
     queryKey: ['/api/material-interests/collector', user.id],
     queryFn: async () => {
@@ -86,22 +87,17 @@ export default function CollectorCollectionsPage() {
     enabled: !!user.id
   });
 
-  // Handle sort operation
   const handleSort = (field: string) => {
     if (sortField === field) {
-      // If already sorting by this field, toggle direction
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
     } else {
-      // Otherwise, set new sort field and default to ascending
       setSortField(field);
       setSortOrder('asc');
     }
   };
   
-  // Helper function to get sort icon based on current sort state
   const getSortIcon = (field: string) => {
     if (sortField !== field) return null;
-    
     return (
       <span className="ml-1">
         {sortOrder === 'asc' ? 
@@ -111,36 +107,51 @@ export default function CollectorCollectionsPage() {
     );
   };
 
-  // Filter collections by collector and status
+  const availableCities = useMemo(() => {
+    const cities = new Set<string>();
+    collections.forEach((c: any) => {
+      if (c.city) cities.add(c.city);
+      else if (c.address) {
+        const parts = c.address.split(',');
+        if (parts.length > 1) cities.add(parts[parts.length - 1].trim());
+      }
+    });
+    return Array.from(cities).sort();
+  }, [collections]);
+
+  const isUnassignedView = statusFilter === 'unassigned';
+  const isAllMineView = statusFilter === 'all';
+  const isSingleStatusView = !isUnassignedView && !isAllMineView;
+
   const filteredCollections = collections
     .filter((collection: any) => {
-      // Show collections that are:
-      // 1. Assigned to this collector OR
-      // 2. Unassigned and scheduled (available for claiming) OR
-      // 3. In the process of being claimed by this collector
       const isRelevantToCollector = 
         collection.collectorId === user.id || 
-        (!collection.collectorId && collection.status === CollectionStatus.SCHEDULED) ||
-        (currentlyClaimingId === collection.id);
+        (!collection.collectorId && collection.status === CollectionStatus.SCHEDULED);
       
-      // Apply status filter
       const matchesStatus = 
         statusFilter === 'all' || 
         collection.status === statusFilter || 
         (statusFilter === 'unassigned' && !collection.collectorId);
       
-      // Apply search filter (address or waste type)
       const matchesSearch = 
         searchQuery === '' || 
         collection.address?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         collection.wasteType?.toLowerCase().includes(searchQuery.toLowerCase());
+
+      const matchesWasteType =
+        wasteTypeFilter === 'all' ||
+        collection.wasteType === wasteTypeFilter;
+
+      const matchesCity =
+        cityFilter === 'all' ||
+        collection.city === cityFilter ||
+        (collection.address && collection.address.includes(cityFilter));
       
-      return isRelevantToCollector && matchesStatus && matchesSearch;
+      return isRelevantToCollector && matchesStatus && matchesSearch && matchesWasteType && matchesCity;
     })
     .sort((a: any, b: any) => {
       let comparison = 0;
-      
-      // Apply sorting based on selected field
       switch (sortField) {
         case 'id':
           comparison = a.id - b.id;
@@ -158,7 +169,6 @@ export default function CollectorCollectionsPage() {
           comparison = (a.address || '').localeCompare(b.address || '');
           break;
         case 'value':
-          // Calculate waste values for comparison
           const valueA = calculateWasteValue(a.wasteType, a.wasteAmount || 10);
           const valueB = calculateWasteValue(b.wasteType, b.wasteAmount || 10);
           comparison = valueA - valueB;
@@ -166,41 +176,34 @@ export default function CollectorCollectionsPage() {
         default:
           comparison = new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime();
       }
-      
-      // Apply sort direction
       return sortOrder === 'asc' ? comparison : -comparison;
     });
 
-  // Pagination state
   const [currentPage, setCurrentPage] = useState<number>(1);
   const itemsPerPage = 10;
   
-  // Group collections by status for the dashboard
+  const unassignedCount = collections.filter((c: any) => !c.collectorId && c.status === CollectionStatus.SCHEDULED).length;
+  const myCollections = collections.filter((c: any) => c.collectorId === user.id);
   const collectionsCountByStatus = {
-    scheduled: filteredCollections.filter(c => c.status === CollectionStatus.SCHEDULED).length,
-    pending: filteredCollections.filter(c => c.status === CollectionStatus.PENDING).length,
-    confirmed: filteredCollections.filter(c => c.status === CollectionStatus.CONFIRMED).length,
-    in_progress: filteredCollections.filter(c => c.status === CollectionStatus.IN_PROGRESS).length,
-    completed: filteredCollections.filter(c => c.status === CollectionStatus.COMPLETED).length,
-    cancelled: filteredCollections.filter(c => c.status === CollectionStatus.CANCELLED).length,
+    confirmed: myCollections.filter((c: any) => c.status === CollectionStatus.CONFIRMED).length,
+    in_progress: myCollections.filter((c: any) => c.status === CollectionStatus.IN_PROGRESS).length,
+    completed: myCollections.filter((c: any) => c.status === CollectionStatus.COMPLETED).length,
+    cancelled: myCollections.filter((c: any) => c.status === CollectionStatus.CANCELLED).length,
   };
   
-  // Calculate pagination
   const totalPages = Math.ceil(filteredCollections.length / itemsPerPage);
   const paginatedCollections = filteredCollections.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
 
-  // Claim a collection (assign to self)
-  const [currentlyClaimingId, setCurrentlyClaimingId] = useState<number | null>(null);
-  
+  useEffect(() => {
+    setCurrentPage(1);
+    setSelectedIds(new Set());
+  }, [statusFilter, wasteTypeFilter, cityFilter, searchQuery]);
+
   const claimCollectionMutation = useMutation({
-    mutationFn: async (collectionId: number) => {
-      // Set which collection is currently being claimed
-      setCurrentlyClaimingId(collectionId);
-      
-      // First verify if the collection is still available
+    mutationFn: async ({ collectionId, dropoffCenterId }: { collectionId: number; dropoffCenterId: number }) => {
       const checkRes = await apiRequest('GET', `/api/collections/${collectionId}`);
       const collection = await checkRes.json();
       
@@ -208,10 +211,11 @@ export default function CollectorCollectionsPage() {
         throw new Error('This collection has already been claimed by another collector');
       }
       
-      // Update the collection
       const res = await apiRequest('PATCH', `/api/collections/${collectionId}`, {
         collectorId: user.id,
-        status: CollectionStatus.CONFIRMED
+        status: CollectionStatus.CONFIRMED,
+        dropoffCenterId,
+        dropoffStatus: 'pending'
       });
       
       return await res.json();
@@ -220,12 +224,10 @@ export default function CollectorCollectionsPage() {
       queryClient.invalidateQueries({ queryKey: ['/api/collections'] });
       toast({
         title: 'Collection claimed',
-        description: 'You have successfully claimed this collection.',
-        variant: 'default',
+        description: 'You have successfully claimed this collection and assigned a drop-off center.',
       });
-      // Reset claiming state
-      setCurrentlyClaimingId(null);
-      // Switch to confirmed status to show the newly claimed collection
+      setClaimDialogOpen(false);
+      setClaimingCollection(null);
       setStatusFilter(CollectionStatus.CONFIRMED);
     },
     onError: (error: Error) => {
@@ -234,26 +236,76 @@ export default function CollectorCollectionsPage() {
         description: error.message,
         variant: 'destructive',
       });
-      // Reset claiming state
-      setCurrentlyClaimingId(null);
     }
   });
 
-  // Update collection status
+  const bulkClaimMutation = useMutation({
+    mutationFn: async ({ collectionIds, dropoffCenterId }: { collectionIds: number[]; dropoffCenterId: number }) => {
+      const res = await apiRequest('POST', '/api/collections/bulk-claim', { collectionIds, dropoffCenterId });
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/collections'] });
+      setBulkClaimDialogOpen(false);
+      setSelectedIds(new Set());
+      toast({
+        title: `${data.claimed} collection${data.claimed !== 1 ? 's' : ''} claimed`,
+        description: data.failed > 0 
+          ? `${data.failed} could not be claimed (already taken or unavailable).`
+          : 'All selected collections have been claimed successfully.',
+        variant: data.failed > 0 ? 'destructive' : 'default',
+      });
+      if (data.claimed > 0) {
+        setStatusFilter(CollectionStatus.CONFIRMED);
+      }
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Bulk claim failed',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  });
+
+  const confirmDropoffMutation = useMutation({
+    mutationFn: async ({ collectionId, dropoffCode }: { collectionId: number; dropoffCode: string }) => {
+      const res = await apiRequest('POST', `/api/collections/${collectionId}/confirm-dropoff`, { dropoffCode });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to confirm delivery');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/collections'] });
+      setConfirmingDropoffId(null);
+      setDropoffCodeInput('');
+      toast({
+        title: 'Delivery Confirmed',
+        description: 'The drop-off has been confirmed successfully.',
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Confirmation Failed',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
   const updateCollectionStatusMutation = useMutation({
-    mutationFn: async ({ id, status, notes, wasteAmount }: { id: number; status: string; notes?: string; wasteAmount?: number }) => {
+    mutationFn: async ({ id, status, notes, wasteAmount, verificationCode }: { id: number; status: string; notes?: string; wasteAmount?: number; verificationCode?: string }) => {
       const updateData: any = { status };
-      
-      if (notes) {
-        updateData.notes = notes;
-      }
-      
-      if (wasteAmount && status === CollectionStatus.COMPLETED) {
-        updateData.wasteAmount = wasteAmount;
-        // The completed date will be set automatically by the server
-      }
-      
+      if (notes) updateData.notes = notes;
+      if (wasteAmount && status === CollectionStatus.COMPLETED) updateData.wasteAmount = wasteAmount;
+      if (verificationCode && status === CollectionStatus.COMPLETED) updateData.verificationCode = verificationCode;
       const res = await apiRequest('PATCH', `/api/collections/${id}`, updateData);
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to update collection');
+      }
       return await res.json();
     },
     onSuccess: () => {
@@ -262,10 +314,10 @@ export default function CollectorCollectionsPage() {
       setSelectedCollection(null);
       setWasteAmount('');
       setNotesInput('');
+      setVerificationCodeInput('');
       toast({
         title: 'Collection updated',
         description: 'The collection status has been updated successfully.',
-        variant: 'default',
       });
     },
     onError: (error: Error) => {
@@ -277,92 +329,47 @@ export default function CollectorCollectionsPage() {
     }
   });
 
-  // Helper function to get the next possible status
   const getNextStatus = (currentStatus: string) => {
     switch (currentStatus) {
-      case CollectionStatus.SCHEDULED:
-        return CollectionStatus.CONFIRMED;
-      case CollectionStatus.CONFIRMED:
-        return CollectionStatus.IN_PROGRESS;
-      case CollectionStatus.PENDING:
-        return CollectionStatus.CONFIRMED;
-      case CollectionStatus.IN_PROGRESS:
-        return CollectionStatus.COMPLETED;
-      default:
-        return null;
+      case CollectionStatus.SCHEDULED: return CollectionStatus.CONFIRMED;
+      case CollectionStatus.CONFIRMED: return CollectionStatus.IN_PROGRESS;
+      case CollectionStatus.PENDING: return CollectionStatus.CONFIRMED;
+      case CollectionStatus.IN_PROGRESS: return CollectionStatus.COMPLETED;
+      default: return null;
     }
   };
 
-  // Color coding for collection status
   const getStatusColor = (status: string) => {
     switch (status) {
-      case CollectionStatus.SCHEDULED:
-        return 'bg-blue-100 text-blue-800 border-blue-200';
-      case CollectionStatus.PENDING:
-        return 'bg-amber-100 text-amber-800 border-amber-200';
-      case CollectionStatus.CONFIRMED:
-        return 'bg-indigo-100 text-indigo-800 border-indigo-200';
-      case CollectionStatus.IN_PROGRESS:
-        return 'bg-purple-100 text-purple-800 border-purple-200';
-      case CollectionStatus.COMPLETED:
-        return 'bg-green-100 text-green-800 border-green-200';
-      case CollectionStatus.CANCELLED:
-        return 'bg-red-100 text-red-800 border-red-200';
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+      case CollectionStatus.SCHEDULED: return 'bg-blue-100 text-blue-800 border-blue-200';
+      case CollectionStatus.PENDING: return 'bg-amber-100 text-amber-800 border-amber-200';
+      case CollectionStatus.CONFIRMED: return 'bg-indigo-100 text-indigo-800 border-indigo-200';
+      case CollectionStatus.IN_PROGRESS: return 'bg-purple-100 text-purple-800 border-purple-200';
+      case CollectionStatus.COMPLETED: return 'bg-green-100 text-green-800 border-green-200';
+      case CollectionStatus.CANCELLED: return 'bg-red-100 text-red-800 border-red-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
   
-  // Calculate waste value based on waste type and estimated amount
   const calculateWasteValue = (wasteType: string, estimatedAmount: number = 10) => {
-    // Points awarded based on waste type (per 10kg)
-    // hazardous: 20, electronic: 15, metal: 12, glass/plastic: 10, paper/organic/cardboard: 8, general: 5
-    const valuePerKg = {
-      'hazardous': 20,
-      'electronic': 15,
-      'metal': 12, 
-      'glass': 10,
-      'plastic': 10,
-      'paper': 8,
-      'organic': 8,
-      'cardboard': 8,
-      'general': 5
-    };
-
-    // Get the value per kg for this waste type (default to general if not found)
-    const valueRate = valuePerKg[wasteType as keyof typeof valuePerKg] || 5;
-    
-    // Calculate the total value based on estimated amount
-    const totalValue = valueRate * estimatedAmount;
-    
-    return totalValue;
+    return getCollectorEarnings(wasteType, estimatedAmount);
   };
 
-  // Generate an action button based on collection status
   const getActionButton = (collection: any) => {
     const nextStatus = getNextStatus(collection.status);
     
     if (!collection.collectorId && collection.status === CollectionStatus.SCHEDULED) {
-      const isClaimingThis = currentlyClaimingId === collection.id;
       return (
         <Button 
           size="sm" 
           variant="default" 
-          className="w-full"
-          onClick={() => claimCollectionMutation.mutate(collection.id)}
-          disabled={claimCollectionMutation.isPending || isClaimingThis}
+          onClick={() => {
+            setClaimingCollection(collection);
+            setClaimDialogOpen(true);
+          }}
         >
-          {isClaimingThis ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Claiming...
-            </>
-          ) : (
-            <>
-              <Truck className="mr-2 h-4 w-4" />
-              Claim Pickup
-            </>
-          )}
+          <Truck className="mr-1.5 h-4 w-4" />
+          Claim
         </Button>
       );
     }
@@ -372,20 +379,19 @@ export default function CollectorCollectionsPage() {
         <Button 
           size="sm" 
           variant={nextStatus === CollectionStatus.COMPLETED ? "default" : "outline"} 
-          className="w-full"
           onClick={() => {
             setSelectedCollection(collection);
             setStatusUpdateModal(true);
           }}
         >
           {nextStatus === CollectionStatus.CONFIRMED && (
-            <><CheckCircle className="mr-2 h-4 w-4" />Confirm</>
+            <><CheckCircle className="mr-1.5 h-4 w-4" />Confirm</>
           )}
           {nextStatus === CollectionStatus.IN_PROGRESS && (
-            <><Truck className="mr-2 h-4 w-4" />Start Pickup</>
+            <><Truck className="mr-1.5 h-4 w-4" />Start Pickup</>
           )}
           {nextStatus === CollectionStatus.COMPLETED && (
-            <><CheckCheck className="mr-2 h-4 w-4" />Complete</>
+            <><CheckCheck className="mr-1.5 h-4 w-4" />Complete</>
           )}
         </Button>
       );
@@ -394,28 +400,56 @@ export default function CollectorCollectionsPage() {
     return null;
   };
 
-  // Format the address for display
   const formatAddress = (address: string) => {
     if (!address) return "No address provided";
-    if (address.length > 40) {
-      return address.substring(0, 40) + "...";
-    }
-    return address;
+    return address.length > 40 ? address.substring(0, 40) + "..." : address;
   };
   
-  // Get requester (user) data for a collection
   const getRequesterInfo = (userId: number) => {
     if (!users || !Array.isArray(users) || users.length === 0) return null;
     return users.find((u: any) => u.id === userId);
   };
   
-  // Check if a collection has material interests from recyclers
   const hasInterests = (collectionId: number) => {
     return materialInterests.some((interest: any) => 
       interest.collectionId === collectionId && 
       ['pending', 'expressed', 'accepted'].includes(interest.status)
     );
   };
+
+  const toggleSelection = (id: number) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    const unassignedOnPage = paginatedCollections.filter((c: any) => !c.collectorId && c.status === CollectionStatus.SCHEDULED);
+    const allSelected = unassignedOnPage.every((c: any) => selectedIds.has(c.id));
+    if (allSelected) {
+      setSelectedIds(prev => {
+        const next = new Set(prev);
+        unassignedOnPage.forEach((c: any) => next.delete(c.id));
+        return next;
+      });
+    } else {
+      setSelectedIds(prev => {
+        const next = new Set(prev);
+        unassignedOnPage.forEach((c: any) => next.add(c.id));
+        return next;
+      });
+    }
+  };
+
+  const selectableOnPage = paginatedCollections.filter((c: any) => !c.collectorId && c.status === CollectionStatus.SCHEDULED);
+  const allOnPageSelected = selectableOnPage.length > 0 && selectableOnPage.every((c: any) => selectedIds.has(c.id));
+  const someOnPageSelected = selectableOnPage.some((c: any) => selectedIds.has(c.id));
+
+  const selectedWasteType = selectedIds.size > 0 
+    ? collections.find((c: any) => selectedIds.has(c.id))?.wasteType 
+    : null;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -426,62 +460,59 @@ export default function CollectorCollectionsPage() {
           <div className="flex flex-col gap-2">
             <h1 className="text-3xl font-bold">Collection Management</h1>
             <p className="text-muted-foreground">
-              View and manage waste collection pickups assigned to you
+              Claim available pickups and manage your waste collections
             </p>
           </div>
           
-          {/* Status Overview Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            <Card className={`bg-white hover:shadow-md transition-shadow ${statusFilter === 'all' ? 'ring-2 ring-primary ring-offset-2' : ''}`}
-                  onClick={() => setStatusFilter('all')}>
-              <CardContent className="p-4 flex flex-col items-center cursor-pointer">
-                <Package className="h-5 w-5 mb-1 text-gray-500" />
-                <p className="text-sm font-medium">All</p>
-                <p className="text-2xl font-bold">{filteredCollections.length}</p>
-              </CardContent>
-            </Card>
-            
-            <Card className={`bg-white hover:shadow-md transition-shadow ${statusFilter === 'unassigned' ? 'ring-2 ring-primary ring-offset-2' : ''}`}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            <Card className={`hover:shadow-md transition-shadow cursor-pointer ${statusFilter === 'unassigned' ? 'ring-2 ring-primary ring-offset-2' : ''}`}
                   onClick={() => setStatusFilter('unassigned')}>
-              <CardContent className="p-4 flex flex-col items-center cursor-pointer">
+              <CardContent className="p-4 flex flex-col items-center">
                 <AlertTriangle className="h-5 w-5 mb-1 text-amber-500" />
-                <p className="text-sm font-medium">Unassigned</p>
-                <p className="text-2xl font-bold">
-                  {collections.filter(c => !c.collectorId && c.status === CollectionStatus.SCHEDULED).length}
-                </p>
+                <p className="text-sm font-medium">Available</p>
+                <p className="text-2xl font-bold">{unassignedCount}</p>
               </CardContent>
             </Card>
             
-            <Card className={`bg-white hover:shadow-md transition-shadow ${statusFilter === CollectionStatus.CONFIRMED ? 'ring-2 ring-primary ring-offset-2' : ''}`}
+            <Card className={`hover:shadow-md transition-shadow cursor-pointer ${statusFilter === 'all' ? 'ring-2 ring-primary ring-offset-2' : ''}`}
+                  onClick={() => setStatusFilter('all')}>
+              <CardContent className="p-4 flex flex-col items-center">
+                <Package className="h-5 w-5 mb-1 text-gray-500" />
+                <p className="text-sm font-medium">All Mine</p>
+                <p className="text-2xl font-bold">{myCollections.length}</p>
+              </CardContent>
+            </Card>
+            
+            <Card className={`hover:shadow-md transition-shadow cursor-pointer ${statusFilter === CollectionStatus.CONFIRMED ? 'ring-2 ring-primary ring-offset-2' : ''}`}
                   onClick={() => setStatusFilter(CollectionStatus.CONFIRMED)}>
-              <CardContent className="p-4 flex flex-col items-center cursor-pointer">
+              <CardContent className="p-4 flex flex-col items-center">
                 <CheckCircle className="h-5 w-5 mb-1 text-indigo-500" />
                 <p className="text-sm font-medium">Confirmed</p>
                 <p className="text-2xl font-bold">{collectionsCountByStatus.confirmed}</p>
               </CardContent>
             </Card>
             
-            <Card className={`bg-white hover:shadow-md transition-shadow ${statusFilter === CollectionStatus.IN_PROGRESS ? 'ring-2 ring-primary ring-offset-2' : ''}`}
+            <Card className={`hover:shadow-md transition-shadow cursor-pointer ${statusFilter === CollectionStatus.IN_PROGRESS ? 'ring-2 ring-primary ring-offset-2' : ''}`}
                   onClick={() => setStatusFilter(CollectionStatus.IN_PROGRESS)}>
-              <CardContent className="p-4 flex flex-col items-center cursor-pointer">
+              <CardContent className="p-4 flex flex-col items-center">
                 <Truck className="h-5 w-5 mb-1 text-purple-500" />
                 <p className="text-sm font-medium">In Progress</p>
                 <p className="text-2xl font-bold">{collectionsCountByStatus.in_progress}</p>
               </CardContent>
             </Card>
             
-            <Card className={`bg-white hover:shadow-md transition-shadow ${statusFilter === CollectionStatus.COMPLETED ? 'ring-2 ring-primary ring-offset-2' : ''}`}
+            <Card className={`hover:shadow-md transition-shadow cursor-pointer ${statusFilter === CollectionStatus.COMPLETED ? 'ring-2 ring-primary ring-offset-2' : ''}`}
                   onClick={() => setStatusFilter(CollectionStatus.COMPLETED)}>
-              <CardContent className="p-4 flex flex-col items-center cursor-pointer">
+              <CardContent className="p-4 flex flex-col items-center">
                 <CheckCheck className="h-5 w-5 mb-1 text-green-500" />
                 <p className="text-sm font-medium">Completed</p>
                 <p className="text-2xl font-bold">{collectionsCountByStatus.completed}</p>
               </CardContent>
             </Card>
             
-            <Card className={`bg-white hover:shadow-md transition-shadow ${statusFilter === CollectionStatus.CANCELLED ? 'ring-2 ring-primary ring-offset-2' : ''}`}
+            <Card className={`hover:shadow-md transition-shadow cursor-pointer ${statusFilter === CollectionStatus.CANCELLED ? 'ring-2 ring-primary ring-offset-2' : ''}`}
                   onClick={() => setStatusFilter(CollectionStatus.CANCELLED)}>
-              <CardContent className="p-4 flex flex-col items-center cursor-pointer">
+              <CardContent className="p-4 flex flex-col items-center">
                 <XCircle className="h-5 w-5 mb-1 text-red-500" />
                 <p className="text-sm font-medium">Cancelled</p>
                 <p className="text-2xl font-bold">{collectionsCountByStatus.cancelled}</p>
@@ -489,8 +520,7 @@ export default function CollectorCollectionsPage() {
             </Card>
           </div>
           
-          {/* Search & Filter */}
-          <div className="flex flex-col md:flex-row gap-4 mb-4">
+          <div className="flex flex-col md:flex-row gap-3">
             <div className="relative flex-grow">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input 
@@ -501,15 +531,37 @@ export default function CollectorCollectionsPage() {
               />
             </div>
             
+            <Select value={wasteTypeFilter} onValueChange={setWasteTypeFilter}>
+              <SelectTrigger className="w-full md:w-[160px]">
+                <SelectValue placeholder="Waste type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                {Object.entries(wasteTypeConfig).map(([key, config]) => (
+                  <SelectItem key={key} value={key}>{config.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={cityFilter} onValueChange={setCityFilter}>
+              <SelectTrigger className="w-full md:w-[160px]">
+                <SelectValue placeholder="City" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Cities</SelectItem>
+                {availableCities.map(city => (
+                  <SelectItem key={city} value={city}>{city}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full md:w-[180px]">
+              <SelectTrigger className="w-full md:w-[160px]">
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Collections</SelectItem>
-                <SelectItem value="unassigned">Unassigned</SelectItem>
-                <SelectItem value={CollectionStatus.SCHEDULED}>Scheduled</SelectItem>
-                <SelectItem value={CollectionStatus.PENDING}>Pending</SelectItem>
+                <SelectItem value="unassigned">Available Pickups</SelectItem>
+                <SelectItem value="all">All My Collections</SelectItem>
                 <SelectItem value={CollectionStatus.CONFIRMED}>Confirmed</SelectItem>
                 <SelectItem value={CollectionStatus.IN_PROGRESS}>In Progress</SelectItem>
                 <SelectItem value={CollectionStatus.COMPLETED}>Completed</SelectItem>
@@ -518,7 +570,6 @@ export default function CollectorCollectionsPage() {
             </Select>
           </div>
           
-          {/* Tabs for Collections, Route Optimization, and Material Interests */}
           <Tabs defaultValue={activeTab} value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-3 mb-6">
               <TabsTrigger value="collections">Collection Assignments</TabsTrigger>
@@ -526,14 +577,30 @@ export default function CollectorCollectionsPage() {
               <TabsTrigger value="interests">Material Interests</TabsTrigger>
             </TabsList>
             
-            {/* Collections Tab Content */}
             <TabsContent value="collections" className="mt-0">
               <Card className="overflow-hidden">
                 <CardHeader className="bg-muted/30 pb-4">
-                  <CardTitle>Collection Assignments</CardTitle>
-                  <CardDescription>
-                    {filteredCollections.length} {filteredCollections.length === 1 ? 'collection' : 'collections'} {statusFilter !== 'all' ? `(filtered by: ${statusFilter})` : ''}
-                  </CardDescription>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>
+                        {isUnassignedView ? 'Available Pickups' : 'My Collections'}
+                      </CardTitle>
+                      <CardDescription>
+                        {filteredCollections.length} {filteredCollections.length === 1 ? 'collection' : 'collections'}
+                        {wasteTypeFilter !== 'all' ? ` · ${wasteTypeConfig[wasteTypeFilter as keyof typeof wasteTypeConfig]?.label || wasteTypeFilter}` : ''}
+                        {cityFilter !== 'all' ? ` · ${cityFilter}` : ''}
+                      </CardDescription>
+                    </div>
+                    {selectedIds.size > 0 && (
+                      <Button
+                        onClick={() => setBulkClaimDialogOpen(true)}
+                        className="gap-2"
+                      >
+                        <Truck className="h-4 w-4" />
+                        Claim Selected ({selectedIds.size})
+                      </Button>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent className="p-0">
               {isLoading ? (
@@ -545,9 +612,9 @@ export default function CollectorCollectionsPage() {
                   <Package className="mx-auto h-12 w-12 text-muted-foreground mb-2" />
                   <h3 className="font-medium text-lg">No collections found</h3>
                   <p className="text-muted-foreground">
-                    {statusFilter !== 'all' 
-                      ? `There are no ${statusFilter} collections at the moment.` 
-                      : "There are no collections to display."}
+                    {isUnassignedView 
+                      ? "There are no available pickups to claim at the moment." 
+                      : `No ${statusFilter !== 'all' ? statusFilter : ''} collections to display.`}
                   </p>
                 </div>
               ) : (
@@ -555,156 +622,153 @@ export default function CollectorCollectionsPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="w-[100px]">
-                          <button 
-                            onClick={() => handleSort('id')} 
-                            className="flex items-center hover:text-primary"
-                          >
-                            ID
-                            {getSortIcon('id')}
+                        {isUnassignedView && (
+                          <TableHead className="w-[40px]">
+                            <Checkbox
+                              checked={allOnPageSelected}
+                              onCheckedChange={toggleSelectAll}
+                              aria-label="Select all"
+                            />
+                          </TableHead>
+                        )}
+                        {isAllMineView && (
+                          <TableHead>
+                            <button onClick={() => handleSort('status')} className="flex items-center hover:text-primary">
+                              Status{getSortIcon('status')}
+                            </button>
+                          </TableHead>
+                        )}
+                        <TableHead>
+                          <button onClick={() => handleSort('wasteType')} className="flex items-center hover:text-primary">
+                            Waste Type{getSortIcon('wasteType')}
                           </button>
                         </TableHead>
                         <TableHead>
-                          <button 
-                            onClick={() => handleSort('status')} 
-                            className="flex items-center hover:text-primary"
-                          >
-                            Status
-                            {getSortIcon('status')}
+                          <button onClick={() => handleSort('date')} className="flex items-center hover:text-primary">
+                            Date{getSortIcon('date')}
                           </button>
                         </TableHead>
-                        <TableHead>
-                          <button 
-                            onClick={() => handleSort('date')} 
-                            className="flex items-center hover:text-primary"
-                          >
-                            Date
-                            {getSortIcon('date')}
-                          </button>
-                        </TableHead>
-                        <TableHead>
-                          <button 
-                            onClick={() => handleSort('wasteType')} 
-                            className="flex items-center hover:text-primary"
-                          >
-                            Waste Type
-                            {getSortIcon('wasteType')}
-                          </button>
-                        </TableHead>
-                        <TableHead>
-                          <button 
-                            onClick={() => handleSort('location')} 
-                            className="flex items-center hover:text-primary"
-                          >
-                            Location
-                            {getSortIcon('location')}
-                          </button>
-                        </TableHead>
-                        <TableHead>
-                          <button 
-                            onClick={() => handleSort('value')} 
-                            className="flex items-center hover:text-primary"
-                          >
-                            Value (KSh)
-                            {getSortIcon('value')}
-                          </button>
-                        </TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
+                        <TableHead>City</TableHead>
+                        {!isUnassignedView && <TableHead>Drop-off</TableHead>}
+                        <TableHead className="text-right">Details</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {paginatedCollections.map((collection: any) => (
-                        <TableRow key={collection.id} className="group hover:bg-muted/50">
-                          <TableCell className="font-medium">
-                            <div className="flex items-center">
-                              #{collection.id}
-                              {hasInterests(collection.id) && (
-                                <Badge variant="secondary" className="ml-2 bg-indigo-100 text-indigo-800 border-indigo-200 flex items-center">
-                                  <span className="h-2 w-2 bg-indigo-500 rounded-full mr-1 animate-pulse"></span>
-                                  Interest
-                                </Badge>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className={`${getStatusColor(collection.status)}`}>
-                              {collection.status.charAt(0).toUpperCase() + collection.status.slice(1)}
-                            </Badge>
-                            {!collection.collectorId && (
-                              <Badge variant="outline" className="ml-2 bg-yellow-50 text-yellow-800 border-yellow-200">
-                                Unassigned
-                              </Badge>
+                      {paginatedCollections.map((collection: any) => {
+                        const isSelectable = !collection.collectorId && collection.status === CollectionStatus.SCHEDULED;
+                        const isSelected = selectedIds.has(collection.id);
+                        
+                        return (
+                          <TableRow 
+                            key={collection.id} 
+                            className={`group hover:bg-muted/50 ${isSelected ? 'bg-primary/5' : ''}`}
+                          >
+                            {isUnassignedView && (
+                              <TableCell>
+                                {isSelectable && (
+                                  <Checkbox
+                                    checked={isSelected}
+                                    onCheckedChange={() => toggleSelection(collection.id)}
+                                    aria-label={`Select collection #${collection.id}`}
+                                  />
+                                )}
+                              </TableCell>
                             )}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center">
-                              <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
-                              {format(new Date(collection.scheduledDate), 'MMM d, yyyy')}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center">
-                              <div className="flex flex-col">
+                            {isAllMineView && (
+                              <TableCell>
+                                <Badge variant="outline" className={getStatusColor(collection.status)}>
+                                  {collection.status.charAt(0).toUpperCase() + collection.status.slice(1)}
+                                </Badge>
+                              </TableCell>
+                            )}
+                            <TableCell>
+                              <div className="flex items-center gap-2">
                                 <span className="capitalize">{collection.wasteType}</span>
-                                {collection.wasteDescription && (
-                                  <span className="text-xs text-muted-foreground">
-                                    {collection.wasteDescription}
-                                  </span>
+                                {collection.wasteAmount && (
+                                  <Badge variant="outline" className="bg-teal-50 text-teal-700 border-teal-200">
+                                    {formatNumber(collection.wasteAmount)} kg
+                                  </Badge>
                                 )}
                               </div>
-                              {collection.wasteAmount && (
-                                <Badge variant="outline" className="ml-2 bg-teal-50 text-teal-700 border-teal-200">
-                                  {formatNumber(collection.wasteAmount)} kg
-                                </Badge>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center">
-                              <MapPin className="mr-2 h-4 w-4 text-muted-foreground" />
-                              {formatAddress(collection.address)}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center">
-                              <CreditCard className="mr-2 h-4 w-4 text-green-500" />
-                              <Badge 
-                                variant="outline" 
-                                className="bg-green-50 text-green-800 border-green-200 font-medium"
-                              >
-                                {formatNumber(calculateWasteValue(collection.wasteType, collection.wasteAmount || 10))} KSh
-                              </Badge>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-2">
-                              {getActionButton(collection)}
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                onClick={() => {
-                                  setSelectedCollection(collection);
-                                  setNotesInput(collection.notes || '');
-                                }}
-                                title="View Collection Details"
-                                className="relative group"
-                              >
-                                <Activity className="h-4 w-4" />
-                                <span className="sr-only">View Details</span>
-                                <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-black text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                                  View Details
-                                </div>
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center">
+                                <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
+                                {format(new Date(collection.scheduledDate), 'MMM d, yyyy')}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <span className="text-sm">{collection.city || '—'}</span>
+                            </TableCell>
+                            {!isUnassignedView && (
+                              <TableCell>
+                                {collection.dropoffCenterId ? (
+                                  <div className="flex flex-col gap-1">
+                                    {collection.dropoffConfirmed ? (
+                                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 w-fit">
+                                        <CheckCircle2 className="h-3 w-3 mr-1" />
+                                        Delivered
+                                      </Badge>
+                                    ) : confirmingDropoffId === collection.id ? (
+                                      <div className="flex items-center gap-1.5">
+                                        <input
+                                          value={dropoffCodeInput}
+                                          onChange={(e) => setDropoffCodeInput(e.target.value.toUpperCase())}
+                                          placeholder="Enter code"
+                                          className="w-[100px] h-7 text-xs font-mono border rounded px-2 bg-background"
+                                        />
+                                        <Button
+                                          size="sm"
+                                          className="h-7 px-2"
+                                          onClick={() => confirmDropoffMutation.mutate({ collectionId: collection.id, dropoffCode: dropoffCodeInput })}
+                                          disabled={!dropoffCodeInput || confirmDropoffMutation.isPending}
+                                        >
+                                          {confirmDropoffMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />}
+                                        </Button>
+                                        <Button size="sm" variant="ghost" className="h-7 px-1" onClick={() => { setConfirmingDropoffId(null); setDropoffCodeInput(''); }}>
+                                          <XCircle className="h-3 w-3" />
+                                        </Button>
+                                      </div>
+                                    ) : (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-7 text-xs"
+                                        onClick={() => setConfirmingDropoffId(collection.id)}
+                                      >
+                                        Confirm Delivery
+                                      </Button>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">—</span>
+                                )}
+                              </TableCell>
+                            )}
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-2">
+                                {!isUnassignedView && getActionButton(collection)}
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  onClick={() => {
+                                    setSelectedCollection(collection);
+                                    setNotesInput(collection.notes || '');
+                                  }}
+                                  title="View Collection Details"
+                                >
+                                  <Activity className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                   
-                  {/* Pagination Controls */}
                   {totalPages > 1 && (
-                    <div className="flex justify-center mt-6 space-x-1">
+                    <div className="flex justify-center py-4 space-x-1">
                       <Button
                         variant="outline"
                         size="sm"
@@ -712,7 +776,6 @@ export default function CollectorCollectionsPage() {
                         disabled={currentPage === 1}
                       >
                         <ChevronLeft className="h-4 w-4" />
-                        <span className="sr-only">Previous Page</span>
                       </Button>
                       
                       <div className="flex items-center gap-1">
@@ -736,7 +799,6 @@ export default function CollectorCollectionsPage() {
                         disabled={currentPage === totalPages}
                       >
                         <ChevronRight className="h-4 w-4" />
-                        <span className="sr-only">Next Page</span>
                       </Button>
                     </div>
                   )}
@@ -746,7 +808,6 @@ export default function CollectorCollectionsPage() {
               </Card>
             </TabsContent>
             
-            {/* Route Optimization Tab Content */}
             <TabsContent value="routes" className="mt-0">
               <Card className="overflow-hidden">
                 <CardHeader className="bg-muted/30 pb-4">
@@ -756,7 +817,6 @@ export default function CollectorCollectionsPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-4">
-                  {/* Import the RouteOptimizationMap component at the top of the file */}
                   <RouteOptimizationMap 
                     collections={Array.isArray(collections) ? collections : []} 
                     collectorAddress={user?.address || undefined}
@@ -765,7 +825,6 @@ export default function CollectorCollectionsPage() {
               </Card>
             </TabsContent>
             
-            {/* Material Interests Tab Content */}
             <TabsContent value="interests" className="mt-0">
               <Card className="overflow-hidden">
                 <CardHeader className="bg-muted/30 pb-4">
@@ -775,7 +834,6 @@ export default function CollectorCollectionsPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {/* We'll create this component next */}
                   <MaterialInterestsTab collectorId={user.id} />
                 </CardContent>
               </Card>
@@ -784,8 +842,7 @@ export default function CollectorCollectionsPage() {
         </div>
       </main>
       
-      {/* Collection Details Dialog */}
-      {selectedCollection && (
+      {selectedCollection && !statusUpdateModal && (
         <Dialog open={!!selectedCollection} onOpenChange={(open) => !open && setSelectedCollection(null)}>
           <DialogContent className="sm:max-w-[525px]">
             <DialogHeader>
@@ -796,7 +853,6 @@ export default function CollectorCollectionsPage() {
             </DialogHeader>
             
             <div className="grid gap-4 py-4">
-              {/* Requester Information */}
               {selectedCollection.userId && (
                 <div className="grid grid-cols-4 items-start gap-4 mb-2">
                   <Label className="text-right">Requester</Label>
@@ -804,7 +860,6 @@ export default function CollectorCollectionsPage() {
                     {(() => {
                       const requester = getRequesterInfo(selectedCollection.userId);
                       if (!requester) return <span className="text-muted-foreground text-sm">User information not available</span>;
-                      
                       return (
                         <div className="flex flex-col gap-1">
                           <div className="font-medium">{requester.fullName || requester.username}</div>
@@ -833,7 +888,7 @@ export default function CollectorCollectionsPage() {
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label className="text-right">Status</Label>
                 <div className="col-span-3">
-                  <Badge variant="outline" className={`${getStatusColor(selectedCollection.status)}`}>
+                  <Badge variant="outline" className={getStatusColor(selectedCollection.status)}>
                     {selectedCollection.status.charAt(0).toUpperCase() + selectedCollection.status.slice(1)}
                   </Badge>
                 </div>
@@ -863,13 +918,12 @@ export default function CollectorCollectionsPage() {
                 </div>
               )}
               
-              {/* Collection Value */}
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label className="text-right">Value</Label>
+                <Label className="text-right">Your Earnings</Label>
                 <div className="col-span-3 flex items-center">
                   <CreditCard className="mr-2 h-4 w-4 text-green-500" />
                   <Badge variant="outline" className="bg-green-50 text-green-800 border-green-200 font-medium">
-                    {formatNumber(calculateWasteValue(selectedCollection.wasteType, selectedCollection.wasteAmount || 10))} KSh
+                    KSh {formatNumber(calculateWasteValue(selectedCollection.wasteType, selectedCollection.wasteAmount || 10))}
                   </Badge>
                 </div>
               </div>
@@ -923,9 +977,7 @@ export default function CollectorCollectionsPage() {
                 
                 {getNextStatus(selectedCollection.status) && selectedCollection.collectorId === user.id && (
                   <Button
-                    onClick={() => {
-                      setStatusUpdateModal(true);
-                    }}
+                    onClick={() => setStatusUpdateModal(true)}
                     variant="default"
                   >
                     Update Status
@@ -937,7 +989,6 @@ export default function CollectorCollectionsPage() {
         </Dialog>
       )}
       
-      {/* Status Update Modal */}
       {selectedCollection && (
         <Dialog open={statusUpdateModal} onOpenChange={setStatusUpdateModal}>
           <DialogContent className="sm:max-w-[425px]">
@@ -967,24 +1018,37 @@ export default function CollectorCollectionsPage() {
                       {wasteAmount && (
                         <div className="mt-2 flex items-center text-sm">
                           <CreditCard className="h-4 w-4 text-green-500 mr-2" />
-                          <span className="text-muted-foreground">Calculated value: </span>
+                          <span className="text-muted-foreground">Your earnings: </span>
                           <Badge className="ml-2 bg-green-50 text-green-800 border-green-200">
                             {formatNumber(calculateWasteValue(selectedCollection.wasteType, parseFloat(wasteAmount)))} KSh
                           </Badge>
-                          <span className="ml-2 text-xs text-muted-foreground">
-                            ({formatNumber(calculateWasteValue(selectedCollection.wasteType, 1))} KSh per kg)
-                          </span>
                         </div>
                       )}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="verificationCode" className="text-right">
+                      Verification Code
+                    </Label>
+                    <div className="col-span-3">
+                      <Input
+                        id="verificationCode"
+                        className="w-full font-mono tracking-wider text-center text-lg"
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={6}
+                        value={verificationCodeInput}
+                        onChange={(e) => setVerificationCodeInput(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        placeholder="Enter 6-digit code from customer"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">Ask the customer for the code shown on their portal</p>
                     </div>
                   </div>
                 </>
               )}
               
               <div className="grid grid-cols-4 items-start gap-4">
-                <Label htmlFor="notes" className="text-right pt-2">
-                  Notes
-                </Label>
+                <Label htmlFor="notes" className="text-right pt-2">Notes</Label>
                 <Textarea
                   id="notes"
                   className="col-span-3"
@@ -997,41 +1061,72 @@ export default function CollectorCollectionsPage() {
             </div>
             
             <DialogFooter>
-              <Button 
-                variant="outline" 
-                onClick={() => setStatusUpdateModal(false)}
-              >
+              <Button variant="outline" onClick={() => setStatusUpdateModal(false)}>
                 Cancel
               </Button>
               <Button
                 onClick={() => {
                   const nextStatus = getNextStatus(selectedCollection.status);
                   if (!nextStatus) return;
-                  
                   const data: any = {
                     id: selectedCollection.id,
                     status: nextStatus,
                     notes: notesInput
                   };
-                  
                   if (nextStatus === CollectionStatus.COMPLETED && wasteAmount) {
                     data.wasteAmount = parseFloat(wasteAmount);
                   }
-                  
+                  if (nextStatus === CollectionStatus.COMPLETED && verificationCodeInput) {
+                    data.verificationCode = verificationCodeInput;
+                  }
                   updateCollectionStatusMutation.mutate(data);
                 }}
                 disabled={
                   updateCollectionStatusMutation.isPending || 
-                  (getNextStatus(selectedCollection.status) === CollectionStatus.COMPLETED && !wasteAmount)
+                  (getNextStatus(selectedCollection.status) === CollectionStatus.COMPLETED && (!wasteAmount || verificationCodeInput.length !== 6))
                 }
               >
-                Update Status
+                {getNextStatus(selectedCollection.status) === CollectionStatus.COMPLETED ? 'Confirm Pickup' : 'Update Status'}
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       )}
       
+      {claimingCollection && (
+        <ClaimPickupDialog
+          open={claimDialogOpen}
+          onOpenChange={(open) => {
+            setClaimDialogOpen(open);
+            if (!open) setClaimingCollection(null);
+          }}
+          wasteType={claimingCollection.wasteType}
+          wasteAmount={claimingCollection.wasteAmount}
+          onConfirm={(centerId) => {
+            claimCollectionMutation.mutate({
+              collectionId: claimingCollection.id,
+              dropoffCenterId: centerId,
+            });
+          }}
+          isPending={claimCollectionMutation.isPending}
+        />
+      )}
+
+      {bulkClaimDialogOpen && (
+        <ClaimPickupDialog
+          open={bulkClaimDialogOpen}
+          onOpenChange={setBulkClaimDialogOpen}
+          wasteType={selectedWasteType || 'general'}
+          onConfirm={(centerId) => {
+            bulkClaimMutation.mutate({
+              collectionIds: Array.from(selectedIds),
+              dropoffCenterId: centerId,
+            });
+          }}
+          isPending={bulkClaimMutation.isPending}
+        />
+      )}
+
       <Footer />
     </div>
   );

@@ -469,7 +469,7 @@ export default function CollectorDashboard({ user }: CollectorDashboardProps) {
             </CardHeader>
             <CardContent>
               <div className="text-center mb-4">
-                <span className="text-4xl font-bold text-primary">$1,240</span>
+                <span className="text-4xl font-bold text-primary">KSh 1,240</span>
                 <p className="text-sm text-muted-foreground">Total earnings this month</p>
               </div>
               
@@ -712,44 +712,6 @@ export default function CollectorDashboard({ user }: CollectorDashboardProps) {
         </CardContent>
       </Card>
       
-      {/* Upcoming Jobs */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <Truck className="mr-2 h-5 w-5" />
-            Upcoming Jobs
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {collectorJobs.filter(job => job.status !== CollectionStatus.COMPLETED).length > 0 ? (
-            <div className="space-y-4">
-              {collectorJobs
-                .filter(job => job.status !== CollectionStatus.COMPLETED)
-                .map((job) => (
-                  <div key={job.id} className="flex items-center p-3 border rounded-lg">
-                    <div className="mr-4 p-2 rounded-full bg-primary/10">
-                      <Truck className="h-5 w-5 text-primary" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium capitalize">{job.wasteType} Waste Pickup</p>
-                      <p className="text-sm text-muted-foreground">
-                        {new Date(job.scheduledDate).toLocaleDateString()} at {' '}
-                        {new Date(job.scheduledDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </p>
-                    </div>
-                    <div className="bg-primary/10 text-primary rounded-full px-3 py-1 text-xs font-medium capitalize">
-                      {job.status.toLowerCase()}
-                    </div>
-                  </div>
-                ))}
-            </div>
-          ) : (
-            <div className="text-center p-6 text-muted-foreground">
-              <p>No pending jobs. Check back soon for new collection requests.</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
     </div>
   );
 }

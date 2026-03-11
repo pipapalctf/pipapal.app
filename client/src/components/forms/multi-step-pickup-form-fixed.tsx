@@ -356,23 +356,27 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
-                {Object.entries(wasteTypeConfig).map(([value, config]) => (
-                  <SelectItem key={value} value={value}>
-                    <div className="flex items-center justify-between w-full">
-                      <div className="flex items-center">
-                        {config.icon && iconMap[config.icon] && (
-                          <span className={`mr-2 ${config.textColor}`}>
-                            {React.createElement(iconMap[config.icon], { className: "h-4 w-4" })}
+                {Object.entries(wasteTypeConfig).map(([value, config]) => {
+                  return (
+                    <SelectItem key={value} value={value}>
+                      <div className="flex items-center justify-between w-full">
+                        <div className="flex items-center">
+                          {config.icon && iconMap[config.icon] && (
+                            <span className={`mr-2 ${config.textColor}`}>
+                              {React.createElement(iconMap[config.icon], { className: "h-4 w-4" })}
+                            </span>
+                          )}
+                          {config.label}
+                        </div>
+                        <div className="flex items-center gap-1.5 ml-2">
+                          <span className="px-2 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
+                            +{config.points} pts/kg
                           </span>
-                        )}
-                        {config.label}
+                        </div>
                       </div>
-                      <div className="ml-2 px-2 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
-                        +{config.points} points/kg
-                      </div>
-                    </div>
-                  </SelectItem>
-                ))}
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
             <FormDescription>
@@ -476,6 +480,7 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
                         {watchedValues.wasteAmount * (wasteTypeConfig[watchedValues.wasteType as WasteTypeValue]?.points || 5)} points
                       </span>
                     </div>
+
                   </div>
                 )}
               </div>
@@ -647,9 +652,7 @@ export default function MultiStepPickupForm({ collectionToEdit, onSuccess }: Mul
               <FormControl>
                 <Input 
                   placeholder="Provide exact address (e.g., street name, building, landmark)"
-                  value={field.value}
-                  onChange={(e) => field.onChange(e.target.value)}
-                  disabled={isDetecting}
+                  {...field}
                 />
               </FormControl>
               <FormDescription>

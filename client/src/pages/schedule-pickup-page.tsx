@@ -6,10 +6,9 @@ import MobileNavigation from "@/components/shared/mobile-navigation";
 import SchedulePickupForm from "@/components/forms/schedule-pickup-form";
 import MultiStepPickupForm from "@/components/forms/multi-step-pickup-form-fixed";
 import { useQuery } from "@tanstack/react-query";
-import { Collection, CollectionStatus } from "@shared/schema";
+import { Collection, CollectionStatus, getCustomerCostEstimate, PricingCategory } from "@shared/schema";
 import { CollectionDetailsDialog } from "@/components/modals/collection-details-dialog";
-import PaymentDialog from "@/components/payment-dialog";
-import { Payment } from "@shared/schema";
+import { wasteTypeConfig } from "@/lib/types";
 import { 
   CalendarCheck, 
   CalendarPlus, 
@@ -34,8 +33,8 @@ import {
   ArrowUpDown,
   FileText,
   AlertCircle,
-  Smartphone,
-  CheckCircle
+  CheckCircle,
+  KeyRound
 } from "lucide-react";
 import { 
   DropdownMenu, 
@@ -122,10 +121,6 @@ export default function SchedulePickupPage() {
     queryKey: ['/api/collections/upcoming'],
   });
 
-  const { data: userPayments = [] } = useQuery<Payment[]>({
-    queryKey: ['/api/payments/user'],
-  });
-  
   // Cancel collection mutation
   const cancelCollectionMutation = useMutation({
     mutationFn: async (collectionId: number) => {
@@ -472,6 +467,15 @@ export default function SchedulePickupPage() {
                             <TableRow>
                               <TableHead>
                                 <button 
+                                  onClick={() => handleSort('date')} 
+                                  className="flex items-center hover:text-primary"
+                                >
+                                  Date & Time
+                                  {getSortIcon('date')}
+                                </button>
+                              </TableHead>
+                              <TableHead>
+                                <button 
                                   onClick={() => handleSort('wasteType')} 
                                   className="flex items-center hover:text-primary"
                                 >
@@ -481,26 +485,6 @@ export default function SchedulePickupPage() {
                               </TableHead>
                               <TableHead>
                                 <button 
-                                  onClick={() => handleSort('date')} 
-                                  className="flex items-center hover:text-primary"
-                                >
-                                  Date
-                                  {getSortIcon('date')}
-                                </button>
-                              </TableHead>
-                              <TableHead>Time</TableHead>
-                              <TableHead>
-                                <button 
-                                  onClick={() => handleSort('address')} 
-                                  className="flex items-center hover:text-primary"
-                                >
-                                  Location
-                                  {getSortIcon('address')}
-                                </button>
-                              </TableHead>
-                              <TableHead>Amount</TableHead>
-                              <TableHead>
-                                <button 
                                   onClick={() => handleSort('status')} 
                                   className="flex items-center hover:text-primary"
                                 >
@@ -508,80 +492,66 @@ export default function SchedulePickupPage() {
                                   {getSortIcon('status')}
                                 </button>
                               </TableHead>
-                              <TableHead>Payment</TableHead>
+                              <TableHead>Amount</TableHead>
+                              <TableHead>Code</TableHead>
                               <TableHead className="w-[80px]">Actions</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
                             {paginatedUpcomingCollections.map((collection) => {
                               const scheduledDate = new Date(collection.scheduledDate);
-                              const collectionPayments = userPayments.filter(p => p.collectionId === collection.id);
-                              const hasPaid = collectionPayments.some(p => p.status === 'success');
-                              const paidPayment = collectionPayments.find(p => p.status === 'success');
                               return (
                                 <TableRow key={collection.id}>
+                                  <TableCell>
+                                    <div>
+                                      <div className="text-sm font-medium">{format(scheduledDate, 'MMM dd')}</div>
+                                      <div className="text-xs text-muted-foreground">{format(scheduledDate, 'h:mm a')}</div>
+                                    </div>
+                                  </TableCell>
                                   <TableCell className="font-medium capitalize">
-                                    <div className="flex items-center gap-2">
-                                      <div className={`p-2 rounded-full ${
-                                        collection.status === CollectionStatus.PENDING 
-                                          ? "bg-yellow-100" 
-                                          : collection.status === CollectionStatus.CONFIRMED 
-                                          ? "bg-blue-100" 
-                                          : "bg-primary/10"
-                                      }`}>
-                                        <Truck className="h-4 w-4 text-primary" />
-                                      </div>
-                                      <span>{collection.wasteType}</span>
-                                    </div>
-                                  </TableCell>
-                                  <TableCell>
-                                    <div className="flex items-center">
-                                      <Calendar className="h-4 w-4 mr-1 text-muted-foreground" />
-                                      <span>{format(scheduledDate, 'MMM dd, yyyy')}</span>
-                                    </div>
-                                  </TableCell>
-                                  <TableCell>
-                                    <div className="flex items-center">
-                                      <Clock className="h-4 w-4 mr-1 text-muted-foreground" />
-                                      <span>{format(scheduledDate, 'h:mm a')}</span>
-                                    </div>
-                                  </TableCell>
-                                  <TableCell>
-                                    <div className="flex items-center">
-                                      <MapPin className="h-4 w-4 mr-1 text-muted-foreground" />
-                                      <span className="truncate max-w-[120px]" title={collection.address}>
-                                        {collection.address}
-                                      </span>
-                                    </div>
-                                  </TableCell>
-                                  <TableCell>
-                                    <div className="flex items-center">
-                                      <Scale className="h-4 w-4 mr-1 text-muted-foreground" />
-                                      <span>{collection.wasteAmount || 10}kg</span>
-                                    </div>
+                                    <span>{collection.wasteType}</span>
                                   </TableCell>
                                   <TableCell>
                                     {getStatusBadge(collection.status)}
                                   </TableCell>
                                   <TableCell>
-                                    {hasPaid ? (
-                                      <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200">
-                                        <CheckCircle className="h-3 w-3 mr-1" />
-                                        Paid
-                                      </Badge>
-                                    ) : collection.status !== 'cancelled' ? (
-                                      <PaymentDialog
-                                        collectionId={collection.id}
-                                        suggestedAmount={collection.wasteAmount ? Math.round(collection.wasteAmount * 50) : 500}
-                                        trigger={
-                                          <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white">
-                                            <Smartphone className="h-3 w-3 mr-1" />
-                                            Pay Now
-                                          </Button>
-                                        }
-                                      />
+                                    {(() => {
+                                      const wt = collection.wasteType as string;
+                                      const pricingKey = (wasteTypeConfig as any)[wt]?.pricingKey || wt;
+                                      const amount = collection.wasteAmount || 0;
+                                      if (amount <= 0) return <span className="text-muted-foreground text-sm">—</span>;
+                                      const estimate = getCustomerCostEstimate(pricingKey, amount);
+                                      if (estimate.category === PricingCategory.HIGH_VALUE) {
+                                        return (
+                                          <span className="text-green-600 font-semibold text-sm">
+                                            +KSh {Math.abs(estimate.total).toFixed(0)}
+                                          </span>
+                                        );
+                                      } else if (estimate.category === PricingCategory.BREAK_EVEN) {
+                                        return (
+                                          <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200">
+                                            Free
+                                          </Badge>
+                                        );
+                                      } else {
+                                        return (
+                                          <span className="text-orange-600 font-semibold text-sm">
+                                            KSh {estimate.total.toFixed(0)}
+                                          </span>
+                                        );
+                                      }
+                                    })()}
+                                  </TableCell>
+                                  <TableCell>
+                                    {collection.status === CollectionStatus.IN_PROGRESS && collection.verificationCode ? (
+                                      <div className="flex items-center gap-1.5">
+                                        <KeyRound className="h-4 w-4 text-amber-500" />
+                                        <span className="font-mono font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded text-sm tracking-wider">
+                                          {collection.verificationCode}
+                                        </span>
+                                      </div>
                                     ) : (
-                                      <span className="text-muted-foreground text-sm">—</span>
+                                      <span className="text-muted-foreground text-xs">—</span>
                                     )}
                                   </TableCell>
                                   <TableCell>
@@ -682,33 +652,13 @@ export default function SchedulePickupPage() {
                                 <TableRow>
                                   <TableHead>
                                     <button 
-                                      onClick={() => handleSort('wasteType')} 
-                                      className="flex items-center hover:text-primary"
-                                    >
-                                      Type
-                                      {getSortIcon('wasteType')}
-                                    </button>
-                                  </TableHead>
-                                  <TableHead>
-                                    <button 
                                       onClick={() => handleSort('date')} 
                                       className="flex items-center hover:text-primary"
                                     >
-                                      Date
+                                      Date & Type
                                       {getSortIcon('date')}
                                     </button>
                                   </TableHead>
-                                  <TableHead>Time</TableHead>
-                                  <TableHead>
-                                    <button 
-                                      onClick={() => handleSort('address')} 
-                                      className="flex items-center hover:text-primary"
-                                    >
-                                      Location
-                                      {getSortIcon('address')}
-                                    </button>
-                                  </TableHead>
-                                  <TableHead>Amount</TableHead>
                                   <TableHead>
                                     <button 
                                       onClick={() => handleSort('status')} 
@@ -718,75 +668,64 @@ export default function SchedulePickupPage() {
                                       {getSortIcon('status')}
                                     </button>
                                   </TableHead>
-                                  <TableHead className="w-[80px]">Actions</TableHead>
+                                  <TableHead>Amount</TableHead>
+                                  <TableHead className="w-[60px]">Actions</TableHead>
                                 </TableRow>
                               </TableHeader>
                               <TableBody>
                                 {paginatedPastCollections.map((collection) => {
                                   const scheduledDate = new Date(collection.scheduledDate);
+                                  const wt = collection.wasteType as string;
+                                  const pricingKey = (wasteTypeConfig as any)[wt]?.pricingKey || wt;
+                                  const amount = collection.wasteAmount || 0;
+                                  const estimate = amount > 0 ? getCustomerCostEstimate(pricingKey, amount) : null;
                                   return (
                                     <TableRow key={collection.id}>
-                                      <TableCell className="font-medium capitalize">
+                                      <TableCell>
                                         <div className="flex items-center gap-2">
-                                          <div className={`p-2 rounded-full ${
+                                          <div className={`p-1.5 rounded-full shrink-0 ${
                                             collection.status === CollectionStatus.COMPLETED 
                                               ? "bg-green-100" 
                                               : "bg-red-100"
                                           }`}>
                                             {collection.status === CollectionStatus.COMPLETED ? (
-                                              <BadgeCheck className="h-4 w-4 text-green-600" />
+                                              <BadgeCheck className="h-3.5 w-3.5 text-green-600" />
                                             ) : (
-                                              <X className="h-4 w-4 text-red-600" />
+                                              <X className="h-3.5 w-3.5 text-red-600" />
                                             )}
                                           </div>
-                                          <span>{collection.wasteType}</span>
-                                        </div>
-                                      </TableCell>
-                                      <TableCell>
-                                        <div className="flex items-center">
-                                          <Calendar className="h-4 w-4 mr-1 text-muted-foreground" />
-                                          <span>{format(scheduledDate, 'MMM dd, yyyy')}</span>
-                                        </div>
-                                      </TableCell>
-                                      <TableCell>
-                                        <div className="flex items-center">
-                                          <Clock className="h-4 w-4 mr-1 text-muted-foreground" />
-                                          <span>{format(scheduledDate, 'h:mm a')}</span>
-                                        </div>
-                                      </TableCell>
-                                      <TableCell>
-                                        <div className="flex items-center">
-                                          <MapPin className="h-4 w-4 mr-1 text-muted-foreground" />
-                                          <span className="truncate max-w-[120px]" title={collection.address}>
-                                            {collection.address}
-                                          </span>
-                                        </div>
-                                      </TableCell>
-                                      <TableCell>
-                                        <div className="flex items-center">
-                                          <Scale className="h-4 w-4 mr-1 text-muted-foreground" />
-                                          <span>{collection.wasteAmount || 10}kg</span>
+                                          <div>
+                                            <div className="text-sm font-medium capitalize">{collection.wasteType}</div>
+                                            <div className="text-xs text-muted-foreground">{format(scheduledDate, 'MMM dd, yyyy')}</div>
+                                          </div>
                                         </div>
                                       </TableCell>
                                       <TableCell>
                                         {getStatusBadge(collection.status)}
                                       </TableCell>
                                       <TableCell>
-                                        <DropdownMenu>
-                                          <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                                              <MoreHorizontal className="h-4 w-4" />
-                                            </Button>
-                                          </DropdownMenuTrigger>
-                                          <DropdownMenuContent align="end">
-                                            <DropdownMenuItem
-                                              onClick={() => handleViewDetails(collection)}
-                                            >
-                                              <Calendar className="mr-2 h-4 w-4" />
-                                              View Details
-                                            </DropdownMenuItem>
-                                          </DropdownMenuContent>
-                                        </DropdownMenu>
+                                        {estimate ? (
+                                          estimate.category === PricingCategory.HIGH_VALUE ? (
+                                            <span className="text-green-600 font-semibold text-sm">+KSh {Math.abs(estimate.total).toFixed(0)}</span>
+                                          ) : estimate.category === PricingCategory.BREAK_EVEN ? (
+                                            <span className="text-blue-600 text-sm">Free</span>
+                                          ) : (
+                                            <span className="text-orange-600 font-semibold text-sm">KSh {estimate.total.toFixed(0)}</span>
+                                          )
+                                        ) : (
+                                          <span className="text-muted-foreground text-sm">—</span>
+                                        )}
+                                      </TableCell>
+                                      <TableCell>
+                                        <Button 
+                                          variant="ghost" 
+                                          size="sm" 
+                                          className="h-8 text-xs"
+                                          onClick={() => handleViewDetails(collection)}
+                                        >
+                                          <FileText className="h-3.5 w-3.5 mr-1" />
+                                          Details
+                                        </Button>
                                       </TableCell>
                                     </TableRow>
                                   );

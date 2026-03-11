@@ -40,6 +40,24 @@ export const createUserWithEmail = async (email: string, password: string) => {
     return { user: userCredential.user, success: true };
   } catch (error: any) {
     console.error("Error creating user:", error);
+    
+    if (error.code === 'auth/email-already-in-use') {
+      return {
+        success: false,
+        error: "EMAIL_EXISTS",
+      };
+    } else if (error.code === 'auth/invalid-email') {
+      return {
+        success: false,
+        error: "Please enter a valid email address.",
+      };
+    } else if (error.code === 'auth/weak-password') {
+      return {
+        success: false,
+        error: "Password is too weak. Please use at least 6 characters.",
+      };
+    }
+    
     return { 
       success: false, 
       error: error.message || "Failed to create account. Please try again."

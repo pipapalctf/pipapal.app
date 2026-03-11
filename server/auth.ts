@@ -122,7 +122,7 @@ export function setupAuth(app: Express) {
   // Firebase Google login route
   app.post("/api/login-with-google", async (req, res, next) => {
     try {
-      const { email, uid, displayName, role } = req.body;
+      const { email, uid, displayName, role, isRegistering } = req.body;
       
       if (!email || !uid) {
         return res.status(400).json({ message: "Email and UID are required" });
@@ -132,6 +132,12 @@ export function setupAuth(app: Express) {
       let user = await storage.getUserByEmail(email);
       
       if (user) {
+        if (isRegistering) {
+          return res.status(409).json({ 
+            message: "An account with this email already exists. Please log in instead." 
+          });
+        }
+        
         // User exists, update Firebase UID if needed
         if (!user.firebaseUid) {
           const updatedUser = await storage.updateUser(user.id, { 
@@ -143,8 +149,6 @@ export function setupAuth(app: Express) {
             user = updatedUser;
           }
         }
-        // For existing users, we don't change their role, even if the client sent one
-        // We just log them in with their existing account
       } else {
         // Only create a new user if one doesn't exist yet
         // If role is undefined or not provided (for logins), we need to return an error

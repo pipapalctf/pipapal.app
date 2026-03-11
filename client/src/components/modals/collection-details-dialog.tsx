@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Collection, User, UserRole } from '@shared/schema';
+import { Collection, User, UserRole, wastePricingConfig, getCustomerCostEstimate, getCollectorEarnings, PricingCategory } from '@shared/schema';
 import { Badge } from '@/components/ui/badge';
 import { wasteTypeConfig } from '@/lib/types';
 import { 
@@ -28,7 +28,8 @@ import {
   CheckCircle2,
   ThumbsUp,
   Building,
-  ShoppingBag
+  ShoppingBag,
+  KeyRound
 } from 'lucide-react';
 import { formatNumber } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
@@ -86,7 +87,7 @@ function InterestsSection({ collectionId, showForRoles }: InterestsSectionProps)
     );
   }
   
-  if (!interests || interests.length === 0) {
+  if (!interests || !Array.isArray(interests) || interests.length === 0) {
     return (
       <div className="grid gap-2">
         <h3 className="text-sm font-medium">Recycler Interests</h3>
@@ -120,6 +121,8 @@ function InterestsSection({ collectionId, showForRoles }: InterestsSectionProps)
                     ? "bg-green-50 text-green-700 border-green-200" 
                     : interest.status === 'rejected'
                     ? "bg-red-50 text-red-700 border-red-200"
+                    : interest.status === 'completed'
+                    ? "bg-green-50 text-green-700 border-green-200"
                     : "bg-blue-50 text-blue-700 border-blue-200"
                 }
               >
@@ -127,32 +130,36 @@ function InterestsSection({ collectionId, showForRoles }: InterestsSectionProps)
               </Badge>
             </div>
             
-            {interest.message && (
-              <div className="mb-2">
-                <p className="text-sm">{interest.message}</p>
-              </div>
-            )}
+            <div className="grid gap-1.5 mt-1">
+              {interest.recycler?.email && (
+                <div className="flex items-center text-sm">
+                  <Mail className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                  <span>{interest.recycler.email}</span>
+                </div>
+              )}
+              {interest.recycler?.phone && (
+                <div className="flex items-center text-sm">
+                  <Phone className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                  <span>{interest.recycler.phone}</span>
+                </div>
+              )}
+            </div>
             
-            <div className="text-xs text-muted-foreground flex items-center justify-between mt-1">
-              <span>Requested {new Date(interest.timestamp).toLocaleDateString()}</span>
-              
-              <div className="flex gap-2">
+            <div className="flex justify-end gap-2 mt-2">
+              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" asChild>
+                <a href={`mailto:${interest.recycler?.email}`}>
+                  <Mail className="h-3 w-3 mr-1" />
+                  Email
+                </a>
+              </Button>
+              {interest.recycler?.phone && (
                 <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" asChild>
-                  <a href={`mailto:${interest.recycler?.email}`}>
-                    <Mail className="h-3 w-3 mr-1" />
-                    Contact
+                  <a href={`tel:${interest.recycler.phone}`}>
+                    <Phone className="h-3 w-3 mr-1" />
+                    Call
                   </a>
                 </Button>
-                
-                {interest.recycler?.phone && (
-                  <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" asChild>
-                    <a href={`tel:${interest.recycler.phone}`}>
-                      <Phone className="h-3 w-3 mr-1" />
-                      Call
-                    </a>
-                  </Button>
-                )}
-              </div>
+              )}
             </div>
           </div>
         ))}
@@ -295,11 +302,31 @@ export function CollectionDetailsDialog({
                       <span className="text-sm font-medium">{collection.wasteAmount ? `${formatNumber(collection.wasteAmount)} kg` : 'Not recorded'}</span>
                     </div>
                     
-                    <div className="flex items-center">
-                      <CircleDollarSign className="h-4 w-4 mr-2 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground mr-1">Est. Value:</span>
-                      <span className="text-sm font-medium">${formatNumber((collection.wasteAmount || 0) * 0.2, 2)}</span>
-                    </div>
+                    {(() => {
+                      const estimate = getCustomerCostEstimate(collection.wasteType, collection.wasteAmount || 0);
+                      const isHighValue = estimate.category === PricingCategory.HIGH_VALUE;
+                      const isBreakEven = estimate.category === PricingCategory.BREAK_EVEN;
+                      return (
+                        <div className="flex items-center">
+                          <CircleDollarSign className={`h-4 w-4 mr-2 ${isHighValue ? 'text-green-500' : isBreakEven ? 'text-blue-500' : 'text-orange-500'}`} />
+                          <span className="text-sm text-muted-foreground mr-1">Est. Value:</span>
+                          {isHighValue ? (
+                            <span className="text-sm font-medium text-green-700">You earned KSh {formatNumber(Math.abs(estimate.total), 2)}</span>
+                          ) : isBreakEven ? (
+                            <span className="text-sm font-medium text-blue-700">Free collection</span>
+                          ) : (
+                            <span className="text-sm font-medium text-orange-700">Fee: KSh {formatNumber(estimate.total, 2)}</span>
+                          )}
+                        </div>
+                      );
+                    })()}
+                    {user?.role === UserRole.COLLECTOR && collection.wasteAmount && (
+                      <div className="flex items-center">
+                        <CircleDollarSign className="h-4 w-4 mr-2 text-green-500" />
+                        <span className="text-sm text-muted-foreground mr-1">Your earnings:</span>
+                        <span className="text-sm font-medium text-green-700">KSh {formatNumber(getCollectorEarnings(collection.wasteType, collection.wasteAmount), 2)}</span>
+                      </div>
+                    )}
                     
                     {collection.wasteDescription && (
                       <div className="flex">
@@ -349,6 +376,24 @@ export function CollectionDetailsDialog({
                     </div>
                   </div>
                 </div>
+                
+                {collection.status === 'in_progress' && collection.verificationCode && user?.role !== 'collector' && (
+                  <div className="grid gap-2">
+                    <h3 className="text-sm font-medium">Pickup Verification</h3>
+                    <div className="bg-amber-50 border border-amber-200 p-3 rounded-md">
+                      <div className="flex items-center gap-2 mb-1">
+                        <KeyRound className="h-4 w-4 text-amber-600" />
+                        <span className="text-sm font-medium text-amber-800">Your verification code:</span>
+                      </div>
+                      <div className="text-center py-2">
+                        <span className="font-mono font-bold text-2xl tracking-[0.3em] text-amber-900 bg-amber-100 px-4 py-1 rounded">
+                          {collection.verificationCode}
+                        </span>
+                      </div>
+                      <p className="text-xs text-amber-700 text-center mt-1">Share this code with the collector to confirm your pickup</p>
+                    </div>
+                  </div>
+                )}
                 
                 {/* Requester Information - For collectors and recyclers */}
                 {(collection.userId && (user?.role === UserRole.COLLECTOR || user?.role === UserRole.RECYCLER)) && (

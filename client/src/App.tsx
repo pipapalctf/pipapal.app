@@ -46,7 +46,7 @@ function Router() {
       <ProtectedRoute path="/profile" component={ProfilePage} />
       <ProtectedRoute path="/billing" component={BillingPage} />
       <ProtectedRoute path="/onboarding" component={OnboardingPage} skipOnboardingCheck={true} />
-      <Route path="/recycling-centers" component={RecyclingCentersPage} />
+      <ProtectedRoute path="/recycling-centers" component={RecyclingCentersPage} roleCheck={UserRole.COLLECTOR} />
       <Route path="/auth" component={AuthPage} />
       <Route path="/about" component={AboutPage} />
       <Route path="/mission" component={MissionPage} />

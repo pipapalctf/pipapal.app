@@ -30,7 +30,6 @@ export default function Footer() {
               <h4 className="font-medium mb-3">Services</h4>
               <ul className="space-y-2">
                 <li><Link href="/collections" className="text-muted-foreground hover:text-foreground transition-colors">Waste Collection</Link></li>
-                <li><Link href="/recycling-centers" className="text-muted-foreground hover:text-foreground transition-colors">Recycling Centers</Link></li>
                 <li><Link href="/eco-tips" className="text-muted-foreground hover:text-foreground transition-colors">EcoTips</Link></li>
               </ul>
             </div>

@@ -400,7 +400,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         key !== 'collectorId' && 
         key !== 'notes' && 
         key !== 'wasteAmount' && 
-        key !== 'completedDate')) {
+        key !== 'completedDate' &&
+        key !== 'dropoffCenterId' &&
+        key !== 'dropoffStatus' &&
+        key !== 'verificationCode')) {
         return res.status(403).json({
           error: 'Access denied',
           message: 'Collectors can only update status, claim collections, or add notes'
@@ -408,6 +411,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const updates = { ...req.body };
+      
+      if (updates.dropoffCenterId && updates.collectorId) {
+        const code = 'DP-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+        updates.dropoffCode = code;
+        updates.dropoffStatus = 'pending';
+      }
+      
+      if (updates.status === CollectionStatus.IN_PROGRESS && collection.status !== CollectionStatus.IN_PROGRESS) {
+        const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+        updates.verificationCode = verificationCode;
+      }
+      
+      if (updates.status === CollectionStatus.COMPLETED) {
+        if (!updates.verificationCode) {
+          return res.status(400).json({ error: 'Verification code is required to complete a collection' });
+        }
+        if (collection.verificationCode && updates.verificationCode !== collection.verificationCode) {
+          return res.status(400).json({ error: 'Invalid verification code' });
+        }
+        delete updates.verificationCode;
+      }
       
       const updatedCollection = await storage.updateCollection(id, updates);
       
@@ -473,6 +497,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
   );
   
+  app.post("/api/collections/bulk-claim", requireAuthentication, requireRole(UserRole.COLLECTOR), async (req: any, res: any) => {
+    try {
+      const { collectionIds, dropoffCenterId } = req.body;
+      
+      if (!Array.isArray(collectionIds) || collectionIds.length === 0) {
+        return res.status(400).json({ error: "collectionIds must be a non-empty array" });
+      }
+      
+      if (!dropoffCenterId) {
+        return res.status(400).json({ error: "dropoffCenterId is required" });
+      }
+      
+      const results = [];
+      const errors = [];
+      
+      for (const collectionId of collectionIds) {
+        try {
+          const collection = await storage.getCollection(collectionId);
+          if (!collection) {
+            errors.push({ id: collectionId, error: "Collection not found" });
+            continue;
+          }
+          if (collection.collectorId) {
+            errors.push({ id: collectionId, error: "Already claimed" });
+            continue;
+          }
+          if (collection.status !== CollectionStatus.SCHEDULED) {
+            errors.push({ id: collectionId, error: "Not in scheduled status" });
+            continue;
+          }
+          
+          const code = 'DP-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+          
+          const updated = await storage.updateCollection(collectionId, {
+            collectorId: req.user.id,
+            status: CollectionStatus.CONFIRMED,
+            dropoffCenterId,
+            dropoffStatus: 'pending',
+            dropoffCode: code,
+          });
+          
+          if (updated) {
+            results.push(updated);
+            
+            try {
+              const userClients = clients.get(collection.userId) || [];
+              const notification = {
+                type: 'collection_update',
+                collectionId: collection.id,
+                status: CollectionStatus.CONFIRMED,
+                message: `Your ${collection.wasteType} collection has been claimed by a collector`
+              };
+              userClients.forEach((client: any) => {
+                if (client.readyState === WebSocket.OPEN) {
+                  client.send(JSON.stringify(notification));
+                }
+              });
+            } catch (e) {
+              // notification failure is non-critical
+            }
+          }
+        } catch (e) {
+          errors.push({ id: collectionId, error: "Failed to claim" });
+        }
+      }
+      
+      res.json({ 
+        claimed: results.length, 
+        failed: errors.length,
+        errors: errors.length > 0 ? errors : undefined,
+        collections: results
+      });
+    } catch (error) {
+      console.error("Error bulk claiming collections:", error);
+      res.status(500).json({ error: "Failed to bulk claim collections" });
+    }
+  });
+
   // Environmental Impact - Role-specific impact data
   app.get("/api/impact", 
     requirePermission(Permissions.VIEW_PICKUP_HISTORY),
@@ -1530,6 +1632,260 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/recyclers", requireAuthentication, async (req: any, res: any) => {
+    try {
+      const recyclers = await storage.getUsersByRole(UserRole.RECYCLER);
+      const wasteType = req.query.wasteType as string | undefined;
+      
+      const filtered = recyclers
+        .filter(r => r.onboardingCompleted)
+        .filter(r => r.acceptingWaste !== false)
+        .filter(r => {
+          if (!wasteType) return true;
+          const specializations = r.wasteSpecialization || [];
+          return specializations.length === 0 || specializations.includes(wasteType);
+        })
+        .map(r => ({
+          id: r.id,
+          businessName: r.businessName || r.fullName || r.username,
+          fullName: r.fullName,
+          address: r.address || '',
+          serviceLocation: r.serviceLocation || '',
+          wasteSpecialization: r.wasteSpecialization || [],
+          serviceType: r.serviceType || '',
+          isCertified: r.isCertified || false,
+        }));
+      
+      const enriched = await Promise.all(filtered.map(async (r) => {
+        const limits = await storage.getWasteAcceptanceLimits(r.id);
+        const relevantLimit = wasteType ? limits.find(l => l.wasteType === wasteType) : null;
+        return {
+          ...r,
+          acceptanceLimits: limits.map(l => ({
+            wasteType: l.wasteType,
+            limitAmount: l.limitAmount,
+            currentUsed: l.currentUsed || 0,
+            remaining: l.limitAmount - (l.currentUsed || 0),
+            period: l.period,
+          })),
+          relevantLimit: relevantLimit ? {
+            limitAmount: relevantLimit.limitAmount,
+            currentUsed: relevantLimit.currentUsed || 0,
+            remaining: relevantLimit.limitAmount - (relevantLimit.currentUsed || 0),
+            period: relevantLimit.period,
+          } : null,
+        };
+      }));
+
+      const finalFiltered = wasteType 
+        ? enriched.filter(r => !r.relevantLimit || r.relevantLimit.remaining > 0)
+        : enriched;
+
+      res.json(finalFiltered);
+    } catch (error) {
+      console.error("Error fetching recyclers:", error);
+      res.status(500).json({ error: "Failed to fetch recyclers" });
+    }
+  });
+
+  app.patch("/api/recycler/accepting-waste", requireAuthentication, requireRole(UserRole.RECYCLER), async (req: any, res: any) => {
+    try {
+      const { acceptingWaste } = req.body;
+      if (typeof acceptingWaste !== "boolean") {
+        return res.status(400).json({ error: "acceptingWaste must be a boolean" });
+      }
+      const updated = await storage.updateUser(req.user.id, { acceptingWaste });
+      res.json({ acceptingWaste: updated?.acceptingWaste });
+    } catch (error) {
+      console.error("Error updating accepting waste:", error);
+      res.status(500).json({ error: "Failed to update" });
+    }
+  });
+
+  app.get("/api/dropoffs", requireAuthentication, requireRole(UserRole.RECYCLER), async (req: any, res: any) => {
+    try {
+      const allCollections = await storage.getAllCollections();
+      
+      const collectionsForThisRecycler = allCollections.filter(
+        (c: any) => c.dropoffCenterId === req.user.id
+      );
+      
+      const enriched = await Promise.all(collectionsForThisRecycler.map(async (c: any) => {
+        const collector = c.collectorId ? await storage.getUser(c.collectorId) : null;
+        const household = await storage.getUser(c.userId);
+        let collectorRating = { average: 0, count: 0 };
+        if (collector) {
+          collectorRating = await storage.getAverageRatingForUser(collector.id);
+        }
+        return {
+          ...c,
+          recyclerName: req.user.fullName || req.user.username,
+          collectorName: collector ? (collector.fullName || collector.username) : null,
+          householdName: household ? (household.fullName || household.username) : null,
+          collectorDetails: collector ? {
+            email: collector.email,
+            phone: collector.phone || null,
+            businessName: collector.businessName || null,
+            serviceLocation: collector.serviceLocation || null,
+            isCertified: collector.isCertified || false,
+            rating: Math.round(collectorRating.average * 10) / 10,
+            ratingCount: collectorRating.count,
+          } : null,
+        };
+      }));
+      
+      res.json(enriched);
+    } catch (error) {
+      console.error("Error fetching dropoffs:", error);
+      res.status(500).json({ error: "Failed to fetch dropoffs" });
+    }
+  });
+
+  app.get("/api/waste-acceptance-limits/:recyclerId", requireAuthentication, async (req: any, res: any) => {
+    try {
+      const recyclerId = parseInt(req.params.recyclerId);
+      if (isNaN(recyclerId)) return res.status(400).json({ error: "Invalid recycler ID" });
+      const limits = await storage.getWasteAcceptanceLimits(recyclerId);
+      res.json(limits);
+    } catch (error) {
+      console.error("Error fetching waste acceptance limits:", error);
+      res.status(500).json({ error: "Failed to fetch limits" });
+    }
+  });
+
+  app.put("/api/waste-acceptance-limits", requireAuthentication, requireRole(UserRole.RECYCLER), async (req: any, res: any) => {
+    try {
+      const { limits } = req.body;
+      if (!Array.isArray(limits)) {
+        return res.status(400).json({ error: "limits must be an array" });
+      }
+
+      await storage.deleteAllWasteAcceptanceLimits(req.user.id);
+
+      const results = await Promise.all(
+        limits.map((l: any) =>
+          storage.upsertWasteAcceptanceLimit(req.user.id, l.wasteType, l.limitAmount, l.period)
+        )
+      );
+
+      await storage.updateUser(req.user.id, { acceptingWaste: limits.length > 0 });
+
+      res.json(results);
+    } catch (error) {
+      console.error("Error saving waste acceptance limits:", error);
+      res.status(500).json({ error: "Failed to save limits" });
+    }
+  });
+
+  app.post("/api/collections/:id/confirm-dropoff", requireAuthentication, requireRole(UserRole.COLLECTOR), async (req: any, res: any) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).send("Invalid ID format");
+
+      const { dropoffCode } = req.body;
+      const collection = await storage.getCollection(id);
+      if (!collection) return res.status(404).json({ error: "Collection not found" });
+
+      if (collection.collectorId !== req.user.id) {
+        return res.status(403).json({ error: "This collection is not assigned to you" });
+      }
+
+      if (collection.dropoffCode !== dropoffCode) {
+        return res.status(400).json({ error: "Invalid drop-off code. Please check with the recycler." });
+      }
+
+      if (collection.dropoffConfirmed) {
+        return res.status(400).json({ error: "Drop-off already confirmed" });
+      }
+
+      const updated = await storage.updateCollection(id, { 
+        dropoffConfirmed: true,
+        dropoffStatus: 'confirmed'
+      });
+
+      if (updated && collection.wasteAmount && collection.dropoffCenterId) {
+        const limits = await storage.getWasteAcceptanceLimits(collection.dropoffCenterId);
+        const matchingLimit = limits.find(l => l.wasteType === collection.wasteType);
+        if (matchingLimit) {
+          await storage.updateWasteAcceptanceLimitUsage(matchingLimit.id, collection.wasteAmount);
+        }
+      }
+
+      if (updated && collection.dropoffCenterId) {
+        try {
+          const recyclerClients = clients.get(collection.dropoffCenterId) || [];
+          const collectorName = req.user.businessName || req.user.fullName || req.user.username;
+          const notification = {
+            type: 'dropoff_confirmed',
+            collectionId: collection.id,
+            message: `${collectorName} has confirmed delivering ${collection.wasteAmount || 0} kg of ${collection.wasteType} waste.`
+          };
+          recyclerClients.forEach((ws: any) => {
+            if (ws.readyState === 1) ws.send(JSON.stringify(notification));
+          });
+        } catch (e) {
+          console.error("Error sending dropoff confirmation notification:", e);
+        }
+      }
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Error confirming dropoff:", error);
+      res.status(500).json({ error: "Failed to confirm drop-off" });
+    }
+  });
+
+  app.patch("/api/collections/:id/dropoff-status", requireAuthentication, requireRole(UserRole.RECYCLER), async (req: any, res: any) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).send("Invalid ID format");
+      
+      const { dropoffStatus } = req.body;
+      if (!dropoffStatus || !['accepted', 'rejected'].includes(dropoffStatus)) {
+        return res.status(400).json({ error: "dropoffStatus must be 'accepted' or 'rejected'" });
+      }
+      
+      const collection = await storage.getCollection(id);
+      if (!collection) return res.status(404).send("Collection not found");
+      
+      if (!collection.dropoffCenterId) {
+        return res.status(400).json({ error: "This collection has no drop-off center assigned" });
+      }
+      
+      const updated = await storage.updateCollection(id, { dropoffStatus });
+      
+      if (updated && collection.collectorId) {
+        try {
+          const collectorClients = clients.get(collection.collectorId) || [];
+          const recycler = await storage.getUser(collection.dropoffCenterId);
+          const centerName = recycler ? (recycler.businessName || recycler.fullName || recycler.username) : 'The recycler';
+          
+          const notification = {
+            type: 'dropoff_update',
+            collectionId: collection.id,
+            dropoffStatus,
+            message: dropoffStatus === 'accepted' 
+              ? `${centerName} has accepted your drop-off for ${collection.wasteType} waste`
+              : `${centerName} has rejected your drop-off for ${collection.wasteType} waste. Please select another center.`
+          };
+          
+          collectorClients.forEach((client: any) => {
+            if (client.readyState === WebSocket.OPEN) {
+              client.send(JSON.stringify(notification));
+            }
+          });
+        } catch (err) {
+          console.error('Error sending dropoff WebSocket notification:', err);
+        }
+      }
+      
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating dropoff status:", error);
+      res.status(500).json({ error: "Failed to update dropoff status" });
+    }
+  });
+
   // Only admin users can create recycling centers
   app.post("/api/recycling-centers", requireAuthentication, requireRole(UserRole.ADMIN), async (req, res) => {
     try {
@@ -1894,7 +2250,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const auth = Buffer.from(`${consumerKey}:${consumerSecret}`).toString('base64');
     try {
       const response = await fetch(
-        'https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials',
+        'https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials',
         { 
           headers: { Authorization: `Basic ${auth}` },
           signal: AbortSignal.timeout(15000),
@@ -1995,12 +2351,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         PartyB: shortCode,
         PhoneNumber: formattedPhone,
         CallBackURL: callbackUrl,
-        AccountReference: collectionId ? `COL${collectionId}` : `PAY${userId}`,
-        TransactionDesc: collectionId ? `Payment for waste collection #${collectionId}` : 'PipaPal payment',
+        AccountReference: 'PipaPal',
+        TransactionDesc: collectionId ? `PipaPal waste collection #${collectionId}` : 'PipaPal payment',
       };
 
       const stkResponse = await fetch(
-        'https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest',
+        'https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest',
         {
           method: 'POST',
           headers: {
@@ -2119,6 +2475,223 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching user payments:', error);
       res.status(500).json({ error: 'Failed to fetch payments' });
+    }
+  });
+
+  app.get('/api/wallet', requireAuthentication, async (req: any, res: any) => {
+    try {
+      let wallet = await storage.getWalletByUserId(req.user!.id);
+      if (!wallet) {
+        wallet = await storage.createWallet({ userId: req.user!.id, balance: 0 });
+      }
+      res.json(wallet);
+    } catch (error) {
+      console.error('Error fetching wallet:', error);
+      res.status(500).json({ error: 'Failed to fetch wallet' });
+    }
+  });
+
+  app.get('/api/wallet/transactions', requireAuthentication, async (req: any, res: any) => {
+    try {
+      const transactions = await storage.getWalletTransactions(req.user!.id);
+      res.json(transactions);
+    } catch (error) {
+      console.error('Error fetching wallet transactions:', error);
+      res.status(500).json({ error: 'Failed to fetch wallet transactions' });
+    }
+  });
+
+  app.post('/api/wallet/topup', requireAuthentication, async (req: any, res: any) => {
+    try {
+      const { amount, phoneNumber } = req.body;
+      if (!amount || amount <= 0) {
+        return res.status(400).json({ error: 'Invalid amount' });
+      }
+      if (!phoneNumber) {
+        return res.status(400).json({ error: 'Phone number is required' });
+      }
+
+      let formattedPhone = phoneNumber.replace(/\s+/g, '').replace(/[^0-9+]/g, '');
+      if (formattedPhone.startsWith('+254')) {
+        formattedPhone = formattedPhone.substring(1);
+      } else if (formattedPhone.startsWith('0')) {
+        formattedPhone = '254' + formattedPhone.substring(1);
+      }
+
+      const consumerKey = process.env.MPESA_CONSUMER_KEY;
+      const consumerSecret = process.env.MPESA_CONSUMER_SECRET;
+      const shortcode = process.env.MPESA_SHORTCODE || '174379';
+      const passkey = process.env.MPESA_PASSKEY || 'bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919';
+      const callbackUrl = process.env.MPESA_CALLBACK_URL || 'https://example.com/api/wallet/topup/callback';
+
+      let wallet = await storage.getWalletByUserId(req.user!.id);
+      if (!wallet) {
+        wallet = await storage.createWallet({ userId: req.user!.id, balance: 0 });
+      }
+
+      if (!consumerKey || !consumerSecret) {
+        const newBalance = wallet.balance + amount;
+        await storage.updateWalletBalance(req.user!.id, newBalance);
+
+        await storage.createWalletTransaction({
+          walletId: wallet.id,
+          userId: req.user!.id,
+          type: 'topup',
+          amount: amount,
+          description: `M-Pesa top-up from ${formattedPhone}`,
+          referenceId: `SIM_${Date.now()}`,
+          balanceAfter: newBalance,
+        });
+
+        const updatedWallet = await storage.getWalletByUserId(req.user!.id);
+        return res.json({ 
+          success: true, 
+          message: 'Wallet topped up successfully (sandbox mode)',
+          wallet: updatedWallet 
+        });
+      }
+
+      const auth = Buffer.from(`${consumerKey}:${consumerSecret}`).toString('base64');
+      const tokenResponse = await fetch(
+        'https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials',
+        { headers: { Authorization: `Basic ${auth}` } }
+      );
+      const tokenData = await tokenResponse.json() as any;
+      const accessToken = tokenData.access_token;
+
+      const timestamp = new Date().toISOString().replace(/[-:T.Z]/g, '').slice(0, 14);
+      const password = Buffer.from(`${shortcode}${passkey}${timestamp}`).toString('base64');
+
+      const stkResponse = await fetch(
+        'https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest',
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            BusinessShortCode: shortcode,
+            Password: password,
+            Timestamp: timestamp,
+            TransactionType: 'CustomerPayBillOnline',
+            Amount: Math.round(amount),
+            PartyA: formattedPhone,
+            PartyB: shortcode,
+            PhoneNumber: formattedPhone,
+            CallBackURL: callbackUrl.replace('/api/payments/callback', '/api/wallet/topup/callback'),
+            AccountReference: `PipaPal-Wallet-${req.user!.id}`,
+            TransactionDesc: 'PipaPal Wallet Top Up',
+          }),
+        }
+      );
+
+      const stkData = await stkResponse.json() as any;
+
+      if (stkData.ResponseCode === '0') {
+        const isSandbox = !callbackUrl || callbackUrl.includes('example.com');
+
+        const payment = await storage.createPayment({
+          userId: req.user!.id,
+          collectionId: null,
+          amount: amount,
+          phoneNumber: formattedPhone,
+          status: isSandbox ? 'success' : 'pending',
+          merchantRequestId: stkData.MerchantRequestID,
+          checkoutRequestId: stkData.CheckoutRequestID,
+        });
+
+        if (isSandbox) {
+          const newBalance = wallet.balance + amount;
+          await storage.updateWalletBalance(req.user!.id, newBalance);
+
+          await storage.createWalletTransaction({
+            walletId: wallet.id,
+            userId: req.user!.id,
+            type: 'topup',
+            amount: amount,
+            description: `M-Pesa top-up from ${formattedPhone}`,
+            referenceId: stkData.CheckoutRequestID || `STK_${Date.now()}`,
+            balanceAfter: newBalance,
+          });
+
+          const updatedWallet = await storage.getWalletByUserId(req.user!.id);
+          return res.json({
+            success: true,
+            message: 'Wallet topped up successfully',
+            wallet: updatedWallet,
+          });
+        }
+
+        res.json({
+          success: true,
+          message: 'STK push sent to your phone',
+          checkoutRequestId: stkData.CheckoutRequestID,
+          paymentId: payment.id,
+        });
+      } else {
+        res.status(400).json({ error: stkData.errorMessage || 'STK push failed' });
+      }
+    } catch (error) {
+      console.error('Error processing wallet top-up:', error);
+      res.status(500).json({ error: 'Failed to process top-up' });
+    }
+  });
+
+  app.post('/api/wallet/topup/callback', async (req: any, res: any) => {
+    try {
+      const { Body } = req.body;
+      if (!Body?.stkCallback) {
+        return res.json({ ResultCode: 0, ResultDesc: 'Accepted' });
+      }
+
+      const { ResultCode, CheckoutRequestID, CallbackMetadata } = Body.stkCallback;
+      const payment = await storage.getPaymentByCheckoutRequestId(CheckoutRequestID);
+      if (!payment) {
+        return res.json({ ResultCode: 0, ResultDesc: 'Accepted' });
+      }
+
+      if (ResultCode === 0) {
+        let mpesaReceipt = '';
+        if (CallbackMetadata?.Item) {
+          const receiptItem = CallbackMetadata.Item.find((i: any) => i.Name === 'MpesaReceiptNumber');
+          if (receiptItem) mpesaReceipt = receiptItem.Value;
+        }
+
+        await storage.updatePayment(payment.id, {
+          status: 'success',
+          resultCode: ResultCode,
+          mpesaReceiptNumber: mpesaReceipt,
+        });
+
+        let wallet = await storage.getWalletByUserId(payment.userId);
+        if (!wallet) {
+          wallet = await storage.createWallet({ userId: payment.userId, balance: 0 });
+        }
+
+        const newBalance = wallet.balance + payment.amount;
+        await storage.updateWalletBalance(payment.userId, newBalance);
+
+        await storage.createWalletTransaction({
+          walletId: wallet.id,
+          userId: payment.userId,
+          type: 'topup',
+          amount: payment.amount,
+          description: `M-Pesa top-up (${mpesaReceipt})`,
+          referenceId: mpesaReceipt || CheckoutRequestID,
+          balanceAfter: newBalance,
+        });
+      } else {
+        await storage.updatePayment(payment.id, {
+          status: ResultCode === 1032 ? 'cancelled' : 'failed',
+          resultCode: ResultCode,
+        });
+      }
+
+      res.json({ ResultCode: 0, ResultDesc: 'Accepted' });
+    } catch (error) {
+      console.error('Error processing wallet callback:', error);
+      res.json({ ResultCode: 0, ResultDesc: 'Accepted' });
     }
   });
 
