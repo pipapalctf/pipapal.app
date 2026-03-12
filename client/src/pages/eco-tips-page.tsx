@@ -143,15 +143,12 @@ function EcoBuddySkeleton() {
 
 export default function EcoTipsPage() {
   const { user } = useAuth();
-  const [refreshKey, setRefreshKey] = useState(0);
-
   const { data: insights, isLoading, isError, refetch, isFetching } = useQuery<EcoBuddyInsights>({
-    queryKey: ["/api/eco-buddy/tips", refreshKey],
-    staleTime: 5 * 60 * 1000,
+    queryKey: ["/api/eco-buddy/tips"],
+    staleTime: 0,
   });
 
   const handleRefresh = () => {
-    setRefreshKey((k) => k + 1);
     refetch();
   };
 
