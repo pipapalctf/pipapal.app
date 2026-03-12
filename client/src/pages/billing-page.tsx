@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Payment, PaymentStatus, Wallet, WalletTransaction, WalletTransactionType } from "@shared/schema";
+import { Payment, PaymentStatus, Wallet, WalletTransaction, WalletTransactionType, UserRole } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -115,19 +115,11 @@ function TopUpDialog() {
   const handleSubmit = () => {
     const parsedAmount = parseFloat(amount);
     if (isNaN(parsedAmount) || parsedAmount < 10) {
-      toast({
-        title: "Invalid amount",
-        description: "Minimum top-up amount is KSh 10.",
-        variant: "destructive",
-      });
+      toast({ title: "Invalid amount", description: "Minimum top-up amount is KSh 10.", variant: "destructive" });
       return;
     }
     if (!phoneNumber.trim()) {
-      toast({
-        title: "Phone required",
-        description: "Please enter your M-Pesa phone number.",
-        variant: "destructive",
-      });
+      toast({ title: "Phone required", description: "Please enter your M-Pesa phone number.", variant: "destructive" });
       return;
     }
     topUpMutation.mutate({ amount: parsedAmount, phoneNumber });
@@ -149,47 +141,25 @@ function TopUpDialog() {
             <Smartphone className="h-5 w-5 text-green-600" />
             Top Up Wallet via M-Pesa
           </DialogTitle>
-          <DialogDescription>
-            Enter your M-Pesa phone number and amount to add funds to your wallet.
-          </DialogDescription>
+          <DialogDescription>Enter your M-Pesa phone number and amount to add funds to your wallet.</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="space-y-2">
             <Label htmlFor="phone">M-Pesa Phone Number</Label>
             <div className="relative">
               <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="phone"
-                placeholder="e.g. 0712345678"
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                className="pl-10"
-              />
+              <Input id="phone" placeholder="e.g. 0712345678" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} className="pl-10" />
             </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="amount">Amount (KSh)</Label>
-            <Input
-              id="amount"
-              type="number"
-              placeholder="Enter amount"
-              min={10}
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-            />
+            <Input id="amount" type="number" placeholder="Enter amount" min={10} value={amount} onChange={(e) => setAmount(e.target.value)} />
           </div>
           <div className="space-y-2">
             <Label className="text-xs text-muted-foreground">Quick amounts</Label>
             <div className="flex flex-wrap gap-2">
               {quickAmounts.map((qa) => (
-                <Button
-                  key={qa}
-                  type="button"
-                  variant={amount === String(qa) ? "default" : "outline"}
-                  size="sm"
-                  className="text-xs"
-                  onClick={() => setAmount(String(qa))}
-                >
+                <Button key={qa} type="button" variant={amount === String(qa) ? "default" : "outline"} size="sm" className="text-xs" onClick={() => setAmount(String(qa))}>
                   KSh {qa.toLocaleString()}
                 </Button>
               ))}
@@ -198,17 +168,109 @@ function TopUpDialog() {
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={topUpMutation.isPending}
-            className="bg-green-600 hover:bg-green-700"
-          >
-            {topUpMutation.isPending ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Smartphone className="h-4 w-4 mr-2" />
-            )}
+          <Button onClick={handleSubmit} disabled={topUpMutation.isPending} className="bg-green-600 hover:bg-green-700">
+            {topUpMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Smartphone className="h-4 w-4 mr-2" />}
             {topUpMutation.isPending ? "Processing..." : `Top Up${amount ? ` KSh ${parseFloat(amount).toLocaleString()}` : ""}`}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function WithdrawDialog({ balance }: { balance: number }) {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+  const [amount, setAmount] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState(user?.phone || "");
+
+  const withdrawMutation = useMutation({
+    mutationFn: async (data: { amount: number; phoneNumber: string }) => {
+      const res = await apiRequest("POST", "/api/wallet/withdraw", data);
+      if (!res.ok) { const err = await res.json(); throw new Error(err.error); }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast({ title: "Withdrawal successful", description: data.message || `KSh ${amount} sent to your M-Pesa.` });
+      queryClient.invalidateQueries({ queryKey: ["/api/wallet"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/wallet/transactions"] });
+      setOpen(false);
+      setAmount("");
+    },
+    onError: (error: any) => {
+      toast({ title: "Withdrawal failed", description: error.message || "Failed to process withdrawal.", variant: "destructive" });
+    },
+  });
+
+  const handleSubmit = () => {
+    const parsedAmount = parseFloat(amount);
+    if (isNaN(parsedAmount) || parsedAmount < 10) {
+      toast({ title: "Invalid amount", description: "Minimum withdrawal is KSh 10.", variant: "destructive" });
+      return;
+    }
+    if (parsedAmount > balance) {
+      toast({ title: "Insufficient balance", description: `You only have KSh ${balance.toLocaleString()} available.`, variant: "destructive" });
+      return;
+    }
+    if (!phoneNumber.trim()) {
+      toast({ title: "Phone required", description: "Please enter your M-Pesa phone number.", variant: "destructive" });
+      return;
+    }
+    withdrawMutation.mutate({ amount: parsedAmount, phoneNumber });
+  };
+
+  const quickAmounts = [200, 500, 1000, 2000].filter(a => a <= balance);
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button className="bg-emerald-600 hover:bg-emerald-700">
+          <ArrowUpCircle className="h-4 w-4 mr-2" />
+          Withdraw
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Smartphone className="h-5 w-5 text-emerald-600" />
+            Withdraw to M-Pesa
+          </DialogTitle>
+          <DialogDescription>Transfer your earnings to your M-Pesa account. Available: {formatAmount(balance)}</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="space-y-2">
+            <Label htmlFor="w-phone">M-Pesa Phone Number</Label>
+            <div className="relative">
+              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input id="w-phone" placeholder="e.g. 0712345678" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} className="pl-10" />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="w-amount">Amount (KSh)</Label>
+            <Input id="w-amount" type="number" placeholder="Enter amount" min={10} max={balance} value={amount} onChange={(e) => setAmount(e.target.value)} />
+          </div>
+          {quickAmounts.length > 0 && (
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Quick amounts</Label>
+              <div className="flex flex-wrap gap-2">
+                {quickAmounts.map((qa) => (
+                  <Button key={qa} type="button" variant={amount === String(qa) ? "default" : "outline"} size="sm" className="text-xs" onClick={() => setAmount(String(qa))}>
+                    KSh {qa.toLocaleString()}
+                  </Button>
+                ))}
+                <Button type="button" variant={amount === String(balance) ? "default" : "outline"} size="sm" className="text-xs" onClick={() => setAmount(String(balance))}>
+                  All ({formatAmount(balance)})
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+          <Button onClick={handleSubmit} disabled={withdrawMutation.isPending} className="bg-emerald-600 hover:bg-emerald-700">
+            {withdrawMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <ArrowUpCircle className="h-4 w-4 mr-2" />}
+            {withdrawMutation.isPending ? "Processing..." : `Withdraw${amount ? ` KSh ${parseFloat(amount || "0").toLocaleString()}` : ""}`}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -239,6 +301,8 @@ export default function BillingPage() {
     ? payments
     : payments.filter((p) => p.status === statusFilter);
 
+  const isCollector = user?.role === UserRole.COLLECTOR;
+
   const totalPaid = payments
     .filter((p) => p.status === PaymentStatus.SUCCESS)
     .reduce((sum, p) => sum + p.amount, 0);
@@ -246,6 +310,14 @@ export default function BillingPage() {
   const totalPending = payments
     .filter((p) => p.status === PaymentStatus.PENDING)
     .reduce((sum, p) => sum + p.amount, 0);
+
+  const totalEarnings = walletTransactions
+    .filter((t) => t.type === WalletTransactionType.EARNING)
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const totalWithdrawals = walletTransactions
+    .filter((t) => t.type === WalletTransactionType.PAYMENT)
+    .reduce((sum, t) => sum + t.amount, 0);
 
   const sortedPayments = [...filteredPayments].sort((a, b) => {
     const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
@@ -285,26 +357,41 @@ export default function BillingPage() {
                   <div>
                     <p className="text-green-100 text-sm font-medium flex items-center gap-1.5">
                       <WalletIcon className="h-4 w-4" />
-                      PipaPal Wallet
+                      {isCollector ? "Earnings Wallet" : "PipaPal Wallet"}
                     </p>
                     <p className="text-4xl font-bold mt-1">
                       {formatAmount(wallet?.balance || 0)}
                     </p>
-                    <p className="text-green-200 text-sm mt-1">Available balance</p>
+                    <p className="text-green-200 text-sm mt-1">{isCollector ? "Available to withdraw" : "Available balance"}</p>
                   </div>
-                  <TopUpDialog />
+                  {isCollector ? <WithdrawDialog balance={wallet?.balance || 0} /> : <TopUpDialog />}
                 </div>
               </div>
               <CardContent className="pt-4 pb-4">
                 <div className="grid grid-cols-3 gap-4 text-center">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Total Paid</p>
-                    <p className="text-lg font-semibold text-green-600">{formatAmount(totalPaid)}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Pending</p>
-                    <p className="text-lg font-semibold text-yellow-600">{formatAmount(totalPending)}</p>
-                  </div>
+                  {isCollector ? (
+                    <>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Total Earned</p>
+                        <p className="text-lg font-semibold text-green-600">{formatAmount(totalEarnings)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Withdrawn</p>
+                        <p className="text-lg font-semibold text-blue-600">{formatAmount(totalWithdrawals)}</p>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Total Paid</p>
+                        <p className="text-lg font-semibold text-green-600">{formatAmount(totalPaid)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Pending</p>
+                        <p className="text-lg font-semibold text-yellow-600">{formatAmount(totalPending)}</p>
+                      </div>
+                    </>
+                  )}
                   <div>
                     <p className="text-xs text-muted-foreground">Transactions</p>
                     <p className="text-lg font-semibold">{payments.length + walletTransactions.length}</p>

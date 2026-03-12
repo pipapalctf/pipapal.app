@@ -17,7 +17,7 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 import { setupAuth } from "./auth";
-import { generateEcoTip } from "./openai";
+import { generateEcoTip, generateEcoBuddyInsights } from "./openai";
 import { WebSocketServer, WebSocket } from 'ws';
 import { 
   Permissions, 
@@ -2692,6 +2692,113 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error processing wallet callback:', error);
       res.json({ ResultCode: 0, ResultDesc: 'Accepted' });
+    }
+  });
+
+  app.post('/api/wallet/withdraw', requireAuthentication, async (req: any, res: any) => {
+    try {
+      const { amount, phoneNumber } = req.body;
+      if (!amount || amount <= 0) {
+        return res.status(400).json({ error: 'Invalid amount' });
+      }
+      if (!phoneNumber) {
+        return res.status(400).json({ error: 'Phone number is required' });
+      }
+
+      let wallet = await storage.getWalletByUserId(req.user!.id);
+      if (!wallet || wallet.balance < amount) {
+        return res.status(400).json({ error: 'Insufficient wallet balance' });
+      }
+
+      const newBalance = wallet.balance - amount;
+      await storage.updateWalletBalance(req.user!.id, newBalance);
+      await storage.createWalletTransaction({
+        walletId: wallet.id,
+        userId: req.user!.id,
+        type: 'payment',
+        amount,
+        description: `Withdrawal to M-Pesa ${phoneNumber}`,
+        referenceId: `WD_${Date.now()}`,
+        balanceAfter: newBalance,
+      });
+
+      res.json({ success: true, message: `KSh ${amount} withdrawn to ${phoneNumber} successfully.`, newBalance });
+    } catch (error) {
+      console.error('Error processing withdrawal:', error);
+      res.status(500).json({ error: 'Failed to process withdrawal' });
+    }
+  });
+
+  app.get('/api/eco-buddy/tips', requireAuthentication, async (req: any, res: any) => {
+    try {
+      const userId = req.user!.id;
+      const user = await storage.getUser(userId);
+      if (!user) return res.status(404).json({ error: 'User not found' });
+
+      const allCollections = await storage.getCollectionsByUser(userId);
+      const now = new Date();
+      const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+      const fourWeeksAgo = new Date(now.getTime() - 28 * 24 * 60 * 60 * 1000);
+
+      const recentCollections = allCollections.filter(c => new Date(c.scheduledDate) >= twoWeeksAgo);
+      const previousCollections = allCollections.filter(c => {
+        const d = new Date(c.scheduledDate);
+        return d >= fourWeeksAgo && d < twoWeeksAgo;
+      });
+
+      const completedRecent = recentCollections.filter(c => c.status === CollectionStatus.COMPLETED);
+      const completedPrevious = previousCollections.filter(c => c.status === CollectionStatus.COMPLETED);
+      const cancelledRecent = recentCollections.filter(c => c.status === CollectionStatus.CANCELLED);
+
+      const wasteByType = (cols: typeof allCollections) => {
+        const map: Record<string, number> = {};
+        for (const c of cols) {
+          if (c.wasteAmount) {
+            map[c.wasteType] = (map[c.wasteType] || 0) + c.wasteAmount;
+          }
+        }
+        return map;
+      };
+
+      const recentByType = wasteByType(completedRecent);
+      const previousByType = wasteByType(completedPrevious);
+      const totalRecentKg = Object.values(recentByType).reduce((a, b) => a + b, 0);
+      const totalPreviousKg = Object.values(previousByType).reduce((a, b) => a + b, 0);
+
+      const changes: Array<{ type: string; recentKg: number; previousKg: number; pct: number }> = [];
+      const allTypes = Array.from(new Set([...Object.keys(recentByType), ...Object.keys(previousByType)]));
+      for (const t of allTypes) {
+        const r = recentByType[t] || 0;
+        const p = previousByType[t] || 0;
+        if (p > 0 || r > 0) {
+          const pct = p > 0 ? Math.round(((r - p) / p) * 100) : (r > 0 ? 100 : 0);
+          changes.push({ type: t, recentKg: r, previousKg: p, pct });
+        }
+      }
+
+      const city = user.address?.includes(',') ? user.address.split(',').pop()?.trim() : 'Nairobi';
+      const allUsers = await storage.getUsersByRole(user.role);
+      const sameCity = allUsers.filter(u => u.id !== userId && u.address?.includes(city || 'Nairobi'));
+      const cohortSize = sameCity.length;
+
+      const insights = await generateEcoBuddyInsights({
+        name: user.fullName || user.username,
+        city: city || 'Nairobi',
+        recentCompletedCount: completedRecent.length,
+        previousCompletedCount: completedPrevious.length,
+        cancelledCount: cancelledRecent.length,
+        totalRecentKg,
+        totalPreviousKg,
+        typeChanges: changes,
+        sustainabilityScore: user.sustainabilityScore || 0,
+        cohortSize,
+        role: user.role,
+      });
+
+      res.json(insights);
+    } catch (error) {
+      console.error('Error generating eco buddy tips:', error);
+      res.status(500).json({ error: 'Failed to generate eco buddy insights' });
     }
   });
 

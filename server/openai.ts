@@ -244,3 +244,230 @@ function getFallbackEcoTip(category: string, customPrompt?: string): EcoTipRespo
     icon: "leaf"
   };
 }
+
+export interface EcoBuddyInsight {
+  id: string;
+  type: 'drop' | 'spike' | 'improvement' | 'missed' | 'neutral';
+  emoji: string;
+  title: string;
+  explanation: string;
+  actions: string[];
+}
+
+export interface EcoBuddyInsights {
+  greeting: string;
+  behaviorSummary: string;
+  insights: EcoBuddyInsight[];
+  cohortInsight: {
+    city: string;
+    cohortSize: number;
+    message: string;
+    topActions: string[];
+  };
+  weeklyChallenge: {
+    title: string;
+    description: string;
+    reward: string;
+  };
+  overallTrend: 'up' | 'down' | 'stable';
+}
+
+interface EcoBuddyContext {
+  name: string;
+  city: string;
+  recentCompletedCount: number;
+  previousCompletedCount: number;
+  cancelledCount: number;
+  totalRecentKg: number;
+  totalPreviousKg: number;
+  typeChanges: Array<{ type: string; recentKg: number; previousKg: number; pct: number }>;
+  sustainabilityScore: number;
+  cohortSize: number;
+  role: string;
+}
+
+export async function generateEcoBuddyInsights(ctx: EcoBuddyContext): Promise<EcoBuddyInsights> {
+  const hasApiKey = process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== "dummy-key-for-development";
+
+  const changeDesc = ctx.typeChanges.length > 0
+    ? ctx.typeChanges.map(c => `${c.type}: ${c.recentKg.toFixed(1)}kg this period vs ${c.previousKg.toFixed(1)}kg previous (${c.pct > 0 ? '+' : ''}${c.pct}%)`).join('; ')
+    : 'No recent collections to compare';
+
+  if (hasApiKey) {
+    try {
+      const prompt = `You are Eco Buddy, a friendly and insightful eco-behavior companion for PipaPal, a Kenyan waste management platform.
+
+Analyze this user's waste recycling behavior and generate personalized insights:
+
+User: ${ctx.name}
+City: ${ctx.city}, Kenya
+Role: ${ctx.role}
+Sustainability Score: ${ctx.sustainabilityScore} points
+Recent period (last 2 weeks): ${ctx.recentCompletedCount} completed pickups, ${ctx.totalRecentKg.toFixed(1)}kg total
+Previous period (2-4 weeks ago): ${ctx.previousCompletedCount} completed pickups, ${ctx.totalPreviousKg.toFixed(1)}kg total
+Cancelled this period: ${ctx.cancelledCount}
+Waste type changes: ${changeDesc}
+Similar users in ${ctx.city}: ${ctx.cohortSize} households
+
+Generate a JSON response with this exact structure:
+{
+  "greeting": "Short personal greeting (1-2 sentences, conversational, mention their name and one specific observation)",
+  "behaviorSummary": "One sentence summary of their eco behavior this week",
+  "insights": [
+    {
+      "id": "insight-1",
+      "type": "drop|spike|improvement|missed|neutral",
+      "emoji": "single emoji",
+      "title": "Short title (max 60 chars) — specific, not generic",
+      "explanation": "2-3 sentences explaining why this matters with real impact context for Kenya",
+      "actions": ["specific action 1", "specific action 2", "specific action 3"]
+    }
+  ],
+  "cohortInsight": {
+    "city": "${ctx.city}",
+    "cohortSize": ${ctx.cohortSize},
+    "message": "What similar households in ${ctx.city} are doing better (1-2 sentences)",
+    "topActions": ["action households are taking 1", "action 2", "action 3"]
+  },
+  "weeklyChallenge": {
+    "title": "This week's eco challenge title",
+    "description": "Specific actionable challenge for this user based on their patterns",
+    "reward": "What they'll gain (e.g., score points, environmental impact)"
+  },
+  "overallTrend": "up|down|stable"
+}
+
+Rules:
+- Be specific to Kenya, Nairobi/Kenyan context (mention actual recyclers, organizations if helpful)
+- 2-4 insights max, prioritize the most significant behavioral changes
+- If they have no collections, focus on getting started
+- Tone: encouraging, honest, like a knowledgeable friend not a corporate bot
+- Mention real impact numbers when possible (e.g., "3kg of plastic saves 150 liters of water")`;
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          { role: "system", content: "You are Eco Buddy, a personalized eco-behavior companion. Respond with valid JSON only." },
+          { role: "user", content: prompt }
+        ],
+        response_format: { type: "json_object" },
+        max_tokens: 1200,
+      });
+
+      const content = response.choices[0].message.content || '{}';
+      return JSON.parse(content) as EcoBuddyInsights;
+    } catch (error) {
+      console.error("Error generating eco buddy insights:", error);
+    }
+  }
+
+  return getFallbackEcoBuddyInsights(ctx);
+}
+
+function getFallbackEcoBuddyInsights(ctx: EcoBuddyContext): EcoBuddyInsights {
+  const trend = ctx.totalRecentKg > ctx.totalPreviousKg ? 'up' : ctx.totalRecentKg < ctx.totalPreviousKg ? 'down' : 'stable';
+  const dropTypes = ctx.typeChanges.filter(c => c.pct < -10).sort((a, b) => a.pct - b.pct);
+  const riseTypes = ctx.typeChanges.filter(c => c.pct > 10).sort((a, b) => b.pct - a.pct);
+  const hasCollections = ctx.recentCompletedCount > 0;
+
+  const insights: EcoBuddyInsight[] = [];
+
+  if (!hasCollections) {
+    insights.push({
+      id: 'no-activity',
+      type: 'neutral',
+      emoji: '📦',
+      title: "No pickups recorded yet this period",
+      explanation: "Getting started with regular pickups is the most impactful thing you can do. Even one scheduled pickup per week significantly reduces your landfill contribution.",
+      actions: [
+        "Schedule your first pickup this week — it takes under 2 minutes",
+        "Start with plastic or paper — easy to separate and high value",
+        "Set a recurring weekly reminder for waste sorting"
+      ]
+    });
+  } else {
+    if (dropTypes.length > 0) {
+      const drop = dropTypes[0];
+      insights.push({
+        id: `drop-${drop.type}`,
+        type: 'drop',
+        emoji: '📉',
+        title: `Your ${drop.type} recycling dropped ${Math.abs(drop.pct)}% this period`,
+        explanation: `You recycled ${drop.previousKg.toFixed(1)}kg of ${drop.type} last period but only ${drop.recentKg.toFixed(1)}kg recently. In Kenya, ${drop.type} that isn't recycled often ends up in rivers or informal dumps — your consistency makes a real difference.`,
+        actions: [
+          `Separate your ${drop.type} waste immediately after use — don't mix it`,
+          "Schedule a dedicated pickup for this waste type this week",
+          `Contact Mr. Green Africa or PipaPal to see if there's increased demand for ${drop.type}`
+        ]
+      });
+    }
+
+    if (riseTypes.length > 0) {
+      const rise = riseTypes[0];
+      insights.push({
+        id: `spike-${rise.type}`,
+        type: 'improvement',
+        emoji: '🎉',
+        title: `Great job — ${rise.type} recycling up ${rise.pct}%!`,
+        explanation: `You increased your ${rise.type} recycling from ${rise.previousKg.toFixed(1)}kg to ${rise.recentKg.toFixed(1)}kg. That's ${(rise.recentKg * 2).toFixed(0)}kg of CO₂ emissions avoided. Keep this momentum going!`,
+        actions: [
+          "Share your approach with neighbors to multiply the impact",
+          "Try to maintain or exceed this level next period",
+          "Explore if you can add another waste type to your routine"
+        ]
+      });
+    }
+
+    if (ctx.cancelledCount > 0) {
+      insights.push({
+        id: 'missed-pickups',
+        type: 'missed',
+        emoji: '⏰',
+        title: `${ctx.cancelledCount} pickup${ctx.cancelledCount > 1 ? 's' : ''} cancelled this period`,
+        explanation: "Missed pickups mean waste often goes to landfill instead of being recycled. The best way to avoid this is building a consistent routine around your collection days.",
+        actions: [
+          "Set a phone reminder the day before each scheduled pickup",
+          "Keep a small bin for sorted waste near your front door",
+          "Reschedule immediately if you need to cancel — don't leave it empty"
+        ]
+      });
+    }
+  }
+
+  if (insights.length === 0) {
+    insights.push({
+      id: 'steady',
+      type: 'neutral',
+      emoji: '✅',
+      title: "Steady pace — looking good this period",
+      explanation: "Your recycling activity is consistent. The next step is to increase volume or add new waste types to further boost your eco score.",
+      actions: [
+        "Try adding one new waste category this month",
+        "Invite a neighbor to start recycling with you",
+        "Check if you qualify for any PipaPal eco rewards"
+      ]
+    });
+  }
+
+  return {
+    greeting: `Hey ${ctx.name}! ${hasCollections ? `You've recycled ${ctx.totalRecentKg.toFixed(1)}kg this period — here's what your data is telling me.` : "Let's get your eco journey started!"}`,
+    behaviorSummary: trend === 'up' ? `Your recycling volume is trending up — ${((ctx.totalRecentKg - ctx.totalPreviousKg) / Math.max(ctx.totalPreviousKg, 1) * 100).toFixed(0)}% more than last period.` : trend === 'down' ? "Your recycling dropped a bit — but we've got a clear plan to turn that around." : "Your recycling is holding steady — let's push it further.",
+    insights,
+    cohortInsight: {
+      city: ctx.city,
+      cohortSize: ctx.cohortSize,
+      message: ctx.cohortSize > 5 ? `${ctx.cohortSize} households in ${ctx.city} with similar waste patterns improved their scores by focusing on consistent scheduling and plastic separation.` : `Households who recycle consistently in Nairobi save an average of 200kg of waste from landfills per year.`,
+      topActions: [
+        "Schedule pickups at least twice per month",
+        "Separate plastic and paper waste before collection day",
+        "Track progress weekly to stay motivated"
+      ]
+    },
+    weeklyChallenge: {
+      title: hasCollections ? "Double your plastic this week" : "First pickup challenge",
+      description: hasCollections ? `You recycled ${(ctx.totalRecentKg / 2).toFixed(1)}kg of plastic last period. Try to reach ${ctx.totalRecentKg.toFixed(1)}kg this week by separating more consistently.` : "Schedule and complete your first pickup this week to kickstart your sustainability score.",
+      reward: hasCollections ? "+50 eco points and a badge upgrade" : "+100 eco points for your first pickup"
+    },
+    overallTrend: trend,
+  };
+}
