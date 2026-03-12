@@ -13,7 +13,8 @@ import {
   UserRole,
   ChatMessage,
   FeedbackCategory,
-  PaymentStatus
+  PaymentStatus,
+  wastePricingConfig,
 } from "@shared/schema";
 import { z } from "zod";
 import { setupAuth } from "./auth";
@@ -434,7 +435,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const updatedCollection = await storage.updateCollection(id, updates);
-      
+
+      // Credit cashback to customer and earning to collector on completion
+      if (updates.status === CollectionStatus.COMPLETED && updatedCollection?.wasteAmount && updatedCollection.wasteAmount > 0) {
+        try {
+          const wasteType = updatedCollection.wasteType;
+          const pricing = wastePricingConfig[wasteType];
+          const kg = updatedCollection.wasteAmount;
+
+          if (pricing) {
+            // Customer cashback: customerRate is negative for high-value waste
+            if (pricing.customerRate < 0) {
+              const cashbackAmount = Math.abs(pricing.customerRate) * kg;
+              let customerWallet = await storage.getWalletByUserId(updatedCollection.userId);
+              if (!customerWallet) {
+                customerWallet = await storage.createWallet({ userId: updatedCollection.userId, balance: 0 });
+              }
+              const newCustomerBalance = customerWallet.balance + cashbackAmount;
+              await storage.updateWalletBalance(updatedCollection.userId, newCustomerBalance);
+              await storage.createWalletTransaction({
+                walletId: customerWallet.id,
+                userId: updatedCollection.userId,
+                type: 'refund',
+                amount: cashbackAmount,
+                description: `Cashback for ${kg}kg of ${wasteType} (KSh ${Math.abs(pricing.customerRate)}/kg)`,
+                referenceId: `CB_${updatedCollection.id}`,
+                balanceAfter: newCustomerBalance,
+              });
+            }
+
+            // Collector earning: collectorRate per kg
+            if (updatedCollection.collectorId && pricing.collectorRate > 0) {
+              const earningAmount = pricing.collectorRate * kg;
+              let collectorWallet = await storage.getWalletByUserId(updatedCollection.collectorId);
+              if (!collectorWallet) {
+                collectorWallet = await storage.createWallet({ userId: updatedCollection.collectorId, balance: 0 });
+              }
+              const newCollectorBalance = collectorWallet.balance + earningAmount;
+              await storage.updateWalletBalance(updatedCollection.collectorId, newCollectorBalance);
+              await storage.createWalletTransaction({
+                walletId: collectorWallet.id,
+                userId: updatedCollection.collectorId,
+                type: 'earning',
+                amount: earningAmount,
+                description: `Earnings for ${kg}kg of ${wasteType} (KSh ${pricing.collectorRate}/kg)`,
+                referenceId: `EARN_${updatedCollection.id}`,
+                balanceAfter: newCollectorBalance,
+              });
+            }
+          }
+        } catch (walletErr) {
+          console.error('Error crediting wallet on collection completion:', walletErr);
+          // Non-fatal: don't fail the collection update
+        }
+      }
+
       // Send notification if the status was updated or collection is claimed
       if ((updates.status || updates.collectorId) && updatedCollection) {
         try {

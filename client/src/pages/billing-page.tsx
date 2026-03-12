@@ -319,6 +319,10 @@ export default function BillingPage() {
     .filter((t) => t.type === WalletTransactionType.PAYMENT)
     .reduce((sum, t) => sum + t.amount, 0);
 
+  const totalCashbacks = walletTransactions
+    .filter((t) => t.type === WalletTransactionType.REFUND)
+    .reduce((sum, t) => sum + t.amount, 0);
+
   const sortedPayments = [...filteredPayments].sort((a, b) => {
     const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
     const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
@@ -362,9 +366,18 @@ export default function BillingPage() {
                     <p className="text-4xl font-bold mt-1">
                       {formatAmount(wallet?.balance || 0)}
                     </p>
-                    <p className="text-green-200 text-sm mt-1">{isCollector ? "Available to withdraw" : "Available balance"}</p>
+                    <p className="text-green-200 text-sm mt-1">
+                      {isCollector ? "Available to withdraw" : (wallet?.balance || 0) > 0 ? "Available · includes cashbacks" : "Available balance"}
+                    </p>
                   </div>
-                  {isCollector ? <WithdrawDialog balance={wallet?.balance || 0} /> : <TopUpDialog />}
+                  {isCollector ? (
+                    <WithdrawDialog balance={wallet?.balance || 0} />
+                  ) : (
+                    <div className="flex gap-2">
+                      <TopUpDialog />
+                      {(wallet?.balance || 0) > 0 && <WithdrawDialog balance={wallet?.balance || 0} />}
+                    </div>
+                  )}
                 </div>
               </div>
               <CardContent className="pt-4 pb-4">
@@ -387,8 +400,8 @@ export default function BillingPage() {
                         <p className="text-lg font-semibold text-green-600">{formatAmount(totalPaid)}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-muted-foreground">Pending</p>
-                        <p className="text-lg font-semibold text-yellow-600">{formatAmount(totalPending)}</p>
+                        <p className="text-xs text-muted-foreground">Cashbacks</p>
+                        <p className="text-lg font-semibold text-emerald-600">{formatAmount(totalCashbacks)}</p>
                       </div>
                     </>
                   )}
@@ -427,7 +440,7 @@ export default function BillingPage() {
                     Wallet Transactions
                   </CardTitle>
                   <CardDescription>
-                    Top-ups and payments made from your wallet
+                    {isCollector ? "Earnings and withdrawals" : "Top-ups, cashbacks, and payments"}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -440,7 +453,9 @@ export default function BillingPage() {
                       <WalletIcon className="h-12 w-12 text-muted-foreground/40 mx-auto mb-4" />
                       <h3 className="text-lg font-medium text-muted-foreground">No wallet activity yet</h3>
                       <p className="text-sm text-muted-foreground mt-1">
-                        Top up your wallet using M-Pesa to get started.
+                        {isCollector
+                          ? "Complete pickups to start earning into your wallet."
+                          : "Top up via M-Pesa, or recycle high-value waste (metal, plastic, e-waste) to earn cashbacks."}
                       </p>
                     </div>
                   ) : (
@@ -471,7 +486,9 @@ export default function BillingPage() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium capitalize">{tx.type}</span>
+                              <span className="text-sm font-medium capitalize">
+                                {tx.type === WalletTransactionType.REFUND ? "Cashback" : tx.type}
+                              </span>
                               {tx.referenceId && (
                                 <span className="text-[10px] font-mono bg-muted px-1.5 py-0.5 rounded hidden sm:inline">
                                   {tx.referenceId}
