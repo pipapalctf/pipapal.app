@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
-import { Loader2, MapPin, LocateFixed, PenLine, ChevronDown, ChevronUp, Zap, CheckCircle2 } from "lucide-react";
+import { Loader2, MapPin, LocateFixed, ChevronDown, ChevronUp, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const schema = z.object({
@@ -89,11 +89,7 @@ export default function QuickPickupForm({ collectionToEdit, onSuccess }: Props) 
   const [customAmount, setCustomAmount] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
   const [customDateStr, setCustomDateStr] = useState("");
-  const [addressMode, setAddressMode] = useState<"auto" | "manual">(
-    collectionToEdit?.address ? "manual" : "manual"
-  );
   const [geoLocating, setGeoLocating] = useState(false);
-  const [geoDetected, setGeoDetected] = useState("");
 
   const computedDate = applyHour(selectedDateBase, selectedHour);
 
@@ -110,6 +106,7 @@ export default function QuickPickupForm({ collectionToEdit, onSuccess }: Props) 
 
   const wasteType = form.watch("wasteType");
   const wasteAmount = form.watch("wasteAmount");
+  const addressValue = form.watch("address");
 
   const pricing = wasteType && wasteAmount
     ? getCustomerCostEstimate(wasteType, wasteAmount)
@@ -176,16 +173,15 @@ export default function QuickPickupForm({ collectionToEdit, onSuccess }: Props) 
           const data = await res.json();
           const addr = [
             data.address?.suburb || data.address?.neighbourhood || data.address?.village,
-            data.address?.city || data.address?.town || data.address?.county,
+            data.address?.city || data.address?.town,
+            data.address?.county || data.address?.state,
             data.address?.country,
           ].filter(Boolean).join(", ");
           const result = addr || data.display_name?.split(",").slice(0, 3).join(",").trim() || "";
-          setGeoDetected(result);
           setFieldValue(result);
           form.setValue("address", result, { shouldValidate: true });
         } catch {
           toast({ title: "Couldn't read location", description: "Location detected but address lookup failed. Please enter manually.", variant: "destructive" });
-          setAddressMode("manual");
         } finally {
           setGeoLocating(false);
         }
@@ -197,7 +193,6 @@ export default function QuickPickupForm({ collectionToEdit, onSuccess }: Props) 
           description: "Allow location access in your browser, or enter your address manually.",
           variant: "destructive",
         });
-        setAddressMode("manual");
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
@@ -395,76 +390,14 @@ export default function QuickPickupForm({ collectionToEdit, onSuccess }: Props) 
         {/* Address */}
         <div>
           <p className="text-sm font-semibold mb-2.5">Pickup address</p>
-
-          {/* Mode toggle */}
-          <div className="flex gap-2 mb-3">
-            <button
-              type="button"
-              onClick={() => setAddressMode("auto")}
-              className={cn(
-                "flex items-center gap-1.5 rounded-full border-2 px-4 py-1.5 text-sm font-medium transition-all",
-                addressMode === "auto"
-                  ? "border-green-500 bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300"
-                  : "border-border hover:border-green-300"
-              )}
-            >
-              <LocateFixed className="h-3.5 w-3.5" />
-              Auto-detect
-            </button>
-            <button
-              type="button"
-              onClick={() => setAddressMode("manual")}
-              className={cn(
-                "flex items-center gap-1.5 rounded-full border-2 px-4 py-1.5 text-sm font-medium transition-all",
-                addressMode === "manual"
-                  ? "border-green-500 bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300"
-                  : "border-border hover:border-green-300"
-              )}
-            >
-              <PenLine className="h-3.5 w-3.5" />
-              Enter manually
-            </button>
-          </div>
-
           <FormField
             control={form.control}
             name="address"
             render={({ field }) => (
               <FormItem>
-                {addressMode === "auto" ? (
-                  <div>
-                    {geoDetected ? (
-                      <div className="flex items-start gap-2 rounded-xl border-2 border-green-500 bg-green-50 dark:bg-green-900/20 px-4 py-3">
-                        <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 shrink-0" />
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-green-800 dark:text-green-300 break-words">{geoDetected}</p>
-                          <button
-                            type="button"
-                            onClick={() => { setGeoDetected(""); field.onChange(""); }}
-                            className="text-xs text-muted-foreground underline mt-0.5"
-                          >
-                            Detect again
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => detectLocation(field.onChange)}
-                        disabled={geoLocating}
-                        className="w-full gap-2 border-dashed h-12"
-                      >
-                        {geoLocating
-                          ? <Loader2 className="h-4 w-4 animate-spin" />
-                          : <LocateFixed className="h-4 w-4 text-primary" />}
-                        {geoLocating ? "Detecting your location…" : "Tap to detect my location"}
-                      </Button>
-                    )}
-                  </div>
-                ) : (
+                <div className="flex gap-2">
                   <FormControl>
-                    <div className="relative">
+                    <div className="relative flex-1">
                       <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
                         placeholder="e.g. Westlands, Nairobi"
@@ -473,7 +406,19 @@ export default function QuickPickupForm({ collectionToEdit, onSuccess }: Props) 
                       />
                     </div>
                   </FormControl>
-                )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => detectLocation(field.onChange)}
+                    disabled={geoLocating}
+                    className="shrink-0 gap-1.5 border-green-300 text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/20"
+                  >
+                    {geoLocating
+                      ? <Loader2 className="h-4 w-4 animate-spin" />
+                      : <LocateFixed className="h-4 w-4" />}
+                    {geoLocating ? "Detecting…" : "Detect location"}
+                  </Button>
+                </div>
                 <FormMessage />
               </FormItem>
             )}
@@ -532,6 +477,12 @@ export default function QuickPickupForm({ collectionToEdit, onSuccess }: Props) 
               <p className="text-xs text-muted-foreground mt-0.5">
                 {format(computedDate, "EEE d MMM")} · {activeTimeSlot?.label} ({activeTimeSlot?.sub})
               </p>
+              {addressValue && (
+                <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+                  <MapPin className="h-3 w-3 shrink-0" />
+                  <span className="truncate">{addressValue}</span>
+                </p>
+              )}
               {pricing && (
                 <p className={cn(
                   "text-sm font-semibold mt-1",
