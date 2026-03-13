@@ -447,8 +447,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const updatedCollection = await storage.updateCollection(id, updates);
 
-      // Credit cashback to customer and earning to collector on completion
-      if (updates.status === CollectionStatus.COMPLETED && updatedCollection?.wasteAmount && updatedCollection.wasteAmount > 0) {
+      // Credit cashback / deduct service fee on completion (guard: only if was not already COMPLETED)
+      if (updates.status === CollectionStatus.COMPLETED && collection.status !== CollectionStatus.COMPLETED && updatedCollection?.wasteAmount && updatedCollection.wasteAmount > 0) {
         try {
           const wasteType = updatedCollection.wasteType;
           const pricing = wastePricingConfig[wasteType];
@@ -471,6 +471,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 amount: cashbackAmount,
                 description: `Cashback for ${kg}kg of ${wasteType} (KSh ${Math.abs(pricing.customerRate)}/kg)`,
                 referenceId: `CB_${updatedCollection.id}`,
+                balanceAfter: newCustomerBalance,
+              });
+            } else if (pricing.customerRate > 0) {
+              // Customer service fee: deduct from wallet on completion
+              const serviceAmount = pricing.customerRate * kg;
+              let customerWallet = await storage.getWalletByUserId(updatedCollection.userId);
+              if (!customerWallet) {
+                customerWallet = await storage.createWallet({ userId: updatedCollection.userId, balance: 0 });
+              }
+              const newCustomerBalance = customerWallet.balance - serviceAmount;
+              await storage.updateWalletBalance(updatedCollection.userId, newCustomerBalance);
+              await storage.createWalletTransaction({
+                walletId: customerWallet.id,
+                userId: updatedCollection.userId,
+                type: 'payment',
+                amount: serviceAmount,
+                description: `Service fee for ${kg}kg of ${wasteType} collection (KSh ${pricing.customerRate}/kg)`,
+                referenceId: `SVC_${updatedCollection.id}`,
                 balanceAfter: newCustomerBalance,
               });
             }
