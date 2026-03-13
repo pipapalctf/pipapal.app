@@ -51,6 +51,77 @@ interface MaterialInterest {
   } | null;
 }
 
+// Confirmed recycler (drop-off) section
+interface DropoffRecyclerSectionProps {
+  dropoffCenterId: number;
+}
+
+function DropoffRecyclerSection({ dropoffCenterId }: DropoffRecyclerSectionProps) {
+  const { data: recycler, isLoading } = useQuery<any>({
+    queryKey: ['/api/users', dropoffCenterId],
+    enabled: !!dropoffCenterId,
+    refetchOnWindowFocus: false,
+    staleTime: 60000,
+  });
+
+  return (
+    <div className="grid gap-2">
+      <h3 className="text-sm font-medium">Recycler</h3>
+      <div className="bg-muted/50 p-3 rounded-md">
+        {isLoading ? (
+          <div className="flex items-center gap-2">
+            <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full" />
+            <span className="text-sm">Loading recycler info…</span>
+          </div>
+        ) : recycler ? (
+          <div className="grid gap-1.5">
+            <div className="flex items-center gap-2">
+              <Building className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">{recycler.fullName || recycler.username}</span>
+              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">Confirmed</Badge>
+            </div>
+            {recycler.email && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Mail className="h-3.5 w-3.5" />
+                <span>{recycler.email}</span>
+              </div>
+            )}
+            {recycler.phone && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Phone className="h-3.5 w-3.5" />
+                <span>{recycler.phone}</span>
+              </div>
+            )}
+            <div className="flex justify-end gap-2 mt-1">
+              {recycler.email && (
+                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" asChild>
+                  <a href={`mailto:${recycler.email}`}>
+                    <Mail className="h-3 w-3 mr-1" />
+                    Email
+                  </a>
+                </Button>
+              )}
+              {recycler.phone && (
+                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" asChild>
+                  <a href={`tel:${recycler.phone}`}>
+                    <Phone className="h-3 w-3 mr-1" />
+                    Call
+                  </a>
+                </Button>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Building className="h-4 w-4" />
+            <span className="text-sm">Recycler information unavailable</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // Interests Section Component
 interface InterestsSectionProps {
   collectionId: number;
@@ -518,12 +589,14 @@ export function CollectionDetailsDialog({
                   </div>
                 )}
                 
-                {/* Recycler Interests - Only show for collectors and the collection owner */}
+                {/* Recycler info for completed collections */}
                 {collection.status === 'completed' && (
-                  <InterestsSection 
-                    collectionId={collection.id} 
-                    showForRoles={[UserRole.COLLECTOR, UserRole.HOUSEHOLD, UserRole.ORGANIZATION]} 
-                  />
+                  (collection as any).dropoffCenterId && (collection as any).dropoffConfirmed
+                    ? <DropoffRecyclerSection dropoffCenterId={(collection as any).dropoffCenterId} />
+                    : <InterestsSection 
+                        collectionId={collection.id} 
+                        showForRoles={[UserRole.COLLECTOR, UserRole.HOUSEHOLD, UserRole.ORGANIZATION]} 
+                      />
                 )}
               </div>
             
