@@ -513,6 +513,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
               });
             }
           }
+
+          // Collector sustainability points: 3 pts/kg for completing a collection
+          if (updatedCollection.collectorId) {
+            const collectorPoints = Math.round(kg * 3);
+            const collector = await storage.getUser(updatedCollection.collectorId);
+            if (collector) {
+              await storage.updateUser(updatedCollection.collectorId, {
+                sustainabilityScore: (collector.sustainabilityScore || 0) + collectorPoints,
+              });
+              await storage.createActivity({
+                userId: updatedCollection.collectorId,
+                activityType: 'score_increase',
+                description: `Earned ${collectorPoints} eco points for collecting ${kg}kg of ${wasteType}`,
+                points: collectorPoints,
+                timestamp: new Date(),
+              });
+            }
+          }
         } catch (walletErr) {
           console.error('Error crediting wallet on collection completion:', walletErr);
           // Non-fatal: don't fail the collection update
@@ -1917,6 +1935,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         } catch (walletErr) {
           console.error('Error deducting recycler wallet on drop-off confirmation:', walletErr);
+          // Non-fatal
+        }
+
+        // Recycler sustainability points: 4 pts/kg for confirming a drop-off
+        try {
+          const recyclerPoints = Math.round(collection.wasteAmount * 4);
+          const recycler = await storage.getUser(collection.dropoffCenterId);
+          if (recycler) {
+            await storage.updateUser(collection.dropoffCenterId, {
+              sustainabilityScore: (recycler.sustainabilityScore || 0) + recyclerPoints,
+            });
+            await storage.createActivity({
+              userId: collection.dropoffCenterId,
+              activityType: 'score_increase',
+              description: `Earned ${recyclerPoints} eco points for processing ${collection.wasteAmount}kg of ${collection.wasteType}`,
+              points: recyclerPoints,
+              timestamp: new Date(),
+            });
+          }
+        } catch (pointsErr) {
+          console.error('Error awarding recycler sustainability points:', pointsErr);
           // Non-fatal
         }
       }
