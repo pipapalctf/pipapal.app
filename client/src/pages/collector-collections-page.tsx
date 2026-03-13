@@ -654,7 +654,7 @@ export default function CollectorCollectionsPage() {
                   ) : (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
                       {/* Leaflet map */}
-                      <div className="rounded-xl border overflow-hidden" style={{ height: 360 }}>
+                      <div className="rounded-xl border overflow-hidden relative" style={{ height: 360, zIndex: 0 }}>
                         <PickupMap
                           collections={searchFilteredAvailable}
                           searchQuery={searchQuery}
