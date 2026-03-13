@@ -458,6 +458,9 @@ export default function CollectorCollectionsPage() {
   const estimatedTodayEarnings = todayPickups.reduce(
     (sum, c) => sum + calculateWasteValue(c.wasteType, c.wasteAmount || 10), 0
   );
+  const estimatedAllEarnings = allAvailable.reduce(
+    (sum, c) => sum + calculateWasteValue(c.wasteType, c.wasteAmount || 10), 0
+  );
 
   // Location-filtered available pickups for map + card list
   const searchFilteredAvailable = useMemo(() => {
@@ -491,9 +494,11 @@ export default function CollectorCollectionsPage() {
               <div>
                 <p className="font-bold text-lg leading-tight">{greeting}, {firstName}</p>
                 <p className="text-green-100 text-sm mt-0.5">
-                  {todayPickups.length > 0
-                    ? <>{todayPickups.length} pickup{todayPickups.length !== 1 ? 's' : ''} due today · Est. KSh {formatNumber(estimatedTodayEarnings)}</>
-                    : <>{allAvailable.length} pickup{allAvailable.length !== 1 ? 's' : ''} available near you</>}
+                  {allAvailable.length} pickup{allAvailable.length !== 1 ? 's' : ''} available
+                  {todayPickups.length > 0 && (
+                    <> · <span className="font-medium">{todayPickups.length} due today</span></>
+                  )}
+                  {' · '}Est. <span className="font-semibold text-white">KSh {formatNumber(estimatedAllEarnings)}</span>
                 </p>
               </div>
               <Button
