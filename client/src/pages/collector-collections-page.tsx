@@ -120,7 +120,10 @@ export default function CollectorCollectionsPage() {
     .filter((collection: any) => {
       const isRelevantToCollector = 
         collection.collectorId === user.id || 
-        (!collection.collectorId && collection.status === CollectionStatus.SCHEDULED);
+        (!collection.collectorId && (
+          collection.status === CollectionStatus.SCHEDULED ||
+          collection.status === CollectionStatus.PENDING
+        ));
       
       const matchesStatus = 
         statusFilter === 'all' || 
@@ -175,7 +178,12 @@ export default function CollectorCollectionsPage() {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const itemsPerPage = 10;
   
-  const unassignedCount = collections.filter((c: any) => !c.collectorId && c.status === CollectionStatus.SCHEDULED).length;
+  const unassignedCount = collections.filter((c: any) => 
+    !c.collectorId && (
+      c.status === CollectionStatus.SCHEDULED ||
+      c.status === CollectionStatus.PENDING
+    )
+  ).length;
   const myCollections = collections.filter((c: any) => c.collectorId === user.id);
   const collectionsCountByStatus = {
     confirmed: myCollections.filter((c: any) => c.status === CollectionStatus.CONFIRMED).length,
@@ -351,7 +359,7 @@ export default function CollectorCollectionsPage() {
   const getActionButton = (collection: any) => {
     const nextStatus = getNextStatus(collection.status);
     
-    if (!collection.collectorId && collection.status === CollectionStatus.SCHEDULED) {
+    if (!collection.collectorId && (collection.status === CollectionStatus.SCHEDULED || collection.status === CollectionStatus.PENDING)) {
       return (
         <Button 
           size="sm" 
@@ -413,7 +421,7 @@ export default function CollectorCollectionsPage() {
   };
 
   const toggleSelectAll = () => {
-    const unassignedOnPage = paginatedCollections.filter((c: any) => !c.collectorId && c.status === CollectionStatus.SCHEDULED);
+    const unassignedOnPage = paginatedCollections.filter((c: any) => !c.collectorId && (c.status === CollectionStatus.SCHEDULED || c.status === CollectionStatus.PENDING));
     const allSelected = unassignedOnPage.every((c: any) => selectedIds.has(c.id));
     if (allSelected) {
       setSelectedIds(prev => {
@@ -430,7 +438,7 @@ export default function CollectorCollectionsPage() {
     }
   };
 
-  const selectableOnPage = paginatedCollections.filter((c: any) => !c.collectorId && c.status === CollectionStatus.SCHEDULED);
+  const selectableOnPage = paginatedCollections.filter((c: any) => !c.collectorId && (c.status === CollectionStatus.SCHEDULED || c.status === CollectionStatus.PENDING));
   const allOnPageSelected = selectableOnPage.length > 0 && selectableOnPage.every((c: any) => selectedIds.has(c.id));
   const someOnPageSelected = selectableOnPage.some((c: any) => selectedIds.has(c.id));
 
@@ -444,7 +452,7 @@ export default function CollectorCollectionsPage() {
   const firstName = user?.fullName?.split(' ')[0] || user?.username?.split('_')[0] || 'there';
 
   const allAvailable = (collections as any[]).filter(
-    (c) => !c.collectorId && c.status === CollectionStatus.SCHEDULED
+    (c) => !c.collectorId && (c.status === CollectionStatus.SCHEDULED || c.status === CollectionStatus.PENDING)
   );
 
   const dateFilteredAvailable = allAvailable.filter((c) => {
