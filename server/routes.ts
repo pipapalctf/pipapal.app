@@ -122,10 +122,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const allCollections = await storage.getAllCollections();
         // Filter collections to include:
         // 1. Collections assigned to this collector
-        // 2. Unassigned SCHEDULED collections available for pickup
+        // 2. Unassigned PENDING or SCHEDULED collections available for pickup
         const collectorCollections = allCollections.filter(collection => 
           collection.collectorId === req.user!.id || 
-          (!collection.collectorId && collection.status === CollectionStatus.SCHEDULED)
+          (!collection.collectorId && (
+            collection.status === CollectionStatus.SCHEDULED ||
+            collection.status === CollectionStatus.PENDING
+          ))
         );
         return res.json(collectorCollections);
       }
