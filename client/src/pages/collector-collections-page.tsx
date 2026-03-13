@@ -15,7 +15,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { apiRequest, queryClient } from '@/lib/queryClient';
-import { Calendar, CheckCircle, CheckCircle2, Clock, Filter, MapPin, Search, Truck, Package, AlertTriangle, Trash2, ClipboardCheck, ArrowRight, CalendarClock, CheckCheck, X, Map, XCircle, Activity, Scale, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Loader2, MoreHorizontal, Route, CreditCard } from 'lucide-react';
+import { Calendar, CheckCircle, CheckCircle2, Clock, Filter, MapPin, Search, Truck, Package, AlertTriangle, Trash2, ClipboardCheck, ArrowRight, CalendarClock, CheckCheck, X, Map, XCircle, Activity, Scale, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Loader2, MoreHorizontal, Route, CreditCard, Navigation, Zap } from 'lucide-react';
+import { isToday, isTomorrow, addDays, startOfDay, endOfDay } from 'date-fns';
 import { formatNumber } from '@/lib/utils';
 import { wasteTypeConfig } from '@/lib/types';
 import { format } from 'date-fns';
@@ -49,6 +50,7 @@ export default function CollectorCollectionsPage() {
   
   const [sortField, setSortField] = useState<string>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [dateFilter, setDateFilter] = useState<'today' | 'tomorrow' | 'week'>('week');
   
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
@@ -435,73 +437,112 @@ export default function CollectorCollectionsPage() {
     ? collections.find((c: any) => selectedIds.has(c.id))?.wasteType 
     : null;
 
+  // ---- Available pickups new view helpers ----
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+  const firstName = user?.fullName?.split(' ')[0] || user?.username?.split('_')[0] || 'there';
+
+  const allAvailable = (collections as any[]).filter(
+    (c) => !c.collectorId && c.status === CollectionStatus.SCHEDULED
+  );
+
+  const dateFilteredAvailable = allAvailable.filter((c) => {
+    const d = new Date(c.scheduledDate);
+    if (dateFilter === 'today') return isToday(d);
+    if (dateFilter === 'tomorrow') return isTomorrow(d);
+    return d <= addDays(startOfDay(new Date()), 7);
+  });
+
+  const todayPickups = allAvailable.filter((c) => isToday(new Date(c.scheduledDate)));
+  const estimatedTodayEarnings = todayPickups.reduce(
+    (sum, c) => sum + calculateWasteValue(c.wasteType, c.wasteAmount || 10), 0
+  );
+
+  // Pseudo-map marker positions (deterministic, spread across a grid)
+  const mapPositions = [
+    [28, 38], [58, 28], [44, 54], [72, 48], [20, 62],
+    [62, 65], [38, 20], [80, 32], [50, 75], [14, 45],
+    [68, 18], [36, 68], [86, 58], [24, 28], [54, 42],
+  ];
+  const mapMarkers = allAvailable.slice(0, 15).map((c, i) => {
+    const [x, y] = mapPositions[i % mapPositions.length];
+    const dueToday = isToday(new Date(c.scheduledDate));
+    const color = dueToday ? '#ef4444' : '#22c55e';
+    return { id: c.id, x, y, color, dueToday };
+  });
+  // Group nearby markers (within 8 units) as clusters
+  const clusterRadius = 12;
+  const shown: Set<number> = new Set();
+  type MarkerEntry = { id: number; x: number; y: number; color: string; count: number; dueToday: boolean };
+  const clusteredMarkers: MarkerEntry[] = [];
+  mapMarkers.forEach((m, i) => {
+    if (shown.has(i)) return;
+    const nearby = mapMarkers.filter((n, j) => j !== i && !shown.has(j) && Math.hypot(m.x - n.x, m.y - n.y) < clusterRadius);
+    if (nearby.length > 0) {
+      nearby.forEach((_, j) => shown.add(mapMarkers.indexOf(nearby[j])));
+      clusteredMarkers.push({ ...m, count: nearby.length + 1, color: '#f97316' });
+    } else {
+      clusteredMarkers.push({ ...m, count: 1, color: m.color });
+    }
+    shown.add(i);
+  });
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
       
       <main className="flex-grow container mx-auto py-6 px-4 md:px-6">
-        <div className="flex flex-col gap-6">
-          <div className="flex flex-col gap-2">
-            <h1 className="text-3xl font-bold">Collection Management</h1>
-            <p className="text-muted-foreground">
-              Claim available pickups and manage your waste collections
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-            <Card className={`hover:shadow-md transition-shadow cursor-pointer ${statusFilter === 'unassigned' ? 'ring-2 ring-primary ring-offset-2' : ''}`}
-                  onClick={() => setStatusFilter('unassigned')}>
-              <CardContent className="p-4 flex flex-col items-center">
-                <AlertTriangle className="h-5 w-5 mb-1 text-amber-500" />
-                <p className="text-sm font-medium">Available</p>
-                <p className="text-2xl font-bold">{unassignedCount}</p>
-              </CardContent>
-            </Card>
-            
-            <Card className={`hover:shadow-md transition-shadow cursor-pointer ${statusFilter === 'all' ? 'ring-2 ring-primary ring-offset-2' : ''}`}
-                  onClick={() => setStatusFilter('all')}>
-              <CardContent className="p-4 flex flex-col items-center">
-                <Package className="h-5 w-5 mb-1 text-gray-500" />
-                <p className="text-sm font-medium">All Mine</p>
-                <p className="text-2xl font-bold">{myCollections.length}</p>
-              </CardContent>
-            </Card>
-            
-            <Card className={`hover:shadow-md transition-shadow cursor-pointer ${statusFilter === CollectionStatus.CONFIRMED ? 'ring-2 ring-primary ring-offset-2' : ''}`}
-                  onClick={() => setStatusFilter(CollectionStatus.CONFIRMED)}>
-              <CardContent className="p-4 flex flex-col items-center">
-                <CheckCircle className="h-5 w-5 mb-1 text-indigo-500" />
-                <p className="text-sm font-medium">Confirmed</p>
-                <p className="text-2xl font-bold">{collectionsCountByStatus.confirmed}</p>
-              </CardContent>
-            </Card>
-            
-            <Card className={`hover:shadow-md transition-shadow cursor-pointer ${statusFilter === CollectionStatus.IN_PROGRESS ? 'ring-2 ring-primary ring-offset-2' : ''}`}
-                  onClick={() => setStatusFilter(CollectionStatus.IN_PROGRESS)}>
-              <CardContent className="p-4 flex flex-col items-center">
-                <Truck className="h-5 w-5 mb-1 text-purple-500" />
-                <p className="text-sm font-medium">In Progress</p>
-                <p className="text-2xl font-bold">{collectionsCountByStatus.in_progress}</p>
-              </CardContent>
-            </Card>
-            
-            <Card className={`hover:shadow-md transition-shadow cursor-pointer ${statusFilter === CollectionStatus.COMPLETED ? 'ring-2 ring-primary ring-offset-2' : ''}`}
-                  onClick={() => setStatusFilter(CollectionStatus.COMPLETED)}>
-              <CardContent className="p-4 flex flex-col items-center">
-                <CheckCheck className="h-5 w-5 mb-1 text-green-500" />
-                <p className="text-sm font-medium">Completed</p>
-                <p className="text-2xl font-bold">{collectionsCountByStatus.completed}</p>
-              </CardContent>
-            </Card>
-            
-            <Card className={`hover:shadow-md transition-shadow cursor-pointer ${statusFilter === CollectionStatus.CANCELLED ? 'ring-2 ring-primary ring-offset-2' : ''}`}
-                  onClick={() => setStatusFilter(CollectionStatus.CANCELLED)}>
-              <CardContent className="p-4 flex flex-col items-center">
-                <XCircle className="h-5 w-5 mb-1 text-red-500" />
-                <p className="text-sm font-medium">Cancelled</p>
-                <p className="text-2xl font-bold">{collectionsCountByStatus.cancelled}</p>
-              </CardContent>
-            </Card>
+        <div className="flex flex-col gap-4">
+          {/* Greeting banner — available view only */}
+          {isUnassignedView ? (
+            <div className="rounded-xl bg-green-600 text-white px-5 py-4 flex items-center justify-between gap-4">
+              <div>
+                <p className="font-bold text-lg leading-tight">{greeting}, {firstName}</p>
+                <p className="text-green-100 text-sm mt-0.5">
+                  {todayPickups.length > 0
+                    ? <>{todayPickups.length} pickup{todayPickups.length !== 1 ? 's' : ''} due today · Est. KSh {formatNumber(estimatedTodayEarnings)}</>
+                    : <>{allAvailable.length} pickup{allAvailable.length !== 1 ? 's' : ''} available near you</>}
+                </p>
+              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                className="shrink-0 bg-white text-green-700 hover:bg-green-50 gap-1.5"
+                onClick={() => setActiveTab('routes')}
+              >
+                <Navigation className="h-4 w-4" />
+                Start today's route
+              </Button>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-1">
+              <h1 className="text-3xl font-bold">Collection Management</h1>
+              <p className="text-muted-foreground">Claim available pickups and manage your waste collections</p>
+            </div>
+          )}
+
+          {/* Inline stat dots */}
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
+            <button onClick={() => setStatusFilter('unassigned')} className={`flex items-center gap-1.5 ${statusFilter === 'unassigned' ? 'font-semibold' : 'text-muted-foreground hover:text-foreground'}`}>
+              <span className="h-2.5 w-2.5 rounded-full bg-amber-400 inline-block" />
+              Available <span className="font-bold ml-0.5">{unassignedCount}</span>
+            </button>
+            <button onClick={() => setStatusFilter(CollectionStatus.IN_PROGRESS)} className={`flex items-center gap-1.5 ${statusFilter === CollectionStatus.IN_PROGRESS ? 'font-semibold' : 'text-muted-foreground hover:text-foreground'}`}>
+              <span className="h-2.5 w-2.5 rounded-full bg-purple-500 inline-block" />
+              In progress <span className="font-bold ml-0.5">{collectionsCountByStatus.in_progress}</span>
+            </button>
+            <button onClick={() => setStatusFilter(CollectionStatus.CONFIRMED)} className={`flex items-center gap-1.5 ${statusFilter === CollectionStatus.CONFIRMED ? 'font-semibold' : 'text-muted-foreground hover:text-foreground'}`}>
+              <span className="h-2.5 w-2.5 rounded-full bg-indigo-500 inline-block" />
+              Confirmed <span className="font-bold ml-0.5">{collectionsCountByStatus.confirmed}</span>
+            </button>
+            <button onClick={() => setStatusFilter(CollectionStatus.COMPLETED)} className={`flex items-center gap-1.5 ${statusFilter === CollectionStatus.COMPLETED ? 'font-semibold' : 'text-muted-foreground hover:text-foreground'}`}>
+              <span className="h-2.5 w-2.5 rounded-full bg-green-500 inline-block" />
+              Completed <span className="font-bold ml-0.5">{collectionsCountByStatus.completed}</span>
+            </button>
+            <button onClick={() => setStatusFilter('all')} className={`flex items-center gap-1.5 ${statusFilter === 'all' ? 'font-semibold' : 'text-muted-foreground hover:text-foreground'}`}>
+              <span className="h-2.5 w-2.5 rounded-full bg-gray-400 inline-block" />
+              All mine <span className="font-bold ml-0.5">{myCollections.length}</span>
+            </button>
           </div>
           
           <div className="flex flex-col md:flex-row gap-3">
@@ -561,234 +602,334 @@ export default function CollectorCollectionsPage() {
             </TabsList>
             
             <TabsContent value="collections" className="mt-0">
-              <Card className="overflow-hidden">
-                <CardHeader className="bg-muted/30 pb-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle>
-                        {isUnassignedView ? 'Available Pickups' : 'My Collections'}
-                      </CardTitle>
-                      <CardDescription>
-                        {filteredCollections.length} {filteredCollections.length === 1 ? 'collection' : 'collections'}
-                        {wasteTypeFilter !== 'all' ? ` · ${wasteTypeConfig[wasteTypeFilter as keyof typeof wasteTypeConfig]?.label || wasteTypeFilter}` : ''}
-                        {cityFilter !== 'all' ? ` · ${cityFilter}` : ''}
-                      </CardDescription>
+              {isUnassignedView ? (
+                /* ── NEW AVAILABLE PICKUPS LAYOUT ── */
+                <div className="space-y-4">
+                  {/* Date tabs + select all */}
+                  <div className="flex items-center justify-between gap-4 flex-wrap">
+                    <div className="flex bg-muted rounded-lg p-1 gap-1">
+                      {(['today', 'tomorrow', 'week'] as const).map((f) => (
+                        <button
+                          key={f}
+                          onClick={() => setDateFilter(f)}
+                          className={`rounded-md px-4 py-1.5 text-sm font-medium transition-all ${
+                            dateFilter === f
+                              ? 'bg-background shadow-sm text-foreground'
+                              : 'text-muted-foreground hover:text-foreground'
+                          }`}
+                        >
+                          {f === 'today' ? 'Today' : f === 'tomorrow' ? 'Tomorrow' : 'This week'}
+                        </button>
+                      ))}
                     </div>
-                    {selectedIds.size > 0 && (
+                    <div className="flex items-center gap-3">
+                      {selectedIds.size > 0 && (
+                        <Button size="sm" onClick={() => setBulkClaimDialogOpen(true)} className="gap-1.5">
+                          <Truck className="h-4 w-4" />
+                          Claim ({selectedIds.size})
+                        </Button>
+                      )}
                       <Button
-                        onClick={() => setBulkClaimDialogOpen(true)}
-                        className="gap-2"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          const ids = new Set(dateFilteredAvailable.map((c: any) => c.id));
+                          setSelectedIds(ids as Set<number>);
+                        }}
                       >
-                        <Truck className="h-4 w-4" />
-                        Claim Selected ({selectedIds.size})
+                        Select all
                       </Button>
-                    )}
+                    </div>
                   </div>
-                </CardHeader>
-                <CardContent className="p-0">
-              {isLoading ? (
-                <div className="flex justify-center items-center py-12">
-                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
-                </div>
-              ) : filteredCollections.length === 0 ? (
-                <div className="p-6 text-center">
-                  <Package className="mx-auto h-12 w-12 text-muted-foreground mb-2" />
-                  <h3 className="font-medium text-lg">No collections found</h3>
-                  <p className="text-muted-foreground">
-                    {isUnassignedView 
-                      ? "There are no available pickups to claim at the moment." 
-                      : `No ${statusFilter !== 'all' ? statusFilter : ''} collections to display.`}
-                  </p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        {isUnassignedView && (
-                          <TableHead className="w-[40px]">
-                            <Checkbox
-                              checked={allOnPageSelected}
-                              onCheckedChange={toggleSelectAll}
-                              aria-label="Select all"
-                            />
-                          </TableHead>
-                        )}
-                        {isAllMineView && (
-                          <TableHead>
-                            <button onClick={() => handleSort('status')} className="flex items-center hover:text-primary">
-                              Status{getSortIcon('status')}
-                            </button>
-                          </TableHead>
-                        )}
-                        <TableHead>
-                          <button onClick={() => handleSort('wasteType')} className="flex items-center hover:text-primary">
-                            Waste Type{getSortIcon('wasteType')}
-                          </button>
-                        </TableHead>
-                        <TableHead>
-                          <button onClick={() => handleSort('date')} className="flex items-center hover:text-primary">
-                            Date{getSortIcon('date')}
-                          </button>
-                        </TableHead>
-                        <TableHead>City</TableHead>
-                        {!isUnassignedView && <TableHead>Drop-off</TableHead>}
-                        <TableHead className="text-right">Details</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {paginatedCollections.map((collection: any) => {
-                        const isSelectable = !collection.collectorId && collection.status === CollectionStatus.SCHEDULED;
-                        const isSelected = selectedIds.has(collection.id);
-                        
-                        return (
-                          <TableRow 
-                            key={collection.id} 
-                            className={`group hover:bg-muted/50 ${isSelected ? 'bg-primary/5' : ''}`}
-                          >
-                            {isUnassignedView && (
-                              <TableCell>
-                                {isSelectable && (
-                                  <Checkbox
-                                    checked={isSelected}
-                                    onCheckedChange={() => toggleSelection(collection.id)}
-                                    aria-label={`Select collection #${collection.id}`}
-                                  />
-                                )}
-                              </TableCell>
-                            )}
-                            {isAllMineView && (
-                              <TableCell>
-                                <Badge variant="outline" className={getStatusColor(collection.status)}>
-                                  {collection.status.charAt(0).toUpperCase() + collection.status.slice(1)}
-                                </Badge>
-                              </TableCell>
-                            )}
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <span className="capitalize">{collection.wasteType}</span>
-                                {collection.wasteAmount && (
-                                  <Badge variant="outline" className="bg-teal-50 text-teal-700 border-teal-200">
-                                    {formatNumber(collection.wasteAmount)} kg
-                                  </Badge>
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center">
-                                <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
-                                {format(new Date(collection.scheduledDate), 'MMM d, yyyy')}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <span className="text-sm">{collection.city || '—'}</span>
-                            </TableCell>
-                            {!isUnassignedView && (
-                              <TableCell>
-                                {collection.dropoffCenterId ? (
-                                  <div className="flex flex-col gap-1">
-                                    {collection.dropoffConfirmed ? (
-                                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 w-fit">
-                                        <CheckCircle2 className="h-3 w-3 mr-1" />
-                                        Delivered
-                                      </Badge>
-                                    ) : confirmingDropoffId === collection.id ? (
-                                      <div className="flex items-center gap-1.5">
-                                        <input
-                                          value={dropoffCodeInput}
-                                          onChange={(e) => setDropoffCodeInput(e.target.value.toUpperCase())}
-                                          placeholder="Enter code"
-                                          className="w-[100px] h-7 text-xs font-mono border rounded px-2 bg-background"
-                                        />
-                                        <Button
-                                          size="sm"
-                                          className="h-7 px-2"
-                                          onClick={() => confirmDropoffMutation.mutate({ collectionId: collection.id, dropoffCode: dropoffCodeInput })}
-                                          disabled={!dropoffCodeInput || confirmDropoffMutation.isPending}
-                                        >
-                                          {confirmDropoffMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />}
-                                        </Button>
-                                        <Button size="sm" variant="ghost" className="h-7 px-1" onClick={() => { setConfirmingDropoffId(null); setDropoffCodeInput(''); }}>
-                                          <XCircle className="h-3 w-3" />
-                                        </Button>
-                                      </div>
-                                    ) : (
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        className="h-7 text-xs"
-                                        onClick={() => setConfirmingDropoffId(collection.id)}
-                                      >
-                                        Confirm Delivery
-                                      </Button>
-                                    )}
-                                  </div>
-                                ) : (
-                                  <span className="text-xs text-muted-foreground">—</span>
-                                )}
-                              </TableCell>
-                            )}
-                            <TableCell className="text-right">
-                              <div className="flex justify-end gap-2">
-                                {!isUnassignedView && getActionButton(collection)}
-                                <Button 
-                                  size="sm" 
-                                  variant="outline"
-                                  onClick={() => {
-                                    setSelectedCollection(collection);
-                                    setNotesInput(collection.notes || '');
-                                  }}
-                                  title="View Collection Details"
-                                >
-                                  <Activity className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                  
-                  {totalPages > 1 && (
-                    <div className="flex justify-center py-4 space-x-1">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                        disabled={currentPage === 1}
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
-                      
-                      <div className="flex items-center gap-1">
-                        {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                          <Button
-                            key={page}
-                            variant={page === currentPage ? "default" : "outline"}
-                            size="sm"
-                            className="w-8 h-8 p-0"
-                            onClick={() => setCurrentPage(page)}
-                          >
-                            {page}
-                          </Button>
-                        ))}
+
+                  {isLoading ? (
+                    <div className="flex justify-center py-12">
+                      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary" />
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+                      {/* Pseudo map */}
+                      <div className="rounded-xl border bg-green-50 dark:bg-green-950/20 overflow-hidden relative" style={{ minHeight: 320 }}>
+                        <div className="px-3 pt-3 pb-1 text-xs font-medium text-muted-foreground">
+                          {(() => {
+                            const city = allAvailable[0]?.address?.split(',')[1]?.trim() ||
+                                         allAvailable[0]?.address?.split(',')[0]?.trim() || 'Your area';
+                            return `${city} · ${allAvailable.length} available`;
+                          })()}
+                        </div>
+                        <svg viewBox="0 0 100 90" className="w-full" style={{ height: 260 }}>
+                          {/* Grid lines */}
+                          {[20, 40, 60, 80].map(v => (
+                            <g key={v}>
+                              <line x1={v} y1="0" x2={v} y2="90" stroke="#bbf7d0" strokeWidth="0.4" />
+                              <line x1="0" y1={v} x2="100" y2={v} stroke="#bbf7d0" strokeWidth="0.4" />
+                            </g>
+                          ))}
+                          {/* Markers */}
+                          {clusteredMarkers.map((m) => (
+                            <g key={m.id}>
+                              <circle cx={m.x} cy={m.y} r={m.count > 1 ? 5.5 : 4} fill={m.color} opacity="0.9" />
+                              {m.count > 1 ? (
+                                <text x={m.x} y={m.y + 1.5} textAnchor="middle" fontSize="3.5" fill="white" fontWeight="bold">{m.count}+</text>
+                              ) : (
+                                <text x={m.x} y={m.y + 1.5} textAnchor="middle" fontSize="3" fill="white" fontWeight="bold">1</text>
+                              )}
+                            </g>
+                          ))}
+                        </svg>
+                        {/* Legend */}
+                        <div className="px-3 pb-3 flex flex-wrap gap-3 text-[11px] text-muted-foreground">
+                          <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full bg-red-500" />Due today</span>
+                          <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full bg-green-500" />Available</span>
+                          <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full bg-indigo-500" />Confirmed</span>
+                          <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full bg-orange-500" />Cluster</span>
+                        </div>
                       </div>
-                      
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                        disabled={currentPage === totalPages}
-                      >
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
+
+                      {/* Collection cards */}
+                      <div className="flex flex-col gap-1">
+                        <p className="text-sm text-muted-foreground mb-1">
+                          {dateFilteredAvailable.length} pickup{dateFilteredAvailable.length !== 1 ? 's' : ''} near you
+                        </p>
+                        {dateFilteredAvailable.length === 0 ? (
+                          <div className="rounded-xl border bg-muted/30 p-8 text-center">
+                            <Package className="mx-auto h-10 w-10 text-muted-foreground mb-2" />
+                            <p className="font-medium">No pickups for this period</p>
+                            <p className="text-sm text-muted-foreground mt-1">Try "This week" to see more</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-2 max-h-[480px] overflow-y-auto pr-1">
+                            {dateFilteredAvailable.map((collection: any) => {
+                              const dueToday = isToday(new Date(collection.scheduledDate));
+                              const dueTomorrow = isTomorrow(new Date(collection.scheduledDate));
+                              const earnings = calculateWasteValue(collection.wasteType, collection.wasteAmount || 10);
+                              const location = collection.address?.split(',')[0]?.trim() || collection.city || '—';
+                              const isSelected = selectedIds.has(collection.id);
+                              const wtConfig = wasteTypeConfig[collection.wasteType as keyof typeof wasteTypeConfig];
+                              return (
+                                <div
+                                  key={collection.id}
+                                  className={`rounded-xl border p-4 transition-all ${isSelected ? 'border-green-500 bg-green-50/60 dark:bg-green-900/10' : 'bg-card hover:border-green-300'}`}
+                                >
+                                  {/* Top row */}
+                                  <div className="flex items-start justify-between gap-2 mb-2">
+                                    <div className="flex flex-wrap items-center gap-1.5">
+                                      <span
+                                        className="text-xs font-semibold px-2 py-0.5 rounded-full capitalize"
+                                        style={{ background: wtConfig?.color + '20', color: wtConfig?.color || '#22c55e' }}
+                                      >
+                                        {collection.wasteType}
+                                      </span>
+                                      {collection.wasteAmount && (
+                                        <Badge variant="outline" className="text-xs py-0 h-5">
+                                          {formatNumber(collection.wasteAmount)} kg
+                                        </Badge>
+                                      )}
+                                      {dueToday && (
+                                        <span className="text-xs font-medium text-red-600 bg-red-50 border border-red-200 rounded-full px-2 py-0.5">Due today</span>
+                                      )}
+                                      {dueTomorrow && (
+                                        <span className="text-xs font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">Tomorrow</span>
+                                      )}
+                                    </div>
+                                    <Checkbox
+                                      checked={isSelected}
+                                      onCheckedChange={() => toggleSelection(collection.id)}
+                                      className="mt-0.5"
+                                    />
+                                  </div>
+                                  {/* Location + date */}
+                                  <div className="flex items-center gap-3 text-xs text-muted-foreground mb-3">
+                                    <span className="flex items-center gap-1">
+                                      <MapPin className="h-3 w-3" />
+                                      {location}
+                                    </span>
+                                    <span className="flex items-center gap-1">
+                                      <Calendar className="h-3 w-3" />
+                                      {format(new Date(collection.scheduledDate), 'MMM d, yyyy')}
+                                    </span>
+                                  </div>
+                                  {/* Earnings + accept */}
+                                  <div className="flex items-center justify-between">
+                                    <div>
+                                      <p className="text-base font-bold text-green-700">KSh {formatNumber(earnings)}</p>
+                                    </div>
+                                    <Button
+                                      size="sm"
+                                      className="bg-green-600 hover:bg-green-700 px-5"
+                                      onClick={() => {
+                                        setClaimingCollection(collection);
+                                        setClaimDialogOpen(true);
+                                      }}
+                                    >
+                                      Accept
+                                    </Button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
+              ) : (
+                /* ── EXISTING TABLE FOR MY COLLECTIONS ── */
+                <Card className="overflow-hidden">
+                  <CardHeader className="bg-muted/30 pb-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle>My Collections</CardTitle>
+                        <CardDescription>
+                          {filteredCollections.length} {filteredCollections.length === 1 ? 'collection' : 'collections'}
+                          {wasteTypeFilter !== 'all' ? ` · ${wasteTypeConfig[wasteTypeFilter as keyof typeof wasteTypeConfig]?.label || wasteTypeFilter}` : ''}
+                          {cityFilter !== 'all' ? ` · ${cityFilter}` : ''}
+                        </CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    {isLoading ? (
+                      <div className="flex justify-center items-center py-12">
+                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary" />
+                      </div>
+                    ) : filteredCollections.length === 0 ? (
+                      <div className="p-6 text-center">
+                        <Package className="mx-auto h-12 w-12 text-muted-foreground mb-2" />
+                        <h3 className="font-medium text-lg">No collections found</h3>
+                        <p className="text-muted-foreground">
+                          {`No ${statusFilter !== 'all' ? statusFilter : ''} collections to display.`}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              {isAllMineView && (
+                                <TableHead>
+                                  <button onClick={() => handleSort('status')} className="flex items-center hover:text-primary">
+                                    Status{getSortIcon('status')}
+                                  </button>
+                                </TableHead>
+                              )}
+                              <TableHead>
+                                <button onClick={() => handleSort('wasteType')} className="flex items-center hover:text-primary">
+                                  Waste Type{getSortIcon('wasteType')}
+                                </button>
+                              </TableHead>
+                              <TableHead>
+                                <button onClick={() => handleSort('date')} className="flex items-center hover:text-primary">
+                                  Date{getSortIcon('date')}
+                                </button>
+                              </TableHead>
+                              <TableHead>City</TableHead>
+                              <TableHead>Drop-off</TableHead>
+                              <TableHead className="text-right">Details</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {paginatedCollections.map((collection: any) => (
+                              <TableRow key={collection.id} className="hover:bg-muted/50">
+                                {isAllMineView && (
+                                  <TableCell>
+                                    <Badge variant="outline" className={getStatusColor(collection.status)}>
+                                      {collection.status.charAt(0).toUpperCase() + collection.status.slice(1)}
+                                    </Badge>
+                                  </TableCell>
+                                )}
+                                <TableCell>
+                                  <div className="flex items-center gap-2">
+                                    <span className="capitalize">{collection.wasteType}</span>
+                                    {collection.wasteAmount && (
+                                      <Badge variant="outline" className="bg-teal-50 text-teal-700 border-teal-200">
+                                        {formatNumber(collection.wasteAmount)} kg
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex items-center">
+                                    <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
+                                    {format(new Date(collection.scheduledDate), 'MMM d, yyyy')}
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <span className="text-sm">{collection.city || '—'}</span>
+                                </TableCell>
+                                <TableCell>
+                                  {collection.dropoffCenterId ? (
+                                    <div className="flex flex-col gap-1">
+                                      {collection.dropoffConfirmed ? (
+                                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 w-fit">
+                                          <CheckCircle2 className="h-3 w-3 mr-1" />Delivered
+                                        </Badge>
+                                      ) : confirmingDropoffId === collection.id ? (
+                                        <div className="flex items-center gap-1.5">
+                                          <input
+                                            value={dropoffCodeInput}
+                                            onChange={(e) => setDropoffCodeInput(e.target.value.toUpperCase())}
+                                            placeholder="Enter code"
+                                            className="w-[100px] h-7 text-xs font-mono border rounded px-2 bg-background"
+                                          />
+                                          <Button size="sm" className="h-7 px-2"
+                                            onClick={() => confirmDropoffMutation.mutate({ collectionId: collection.id, dropoffCode: dropoffCodeInput })}
+                                            disabled={!dropoffCodeInput || confirmDropoffMutation.isPending}
+                                          >
+                                            {confirmDropoffMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />}
+                                          </Button>
+                                          <Button size="sm" variant="ghost" className="h-7 px-1" onClick={() => { setConfirmingDropoffId(null); setDropoffCodeInput(''); }}>
+                                            <XCircle className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      ) : (
+                                        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setConfirmingDropoffId(collection.id)}>
+                                          Confirm Delivery
+                                        </Button>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <span className="text-xs text-muted-foreground">—</span>
+                                  )}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <div className="flex justify-end gap-2">
+                                    {getActionButton(collection)}
+                                    <Button size="sm" variant="outline"
+                                      onClick={() => { setSelectedCollection(collection); setNotesInput(collection.notes || ''); }}
+                                      title="View Details"
+                                    >
+                                      <Activity className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                        {totalPages > 1 && (
+                          <div className="flex justify-center py-4 space-x-1">
+                            <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(p - 1, 1))} disabled={currentPage === 1}>
+                              <ChevronLeft className="h-4 w-4" />
+                            </Button>
+                            <div className="flex items-center gap-1">
+                              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                                <Button key={page} variant={page === currentPage ? 'default' : 'outline'} size="sm" className="w-8 h-8 p-0" onClick={() => setCurrentPage(page)}>
+                                  {page}
+                                </Button>
+                              ))}
+                            </div>
+                            <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))} disabled={currentPage === totalPages}>
+                              <ChevronRight className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
               )}
-            </CardContent>
-              </Card>
             </TabsContent>
             
             <TabsContent value="routes" className="mt-0">
