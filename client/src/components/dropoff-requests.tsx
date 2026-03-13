@@ -14,6 +14,7 @@ import { Loader2, Inbox, Star, Phone, Mail, Building2, Award, ChevronDown, Chevr
 import { format } from "date-fns";
 import { wasteTypeConfig } from "@/lib/types";
 import { useAuth } from "@/hooks/use-auth";
+import { wastePricingConfig } from "@shared/schema";
 
 interface CollectorDetails {
   email: string;
@@ -575,6 +576,11 @@ export function DropoffRequests() {
               <div className="space-y-3">
                 {confirmedDropoffs.map((dropoff) => {
                   const config = getWasteConfig(dropoff.wasteType);
+                  const pricing = wastePricingConfig[dropoff.wasteType];
+                  const kg = dropoff.wasteAmount || 0;
+                  const amountDue = pricing && pricing.recyclerRate > 0 && kg > 0
+                    ? pricing.recyclerRate * kg
+                    : null;
                   return (
                     <Card key={dropoff.id} className="overflow-hidden border-green-100">
                       <CardContent className="p-4">
@@ -583,15 +589,22 @@ export function DropoffRequests() {
                             <Badge className={`${config.bgColor} ${config.textColor} border-0`}>
                               {config.label}
                             </Badge>
-                            {dropoff.wasteAmount ? (
-                              <span className="text-sm font-semibold">{dropoff.wasteAmount} kg</span>
+                            {kg > 0 ? (
+                              <span className="text-sm font-semibold">{kg} kg</span>
                             ) : (
                               <span className="text-xs text-muted-foreground">—</span>
                             )}
                           </div>
-                          <Badge className="bg-green-100 text-green-800 border-green-200 gap-1">
-                            <CheckCircle className="h-3 w-3" />Delivered
-                          </Badge>
+                          <div className="flex items-center gap-2">
+                            {amountDue !== null && (
+                              <span className="text-sm font-bold text-red-600">
+                                -KSh {amountDue.toLocaleString()}
+                              </span>
+                            )}
+                            <Badge className="bg-green-100 text-green-800 border-green-200 gap-1">
+                              <CheckCircle className="h-3 w-3" />Delivered
+                            </Badge>
+                          </div>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm text-muted-foreground">
                           <div className="flex items-center gap-1.5">
@@ -607,6 +620,11 @@ export function DropoffRequests() {
                             {dropoff.scheduledDate ? format(new Date(dropoff.scheduledDate), "MMM d, yyyy") : "N/A"}
                           </div>
                         </div>
+                        {amountDue !== null && pricing && (
+                          <p className="text-xs text-muted-foreground mt-2">
+                            KSh {pricing.recyclerRate}/kg · deducted from wallet
+                          </p>
+                        )}
                       </CardContent>
                     </Card>
                   );

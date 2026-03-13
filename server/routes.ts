@@ -1893,6 +1893,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (matchingLimit) {
           await storage.updateWasteAcceptanceLimitUsage(matchingLimit.id, collection.wasteAmount);
         }
+
+        // Deduct recyclerRate × wasteAmount from the recycler's wallet
+        try {
+          const pricing = wastePricingConfig[collection.wasteType];
+          if (pricing && pricing.recyclerRate > 0) {
+            const deductAmount = pricing.recyclerRate * collection.wasteAmount;
+            let recyclerWallet = await storage.getWalletByUserId(collection.dropoffCenterId);
+            if (!recyclerWallet) {
+              recyclerWallet = await storage.createWallet({ userId: collection.dropoffCenterId, balance: 0 });
+            }
+            const newRecyclerBalance = recyclerWallet.balance - deductAmount;
+            await storage.updateWalletBalance(collection.dropoffCenterId, newRecyclerBalance);
+            await storage.createWalletTransaction({
+              walletId: recyclerWallet.id,
+              userId: collection.dropoffCenterId,
+              type: 'payment',
+              amount: deductAmount,
+              description: `Materials purchase: ${collection.wasteAmount}kg of ${collection.wasteType} (KSh ${pricing.recyclerRate}/kg)`,
+              referenceId: `MAT_${collection.id}`,
+              balanceAfter: newRecyclerBalance,
+            });
+          }
+        } catch (walletErr) {
+          console.error('Error deducting recycler wallet on drop-off confirmation:', walletErr);
+          // Non-fatal
+        }
       }
 
       if (updated && collection.dropoffCenterId) {
