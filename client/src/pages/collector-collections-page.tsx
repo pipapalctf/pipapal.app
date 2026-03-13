@@ -647,17 +647,18 @@ export default function CollectorCollectionsPage() {
                       <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary" />
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
-                      {/* Pseudo map */}
-                      <div className="rounded-xl border bg-green-50 dark:bg-green-950/20 overflow-hidden relative" style={{ minHeight: 320 }}>
-                        <div className="px-3 pt-3 pb-1 text-xs font-medium text-muted-foreground">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
+                      {/* Pseudo map — stretches to match card column height */}
+                      <div className="rounded-xl border bg-green-50 dark:bg-green-950/20 overflow-hidden flex flex-col" style={{ minHeight: 320 }}>
+                        <div className="px-3 pt-3 pb-1 text-xs font-medium text-muted-foreground shrink-0">
                           {(() => {
                             const city = allAvailable[0]?.address?.split(',')[1]?.trim() ||
                                          allAvailable[0]?.address?.split(',')[0]?.trim() || 'Your area';
                             return `${city} · ${allAvailable.length} available`;
                           })()}
                         </div>
-                        <svg viewBox="0 0 100 90" className="w-full" style={{ height: 260 }}>
+                        {/* SVG grows to fill available height */}
+                        <svg viewBox="0 0 100 90" className="w-full flex-1" preserveAspectRatio="xMidYMid meet">
                           {/* Grid lines */}
                           {[20, 40, 60, 80].map(v => (
                             <g key={v}>
@@ -677,12 +678,43 @@ export default function CollectorCollectionsPage() {
                             </g>
                           ))}
                         </svg>
-                        {/* Legend */}
-                        <div className="px-3 pb-3 flex flex-wrap gap-3 text-[11px] text-muted-foreground">
-                          <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full bg-red-500" />Due today</span>
-                          <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full bg-green-500" />Available</span>
-                          <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full bg-indigo-500" />Confirmed</span>
-                          <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full bg-orange-500" />Cluster</span>
+                        {/* Legend + earnings summary at the bottom */}
+                        <div className="px-3 pt-3 pb-3 border-t border-green-200/60 shrink-0 space-y-2.5">
+                          <div className="flex flex-wrap gap-3 text-[11px] text-muted-foreground">
+                            <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full bg-red-500" />Due today</span>
+                            <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full bg-green-500" />Available</span>
+                            <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full bg-indigo-500" />Confirmed</span>
+                            <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full bg-orange-500" />Cluster</span>
+                          </div>
+                          {/* Earnings snapshot */}
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="rounded-lg bg-white dark:bg-green-900/20 border border-green-200/60 px-3 py-2">
+                              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">This week</p>
+                              <p className="text-sm font-bold text-green-700 mt-0.5">
+                                KSh {formatNumber(dateFilteredAvailable.reduce((s: number, c: any) => s + calculateWasteValue(c.wasteType, c.wasteAmount || 10), 0))}
+                              </p>
+                            </div>
+                            <div className="rounded-lg bg-white dark:bg-green-900/20 border border-green-200/60 px-3 py-2">
+                              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Due today</p>
+                              <p className="text-sm font-bold text-green-700 mt-0.5">
+                                KSh {formatNumber(estimatedTodayEarnings)}
+                              </p>
+                            </div>
+                            <div className="rounded-lg bg-white dark:bg-green-900/20 border border-green-200/60 px-3 py-2">
+                              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Top waste</p>
+                              <p className="text-sm font-bold capitalize mt-0.5">
+                                {(() => {
+                                  const counts: Record<string, number> = {};
+                                  allAvailable.forEach((c: any) => { counts[c.wasteType] = (counts[c.wasteType] || 0) + 1; });
+                                  return Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] || '—';
+                                })()}
+                              </p>
+                            </div>
+                            <div className="rounded-lg bg-white dark:bg-green-900/20 border border-green-200/60 px-3 py-2">
+                              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Total pickups</p>
+                              <p className="text-sm font-bold mt-0.5">{allAvailable.length}</p>
+                            </div>
+                          </div>
                         </div>
                       </div>
 
