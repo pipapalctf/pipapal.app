@@ -648,48 +648,86 @@ export default function CollectorCollectionsPage() {
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
-                      {/* Pseudo map */}
-                      <div className="rounded-xl border bg-green-50 dark:bg-green-950/20 overflow-hidden relative" style={{ minHeight: 320 }}>
-                        <div className="px-3 pt-3 pb-1 text-xs font-medium text-muted-foreground">
-                          {(() => {
-                            const city = allAvailable[0]?.address?.split(',')[1]?.trim() ||
-                                         allAvailable[0]?.address?.split(',')[0]?.trim() || 'Your area';
-                            return `${city} · ${allAvailable.length} available`;
-                          })()}
-                        </div>
-                        <svg viewBox="0 0 100 90" className="w-full" style={{ height: 260 }}>
-                          {/* Grid lines */}
-                          {[20, 40, 60, 80].map(v => (
-                            <g key={v}>
-                              <line x1={v} y1="0" x2={v} y2="90" stroke="#bbf7d0" strokeWidth="0.4" />
-                              <line x1="0" y1={v} x2="100" y2={v} stroke="#bbf7d0" strokeWidth="0.4" />
-                            </g>
-                          ))}
-                          {/* Markers */}
-                          {clusteredMarkers.map((m) => (
-                            <g key={m.id}>
-                              <circle cx={m.x} cy={m.y} r={m.count > 1 ? 5.5 : 4} fill={m.color} opacity="0.9" />
-                              {m.count > 1 ? (
-                                <text x={m.x} y={m.y + 1.5} textAnchor="middle" fontSize="3.5" fill="white" fontWeight="bold">{m.count}+</text>
-                              ) : (
-                                <text x={m.x} y={m.y + 1.5} textAnchor="middle" fontSize="3" fill="white" fontWeight="bold">1</text>
-                              )}
-                            </g>
-                          ))}
-                        </svg>
-                        {/* Legend */}
-                        <div className="px-3 pb-3 flex flex-wrap gap-3 text-[11px] text-muted-foreground">
-                          <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full bg-red-500" />Due today</span>
-                          <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full bg-green-500" />Available</span>
-                          <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full bg-indigo-500" />Confirmed</span>
-                          <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full bg-orange-500" />Cluster</span>
-                        </div>
-                      </div>
+                      {/* Schematic map */}
+                      {(() => {
+                        const collectorArea = user?.address?.split(',')[0]?.trim() || 'Your area';
+                        return (
+                          <div className="rounded-xl border overflow-hidden bg-[#e8f5e9] dark:bg-green-950/30" style={{ minHeight: 320 }}>
+                            <div className="px-3 pt-3 pb-1 text-xs font-semibold text-green-800 dark:text-green-300">
+                              {collectorArea} · {allAvailable.length} available
+                            </div>
+                            <svg viewBox="0 0 100 90" className="w-full" style={{ height: 262 }}>
+                              {/* Background */}
+                              <rect x="0" y="0" width="100" height="90" fill="#e8f5e9" />
+
+                              {/* City blocks (irregular shapes) */}
+                              <rect x="5"  y="5"  width="28" height="18" rx="1" fill="#c8e6c9" opacity="0.7" />
+                              <rect x="38" y="5"  width="22" height="14" rx="1" fill="#c8e6c9" opacity="0.7" />
+                              <rect x="65" y="8"  width="30" height="20" rx="1" fill="#c8e6c9" opacity="0.7" />
+                              <rect x="5"  y="32" width="18" height="22" rx="1" fill="#c8e6c9" opacity="0.7" />
+                              <rect x="28" y="30" width="26" height="16" rx="1" fill="#c8e6c9" opacity="0.7" />
+                              <rect x="60" y="33" width="35" height="20" rx="1" fill="#c8e6c9" opacity="0.7" />
+                              <rect x="5"  y="62" width="32" height="22" rx="1" fill="#c8e6c9" opacity="0.7" />
+                              <rect x="44" y="60" width="24" height="26" rx="1" fill="#c8e6c9" opacity="0.7" />
+                              <rect x="72" y="58" width="24" height="28" rx="1" fill="#c8e6c9" opacity="0.7" />
+
+                              {/* Roads — white paths like streets */}
+                              {/* Main horizontal */}
+                              <path d="M 0 27 Q 30 25 50 27 Q 70 29 100 27" stroke="white" strokeWidth="2.5" fill="none" />
+                              <path d="M 0 56 Q 35 54 55 56 Q 75 58 100 56" stroke="white" strokeWidth="2.5" fill="none" />
+                              {/* Main vertical */}
+                              <path d="M 34 0 Q 33 25 34 45 Q 35 65 34 90"  stroke="white" strokeWidth="2.5" fill="none" />
+                              <path d="M 62 0 Q 61 30 62 50 Q 63 70 62 90"  stroke="white" strokeWidth="2.5" fill="none" />
+                              {/* Secondary roads */}
+                              <path d="M 0 8  L 100 8"  stroke="white" strokeWidth="1.2" fill="none" opacity="0.6" />
+                              <path d="M 0 82 L 100 82" stroke="white" strokeWidth="1.2" fill="none" opacity="0.6" />
+                              <path d="M 12 0 L 12 90" stroke="white" strokeWidth="1.2" fill="none" opacity="0.6" />
+                              <path d="M 88 0 L 88 90" stroke="white" strokeWidth="1.2" fill="none" opacity="0.6" />
+                              {/* Diagonal shortcut */}
+                              <path d="M 34 27 L 62 56" stroke="white" strokeWidth="1" fill="none" opacity="0.5" />
+
+                              {/* Collector "you are here" pin */}
+                              <circle cx="48" cy="41" r="3.5" fill="#1d4ed8" opacity="0.9" />
+                              <circle cx="48" cy="41" r="6" fill="#1d4ed8" opacity="0.15" />
+                              <text x="48" y="43" textAnchor="middle" fontSize="2.8" fill="white" fontWeight="bold">★</text>
+
+                              {/* Collection markers */}
+                              {clusteredMarkers.map((m) => (
+                                <g key={m.id}>
+                                  <circle cx={m.x} cy={m.y} r={m.count > 1 ? 5.5 : 4.2} fill={m.color} opacity="0.92" />
+                                  <circle cx={m.x} cy={m.y} r={m.count > 1 ? 8 : 6.5} fill={m.color} opacity="0.12" />
+                                  {m.count > 1 ? (
+                                    <text x={m.x} y={m.y + 1.8} textAnchor="middle" fontSize="3.5" fill="white" fontWeight="bold">{m.count}+</text>
+                                  ) : (
+                                    <text x={m.x} y={m.y + 1.8} textAnchor="middle" fontSize="3" fill="white" fontWeight="bold">1</text>
+                                  )}
+                                </g>
+                              ))}
+                            </svg>
+                            {/* Legend */}
+                            <div className="px-3 pb-3 flex flex-wrap gap-3 text-[11px] text-muted-foreground">
+                              <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full bg-red-500" />Due today</span>
+                              <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full bg-green-500" />Available</span>
+                              <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full bg-blue-600" />You</span>
+                              <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full bg-orange-500" />Cluster</span>
+                            </div>
+                          </div>
+                        );
+                      })()}
 
                       {/* Collection cards */}
-                      <div className="flex flex-col gap-1">
+                      {(() => {
+                        const collectorCity = user?.address?.split(',')[0]?.trim()?.toLowerCase() || '';
+                        const sorted = [...dateFilteredAvailable].sort((a: any, b: any) => {
+                          const aMatch = (a.address || '').toLowerCase().includes(collectorCity) ? 0 : 1;
+                          const bMatch = (b.address || '').toLowerCase().includes(collectorCity) ? 0 : 1;
+                          return aMatch - bMatch;
+                        });
+                        return (
+                        <div className="flex flex-col gap-1">
                         <p className="text-sm text-muted-foreground mb-1">
                           {dateFilteredAvailable.length} pickup{dateFilteredAvailable.length !== 1 ? 's' : ''} near you
+                          {collectorCity && <span className="ml-1 text-xs">({user?.address?.split(',')[0]?.trim()})</span>}
                         </p>
                         {dateFilteredAvailable.length === 0 ? (
                           <div className="rounded-xl border bg-muted/30 p-8 text-center">
@@ -699,7 +737,7 @@ export default function CollectorCollectionsPage() {
                           </div>
                         ) : (
                           <div className="space-y-2 max-h-[480px] overflow-y-auto pr-1">
-                            {dateFilteredAvailable.map((collection: any) => {
+                            {sorted.map((collection: any) => {
                               const dueToday = isToday(new Date(collection.scheduledDate));
                               const dueTomorrow = isTomorrow(new Date(collection.scheduledDate));
                               const earnings = calculateWasteValue(collection.wasteType, collection.wasteAmount || 10);
@@ -770,7 +808,9 @@ export default function CollectorCollectionsPage() {
                             })}
                           </div>
                         )}
-                      </div>
+                        </div>
+                        );
+                      })()}
                     </div>
                   )}
                 </div>
