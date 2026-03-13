@@ -51,12 +51,13 @@ interface MaterialInterest {
   } | null;
 }
 
-// Confirmed recycler (drop-off) section
+// Assigned / confirmed recycler (drop-off) section
 interface DropoffRecyclerSectionProps {
   dropoffCenterId: number;
+  isCompleted: boolean;
 }
 
-function DropoffRecyclerSection({ dropoffCenterId }: DropoffRecyclerSectionProps) {
+function DropoffRecyclerSection({ dropoffCenterId, isCompleted }: DropoffRecyclerSectionProps) {
   const { data: recycler, isLoading } = useQuery<any>({
     queryKey: ['/api/users', dropoffCenterId],
     enabled: !!dropoffCenterId,
@@ -64,9 +65,15 @@ function DropoffRecyclerSection({ dropoffCenterId }: DropoffRecyclerSectionProps
     staleTime: 60000,
   });
 
+  const title = isCompleted ? 'Recycler' : 'Drop-off Center';
+  const badgeLabel = isCompleted ? 'Received' : 'Assigned';
+  const badgeClass = isCompleted
+    ? 'bg-green-50 text-green-700 border-green-200'
+    : 'bg-blue-50 text-blue-700 border-blue-200';
+
   return (
     <div className="grid gap-2">
-      <h3 className="text-sm font-medium">Recycler</h3>
+      <h3 className="text-sm font-medium">{title}</h3>
       <div className="bg-muted/50 p-3 rounded-md">
         {isLoading ? (
           <div className="flex items-center gap-2">
@@ -78,7 +85,7 @@ function DropoffRecyclerSection({ dropoffCenterId }: DropoffRecyclerSectionProps
             <div className="flex items-center gap-2">
               <Building className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm font-medium">{recycler.fullName || recycler.username}</span>
-              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">Confirmed</Badge>
+              <Badge variant="outline" className={`${badgeClass} text-xs`}>{badgeLabel}</Badge>
             </div>
             {recycler.email && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -589,15 +596,18 @@ export function CollectionDetailsDialog({
                   </div>
                 )}
                 
-                {/* Recycler info for completed collections */}
-                {collection.status === 'completed' && (
-                  (collection as any).dropoffCenterId && (collection as any).dropoffConfirmed
-                    ? <DropoffRecyclerSection dropoffCenterId={(collection as any).dropoffCenterId} />
-                    : <InterestsSection 
-                        collectionId={collection.id} 
-                        showForRoles={[UserRole.COLLECTOR, UserRole.HOUSEHOLD, UserRole.ORGANIZATION]} 
-                      />
-                )}
+                {/* Drop-off center / recycler — show whenever one has been assigned */}
+                {(collection as any).dropoffCenterId ? (
+                  <DropoffRecyclerSection
+                    dropoffCenterId={(collection as any).dropoffCenterId}
+                    isCompleted={collection.status === 'completed'}
+                  />
+                ) : collection.status === 'completed' ? (
+                  <InterestsSection 
+                    collectionId={collection.id} 
+                    showForRoles={[UserRole.COLLECTOR, UserRole.HOUSEHOLD, UserRole.ORGANIZATION]} 
+                  />
+                ) : null}
               </div>
             
             <DialogFooter>
