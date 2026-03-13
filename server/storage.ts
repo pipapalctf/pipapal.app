@@ -300,7 +300,8 @@ export class MemStorage implements IStorage {
       .filter(collection => 
         collection.userId === userId && 
         new Date(collection.scheduledDate) >= now &&
-        collection.status !== CollectionStatus.CANCELLED
+        collection.status !== CollectionStatus.CANCELLED &&
+        collection.status !== CollectionStatus.COMPLETED
       )
       .sort((a, b) => new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime());
   }
@@ -1228,7 +1229,8 @@ export class DatabaseStorage implements IStorage {
       .where(and(
         eq(collections.userId, userId),
         gte(collections.scheduledDate, now),
-        ne(collections.status, CollectionStatus.CANCELLED)
+        ne(collections.status, CollectionStatus.CANCELLED),
+        ne(collections.status, CollectionStatus.COMPLETED)
       ))
       .orderBy(collections.scheduledDate);
   }
