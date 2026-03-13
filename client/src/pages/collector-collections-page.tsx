@@ -24,6 +24,7 @@ import Navbar from '@/components/shared/navbar';
 import Footer from '@/components/shared/footer';
 import { Separator } from '@/components/ui/separator';
 import { RouteOptimizationMap } from '@/components/maps/route-optimization-map';
+import { PickupMap } from '@/components/maps/pickup-map';
 import { useLocation } from 'wouter';
 import { ClaimPickupDialog } from '@/components/claim-pickup-dialog';
 
@@ -458,34 +459,25 @@ export default function CollectorCollectionsPage() {
     (sum, c) => sum + calculateWasteValue(c.wasteType, c.wasteAmount || 10), 0
   );
 
-  // Pseudo-map marker positions (deterministic, spread across a grid)
-  const mapPositions = [
-    [28, 38], [58, 28], [44, 54], [72, 48], [20, 62],
-    [62, 65], [38, 20], [80, 32], [50, 75], [14, 45],
-    [68, 18], [36, 68], [86, 58], [24, 28], [54, 42],
-  ];
-  const mapMarkers = allAvailable.slice(0, 15).map((c, i) => {
-    const [x, y] = mapPositions[i % mapPositions.length];
-    const dueToday = isToday(new Date(c.scheduledDate));
-    const color = dueToday ? '#ef4444' : '#22c55e';
-    return { id: c.id, x, y, color, dueToday };
-  });
-  // Group nearby markers (within 8 units) as clusters
-  const clusterRadius = 12;
-  const shown: Set<number> = new Set();
-  type MarkerEntry = { id: number; x: number; y: number; color: string; count: number; dueToday: boolean };
-  const clusteredMarkers: MarkerEntry[] = [];
-  mapMarkers.forEach((m, i) => {
-    if (shown.has(i)) return;
-    const nearby = mapMarkers.filter((n, j) => j !== i && !shown.has(j) && Math.hypot(m.x - n.x, m.y - n.y) < clusterRadius);
-    if (nearby.length > 0) {
-      nearby.forEach((_, j) => shown.add(mapMarkers.indexOf(nearby[j])));
-      clusteredMarkers.push({ ...m, count: nearby.length + 1, color: '#f97316' });
-    } else {
-      clusteredMarkers.push({ ...m, count: 1, color: m.color });
-    }
-    shown.add(i);
-  });
+  // Location-filtered available pickups for map + card list
+  const searchFilteredAvailable = useMemo(() => {
+    if (!searchQuery) return dateFilteredAvailable;
+    const q = searchQuery.toLowerCase();
+    return dateFilteredAvailable.filter((c: any) =>
+      (c.address || '').toLowerCase().includes(q) ||
+      (c.city || '').toLowerCase().includes(q) ||
+      (c.wasteType || '').toLowerCase().includes(q)
+    );
+  }, [dateFilteredAvailable, searchQuery]);
+
+  // Closest-area suggestions when search returns no results
+  const suggestionPickups = useMemo(() => {
+    if (!searchQuery || searchFilteredAvailable.length > 0) return [];
+    // Sort all by date urgency (soonest first)
+    return [...dateFilteredAvailable].sort((a: any, b: any) =>
+      new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime()
+    ).slice(0, 5);
+  }, [searchQuery, searchFilteredAvailable, dateFilteredAvailable]);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -633,7 +625,7 @@ export default function CollectorCollectionsPage() {
                         size="sm"
                         variant="outline"
                         onClick={() => {
-                          const ids = new Set(dateFilteredAvailable.map((c: any) => c.id));
+                          const ids = new Set(searchFilteredAvailable.map((c: any) => c.id));
                           setSelectedIds(ids as Set<number>);
                         }}
                       >
@@ -648,88 +640,71 @@ export default function CollectorCollectionsPage() {
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
-                      {/* Schematic map */}
-                      {(() => {
-                        const collectorArea = user?.address?.split(',')[0]?.trim() || 'Your area';
-                        return (
-                          <div className="rounded-xl border overflow-hidden bg-[#e8f5e9] dark:bg-green-950/30" style={{ minHeight: 320 }}>
-                            <div className="px-3 pt-3 pb-1 text-xs font-semibold text-green-800 dark:text-green-300">
-                              {collectorArea} · {allAvailable.length} available
-                            </div>
-                            <svg viewBox="0 0 100 90" className="w-full" style={{ height: 262 }}>
-                              {/* Background */}
-                              <rect x="0" y="0" width="100" height="90" fill="#e8f5e9" />
-
-                              {/* City blocks (irregular shapes) */}
-                              <rect x="5"  y="5"  width="28" height="18" rx="1" fill="#c8e6c9" opacity="0.7" />
-                              <rect x="38" y="5"  width="22" height="14" rx="1" fill="#c8e6c9" opacity="0.7" />
-                              <rect x="65" y="8"  width="30" height="20" rx="1" fill="#c8e6c9" opacity="0.7" />
-                              <rect x="5"  y="32" width="18" height="22" rx="1" fill="#c8e6c9" opacity="0.7" />
-                              <rect x="28" y="30" width="26" height="16" rx="1" fill="#c8e6c9" opacity="0.7" />
-                              <rect x="60" y="33" width="35" height="20" rx="1" fill="#c8e6c9" opacity="0.7" />
-                              <rect x="5"  y="62" width="32" height="22" rx="1" fill="#c8e6c9" opacity="0.7" />
-                              <rect x="44" y="60" width="24" height="26" rx="1" fill="#c8e6c9" opacity="0.7" />
-                              <rect x="72" y="58" width="24" height="28" rx="1" fill="#c8e6c9" opacity="0.7" />
-
-                              {/* Roads — white paths like streets */}
-                              {/* Main horizontal */}
-                              <path d="M 0 27 Q 30 25 50 27 Q 70 29 100 27" stroke="white" strokeWidth="2.5" fill="none" />
-                              <path d="M 0 56 Q 35 54 55 56 Q 75 58 100 56" stroke="white" strokeWidth="2.5" fill="none" />
-                              {/* Main vertical */}
-                              <path d="M 34 0 Q 33 25 34 45 Q 35 65 34 90"  stroke="white" strokeWidth="2.5" fill="none" />
-                              <path d="M 62 0 Q 61 30 62 50 Q 63 70 62 90"  stroke="white" strokeWidth="2.5" fill="none" />
-                              {/* Secondary roads */}
-                              <path d="M 0 8  L 100 8"  stroke="white" strokeWidth="1.2" fill="none" opacity="0.6" />
-                              <path d="M 0 82 L 100 82" stroke="white" strokeWidth="1.2" fill="none" opacity="0.6" />
-                              <path d="M 12 0 L 12 90" stroke="white" strokeWidth="1.2" fill="none" opacity="0.6" />
-                              <path d="M 88 0 L 88 90" stroke="white" strokeWidth="1.2" fill="none" opacity="0.6" />
-                              {/* Diagonal shortcut */}
-                              <path d="M 34 27 L 62 56" stroke="white" strokeWidth="1" fill="none" opacity="0.5" />
-
-                              {/* Collector "you are here" pin */}
-                              <circle cx="48" cy="41" r="3.5" fill="#1d4ed8" opacity="0.9" />
-                              <circle cx="48" cy="41" r="6" fill="#1d4ed8" opacity="0.15" />
-                              <text x="48" y="43" textAnchor="middle" fontSize="2.8" fill="white" fontWeight="bold">★</text>
-
-                              {/* Collection markers */}
-                              {clusteredMarkers.map((m) => (
-                                <g key={m.id}>
-                                  <circle cx={m.x} cy={m.y} r={m.count > 1 ? 5.5 : 4.2} fill={m.color} opacity="0.92" />
-                                  <circle cx={m.x} cy={m.y} r={m.count > 1 ? 8 : 6.5} fill={m.color} opacity="0.12" />
-                                  {m.count > 1 ? (
-                                    <text x={m.x} y={m.y + 1.8} textAnchor="middle" fontSize="3.5" fill="white" fontWeight="bold">{m.count}+</text>
-                                  ) : (
-                                    <text x={m.x} y={m.y + 1.8} textAnchor="middle" fontSize="3" fill="white" fontWeight="bold">1</text>
-                                  )}
-                                </g>
-                              ))}
-                            </svg>
-                            {/* Legend */}
-                            <div className="px-3 pb-3 flex flex-wrap gap-3 text-[11px] text-muted-foreground">
-                              <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full bg-red-500" />Due today</span>
-                              <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full bg-green-500" />Available</span>
-                              <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full bg-blue-600" />You</span>
-                              <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full bg-orange-500" />Cluster</span>
-                            </div>
-                          </div>
-                        );
-                      })()}
+                      {/* Leaflet map */}
+                      <div className="rounded-xl border overflow-hidden" style={{ height: 360 }}>
+                        <PickupMap
+                          collections={searchFilteredAvailable}
+                          searchQuery={searchQuery}
+                          onAccept={(c) => { setClaimingCollection(c); setClaimDialogOpen(true); }}
+                          calculateEarnings={(wt, amt) => calculateWasteValue(wt, amt)}
+                        />
+                      </div>
 
                       {/* Collection cards */}
-                      {(() => {
-                        const collectorCity = user?.address?.split(',')[0]?.trim()?.toLowerCase() || '';
-                        const sorted = [...dateFilteredAvailable].sort((a: any, b: any) => {
-                          const aMatch = (a.address || '').toLowerCase().includes(collectorCity) ? 0 : 1;
-                          const bMatch = (b.address || '').toLowerCase().includes(collectorCity) ? 0 : 1;
-                          return aMatch - bMatch;
-                        });
-                        return (
-                        <div className="flex flex-col gap-1">
+                      <div className="flex flex-col gap-1">
                         <p className="text-sm text-muted-foreground mb-1">
-                          {dateFilteredAvailable.length} pickup{dateFilteredAvailable.length !== 1 ? 's' : ''} near you
-                          {collectorCity && <span className="ml-1 text-xs">({user?.address?.split(',')[0]?.trim()})</span>}
+                          {searchFilteredAvailable.length} pickup{searchFilteredAvailable.length !== 1 ? 's' : ''}
+                          {searchQuery
+                            ? <> in <span className="font-medium text-foreground capitalize">{searchQuery}</span></>
+                            : ' near you'}
                         </p>
-                        {dateFilteredAvailable.length === 0 ? (
+
+                        {/* No results in searched area */}
+                        {searchQuery && searchFilteredAvailable.length === 0 ? (
+                          <div className="rounded-xl border bg-muted/30 p-6">
+                            <div className="flex flex-col items-center text-center mb-4">
+                              <MapPin className="h-10 w-10 text-muted-foreground mb-2" />
+                              <p className="font-semibold">No pickups in "{searchQuery}"</p>
+                              <p className="text-sm text-muted-foreground mt-1">
+                                No collections scheduled in this area yet.
+                              </p>
+                            </div>
+                            {suggestionPickups.length > 0 && (
+                              <div>
+                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                                  Most urgent pickups nearby
+                                </p>
+                                <div className="space-y-2">
+                                  {suggestionPickups.map((c: any) => {
+                                    const dueToday = isToday(new Date(c.scheduledDate));
+                                    const earnings = calculateWasteValue(c.wasteType, c.wasteAmount || 10);
+                                    return (
+                                      <div key={c.id} className="flex items-center justify-between gap-2 rounded-lg bg-background border p-3">
+                                        <div className="min-w-0">
+                                          <div className="flex items-center gap-1.5 flex-wrap">
+                                            <span className="text-xs font-semibold capitalize">{c.wasteType}</span>
+                                            {c.wasteAmount && <span className="text-xs text-muted-foreground">{c.wasteAmount} kg</span>}
+                                            {dueToday && <span className="text-xs text-red-500 font-medium">Due today</span>}
+                                          </div>
+                                          <p className="text-xs text-muted-foreground truncate mt-0.5">
+                                            {c.address?.split(',')[0] || c.city || '—'} · {format(new Date(c.scheduledDate), 'MMM d')}
+                                          </p>
+                                        </div>
+                                        <div className="flex items-center gap-2 shrink-0">
+                                          <span className="text-sm font-bold text-green-700">KSh {formatNumber(earnings)}</span>
+                                          <Button size="sm" className="h-7 px-3 bg-green-600 hover:bg-green-700"
+                                            onClick={() => { setClaimingCollection(c); setClaimDialogOpen(true); }}>
+                                            Accept
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ) : dateFilteredAvailable.length === 0 ? (
                           <div className="rounded-xl border bg-muted/30 p-8 text-center">
                             <Package className="mx-auto h-10 w-10 text-muted-foreground mb-2" />
                             <p className="font-medium">No pickups for this period</p>
@@ -737,7 +712,7 @@ export default function CollectorCollectionsPage() {
                           </div>
                         ) : (
                           <div className="space-y-2 max-h-[480px] overflow-y-auto pr-1">
-                            {sorted.map((collection: any) => {
+                            {searchFilteredAvailable.map((collection: any) => {
                               const dueToday = isToday(new Date(collection.scheduledDate));
                               const dueTomorrow = isTomorrow(new Date(collection.scheduledDate));
                               const earnings = calculateWasteValue(collection.wasteType, collection.wasteAmount || 10);
@@ -808,9 +783,7 @@ export default function CollectorCollectionsPage() {
                             })}
                           </div>
                         )}
-                        </div>
-                        );
-                      })()}
+                      </div>
                     </div>
                   )}
                 </div>
