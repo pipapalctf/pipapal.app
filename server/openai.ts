@@ -258,17 +258,21 @@ export interface EcoBuddyInsights {
   greeting: string;
   behaviorSummary: string;
   insights: EcoBuddyInsight[];
-  cohortInsight: {
+  communityComparison: {
+    userKg: number;
+    communityAvgKg: number;
+    role: string;
     city: string;
-    cohortSize: number;
-    message: string;
-    topActions: string[];
   };
   weeklyChallenge: {
     title: string;
     description: string;
     reward: string;
+    goalKg: number;
+    progressKg: number;
+    steps: string[];
   };
+  sustainabilityLevel: string;
   overallTrend: 'up' | 'down' | 'stable';
 }
 
@@ -284,6 +288,8 @@ interface EcoBuddyContext {
   sustainabilityScore: number;
   cohortSize: number;
   role: string;
+  communityAvgKg: number;
+  weeklyProgressKg: number;
   // Cumulative all-time impact (from /api/impact data, role-aware)
   totalWaterSaved?: number;
   totalCo2Reduced?: number;
@@ -318,15 +324,17 @@ Role: ${roleLabel}
 Sustainability Score: ${ctx.sustainabilityScore} points
 Recent period (last 2 weeks): ${ctx.recentCompletedCount} completed pickups, ${ctx.totalRecentKg.toFixed(1)}kg total
 Previous period (2-4 weeks ago): ${ctx.previousCompletedCount} completed pickups, ${ctx.totalPreviousKg.toFixed(1)}kg total
+This week so far: ${ctx.weeklyProgressKg.toFixed(1)}kg
 Cancelled this period: ${ctx.cancelledCount}
 Waste type changes: ${changeDesc}
 ${allTimeDesc}
+Community average for same-role users in ${ctx.city}: ${ctx.communityAvgKg.toFixed(1)}kg in last 2 weeks
 Similar users in ${ctx.city}: ${ctx.cohortSize} people with the same role
 
 Generate a JSON response with this exact structure:
 {
   "greeting": "Short personal greeting (1-2 sentences, conversational, mention their name and one specific observation)",
-  "behaviorSummary": "One sentence summary of their eco behavior this week",
+  "behaviorSummary": "One sentence summary of their eco behavior this period",
   "insights": [
     {
       "id": "insight-1",
@@ -334,29 +342,35 @@ Generate a JSON response with this exact structure:
       "emoji": "single emoji",
       "title": "Short title (max 60 chars) — specific, not generic",
       "explanation": "2-3 sentences explaining why this matters with real impact context for Kenya",
-      "actions": ["specific action 1", "specific action 2", "specific action 3"]
+      "actions": ["specific action 1 with clear next step", "specific action 2", "specific action 3"]
     }
   ],
-  "cohortInsight": {
-    "city": "${ctx.city}",
-    "cohortSize": ${ctx.cohortSize},
-    "message": "What similar households in ${ctx.city} are doing better (1-2 sentences)",
-    "topActions": ["action households are taking 1", "action 2", "action 3"]
+  "communityComparison": {
+    "userKg": ${ctx.totalRecentKg.toFixed(1)},
+    "communityAvgKg": ${ctx.communityAvgKg.toFixed(1)},
+    "role": "${ctx.role}",
+    "city": "${ctx.city}"
   },
   "weeklyChallenge": {
     "title": "This week's eco challenge title",
-    "description": "Specific actionable challenge for this user based on their patterns",
-    "reward": "What they'll gain (e.g., score points, environmental impact)"
+    "description": "Specific actionable challenge for this user based on their patterns (1 sentence)",
+    "reward": "What they'll gain (e.g., score points, environmental impact)",
+    "goalKg": <a realistic kg target for this week based on their role and recent pace>,
+    "progressKg": ${ctx.weeklyProgressKg.toFixed(1)},
+    "steps": ["Step 1 — concrete action", "Step 2 — concrete action", "Step 3 — concrete action"]
   },
+  "sustainabilityLevel": "Level X — [Title]",
   "overallTrend": "up|down|stable"
 }
 
 Rules:
 - Be specific to Kenya, Nairobi/Kenyan context (mention actual recyclers, organizations if helpful)
 - 2-4 insights max, prioritize the most significant behavioral changes
+- Each insight MUST include 3 concrete actions — not vague advice, real next steps
 - Tailor advice to the user's role: collectors should accept more jobs & expand routes; recyclers should focus on processing volume & waste types; households should schedule pickups more consistently
+- sustainabilityLevel: use score ${ctx.sustainabilityScore} — Level 1 (0-49) "Green Beginner", Level 2 (50-149) "Eco Starter", Level 3 (150-299) "Eco Aware", Level 4 (300-499) "Eco Champion", Level 5 (500-749) "Sustainability Hero", Level 6 (750+) "Planet Guardian"
+- weeklyChallenge goalKg: set a stretch but achievable target — for households aim 20-30% above their recent weekly avg; for collectors 30-50% above; for recyclers 20-40% above
 - If they have no recent activity, reference their all-time stats to show their overall contribution before suggesting next steps
-- If all-time stats are also zero, encourage them to take their first action relevant to their role
 - Tone: encouraging, honest, like a knowledgeable friend not a corporate bot
 - Mention real impact numbers when possible (e.g., "3kg of plastic saves 150 liters of water")`;
 
@@ -510,13 +524,6 @@ function getFallbackEcoBuddyInsights(ctx: EcoBuddyContext): EcoBuddyInsights {
       ? `Your all-time contribution of ${allTimeKg.toFixed(0)}kg is making a real difference — let's keep that momentum going.`
       : isCollector ? "Ready for your next pickup job? Let's get you on the road." : isRecycler ? "Let's track your first drop-off and start building your impact." : "Let's get your eco journey started!");
 
-  const cohortRole = isCollector ? 'collectors' : isRecycler ? 'recyclers' : 'households';
-  const cohortActions = isCollector
-    ? ["Accept at least 3 jobs per week for a steady income", "Expand routes to cover more neighbourhoods", "Rate completions promptly to boost your collector score"]
-    : isRecycler
-    ? ["Confirm drop-off requests within 24 hours", "Update accepted waste types to attract more deliveries", "Share your drop-off code on PipaPal to increase volume"]
-    : ["Schedule pickups at least twice per month", "Separate plastic and paper waste before collection day", "Track progress weekly to stay motivated"];
-
   const challengeTitle = isCollector ? (hasCollections ? "Push for 5 jobs this week" : "First job challenge")
     : isRecycler ? (hasCollections ? "Process a new waste type this week" : "First drop-off challenge")
     : (hasCollections ? "Double your plastic this week" : "First pickup challenge");
@@ -527,21 +534,54 @@ function getFallbackEcoBuddyInsights(ctx: EcoBuddyContext): EcoBuddyInsights {
     ? (hasCollections ? `You processed ${ctx.totalRecentKg.toFixed(1)}kg recently. Try processing a waste type you haven't handled before to diversify your impact.` : "Accept your first drop-off delivery this week to start building your processing record.")
     : (hasCollections ? `You recycled ${(ctx.totalRecentKg / 2).toFixed(1)}kg of plastic last period. Try to reach ${ctx.totalRecentKg.toFixed(1)}kg this week by separating more consistently.` : "Schedule and complete your first pickup this week to kickstart your sustainability score.");
 
+  // Sustainability level from score
+  const score = ctx.sustainabilityScore;
+  const sustainabilityLevel = score >= 750 ? "Level 6 — Planet Guardian"
+    : score >= 500 ? "Level 5 — Sustainability Hero"
+    : score >= 300 ? "Level 4 — Eco Champion"
+    : score >= 150 ? "Level 3 — Eco Aware"
+    : score >= 50 ? "Level 2 — Eco Starter"
+    : "Level 1 — Green Beginner";
+
+  // Weekly challenge goal — stretch target based on role and recent pace
+  const weeklyAvgKg = ctx.totalRecentKg / 2; // 2-week period → weekly avg
+  const goalKg = isCollector
+    ? Math.max(10, Math.round(weeklyAvgKg * 1.4))
+    : isRecycler
+    ? Math.max(50, Math.round(weeklyAvgKg * 1.3))
+    : Math.max(5, Math.round(weeklyAvgKg * 1.25));
+
+  const challengeSteps = isCollector
+    ? ["Accept 1 new pickup job today from the Collections page", "Complete 2 jobs before midweek to stay on pace", `Reach ${goalKg}kg total by Sunday to earn the weekly badge`]
+    : isRecycler
+    ? ["Review and confirm any pending drop-off requests today", "Update your accepted waste types to attract more deliveries", `Process ${goalKg}kg this week — you're at ${ctx.weeklyProgressKg.toFixed(1)}kg so far`]
+    : hasCollections
+    ? ["Sort your kitchen waste into separate bags today", "Schedule a pickup for later this week on the app", `Hit ${goalKg}kg this week — you've already collected ${ctx.weeklyProgressKg.toFixed(1)}kg`]
+    : ["Open the app and schedule your first pickup — takes 2 minutes", "Start with plastic or paper — easiest to separate", "Leave sorted bags by the door the night before your pickup"];
+
   return {
     greeting: `Hey ${ctx.name}! ${greetingActivity}`,
-    behaviorSummary: trend === 'up' ? `Your ${isCollector ? 'collection' : 'recycling'} volume is trending up — ${((ctx.totalRecentKg - ctx.totalPreviousKg) / Math.max(ctx.totalPreviousKg, 1) * 100).toFixed(0)}% more than last period.` : trend === 'down' ? `Your ${isCollector ? 'collection' : 'recycling'} volume dropped a bit — but we've got a clear plan to turn that around.` : `Your ${isCollector ? 'collection' : 'recycling'} activity is holding steady — let's push it further.`,
+    behaviorSummary: trend === 'up'
+      ? `Your ${isCollector ? 'collection' : 'recycling'} volume is up ${((ctx.totalRecentKg - ctx.totalPreviousKg) / Math.max(ctx.totalPreviousKg, 1) * 100).toFixed(0)}% vs last period — great momentum.`
+      : trend === 'down'
+      ? `Your ${isCollector ? 'collection' : 'recycling'} volume dipped this period — here's a clear plan to bounce back.`
+      : `Your ${isCollector ? 'collection' : 'recycling'} activity is holding steady — let's push it further.`,
     insights,
-    cohortInsight: {
+    communityComparison: {
+      userKg: ctx.totalRecentKg,
+      communityAvgKg: ctx.communityAvgKg,
+      role: ctx.role,
       city: ctx.city,
-      cohortSize: ctx.cohortSize,
-      message: ctx.cohortSize > 5 ? `${ctx.cohortSize} ${cohortRole} in ${ctx.city} with similar patterns improved their scores by staying consistent and expanding their coverage.` : `Active ${cohortRole} in Nairobi collectively divert an average of 200kg from landfills per month — every job counts.`,
-      topActions: cohortActions,
     },
     weeklyChallenge: {
       title: challengeTitle,
       description: challengeDesc,
-      reward: hasCollections ? "+50 eco points and a badge upgrade" : "+100 eco points for your first action"
+      reward: hasCollections ? "+50 eco points and a badge upgrade" : "+100 eco points for your first action",
+      goalKg,
+      progressKg: ctx.weeklyProgressKg,
+      steps: challengeSteps,
     },
+    sustainabilityLevel,
     overallTrend: trend,
   };
 }

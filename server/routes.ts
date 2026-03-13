@@ -2923,6 +2923,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const sameCity = allUsers.filter(u => u.id !== userId && u.address?.includes(city || 'Nairobi'));
       const cohortSize = sameCity.length;
 
+      // Weekly progress (last 7 days)
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const weeklyProgressKg = completedRecent
+        .filter(c => dateOf(c) >= sevenDaysAgo)
+        .reduce((sum, c) => sum + (c.wasteAmount || 0), 0);
+
+      // Community average kg per user in last 2 weeks (same role, all platform)
+      let communityAvgKg = 0;
+      try {
+        const allPlatformCompleted = await storage.getAllCompletedCollections();
+        const recentPlatform = allPlatformCompleted.filter(c => dateOf(c) >= twoWeeksAgo);
+        const perUserKg: Record<string, number> = {};
+        for (const c of recentPlatform) {
+          const key = c.collectorId ? `col_${c.collectorId}` : `usr_${c.userId}`;
+          // Exclude the current user
+          const isMe = (c.collectorId === userId) || (c.userId === userId);
+          if (!isMe) perUserKg[key] = (perUserKg[key] || 0) + (c.wasteAmount || 0);
+        }
+        const vals = Object.values(perUserKg).filter(v => v > 0);
+        communityAvgKg = vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+      } catch (_) { /* non-fatal */ }
+
       const insights = await generateEcoBuddyInsights({
         name: user.fullName || user.username,
         city: city || 'Nairobi',
@@ -2935,6 +2957,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sustainabilityScore: user.sustainabilityScore || 0,
         cohortSize,
         role: user.role,
+        communityAvgKg,
+        weeklyProgressKg,
         totalWaterSaved: totalImpact.waterSaved,
         totalCo2Reduced: totalImpact.co2Reduced,
         totalKgAllTime: (totalImpact as any).wasteAmount ?? 0,
