@@ -230,7 +230,7 @@ export default function QuickPickupForm({ collectionToEdit, onSuccess }: Props) 
             name="wasteType"
             render={({ field }) => (
               <FormItem>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-3 gap-1.5">
                   {WASTE_TILES.map(({ type, emoji, label }) => {
                     const active = field.value === type;
                     return (
@@ -239,14 +239,14 @@ export default function QuickPickupForm({ collectionToEdit, onSuccess }: Props) 
                         type="button"
                         onClick={() => field.onChange(type)}
                         className={cn(
-                          "flex flex-col items-center gap-1 rounded-xl border-2 py-3 px-2 text-center transition-all",
+                          "flex items-center gap-1.5 rounded-lg border-2 py-1.5 px-2.5 transition-all",
                           active
                             ? "border-green-500 bg-green-50 dark:bg-green-900/30"
                             : "border-border hover:border-green-300 hover:bg-muted/50"
                         )}
                       >
-                        <span className="text-xl">{emoji}</span>
-                        <span className={cn("text-xs font-medium leading-tight", active ? "text-green-700 dark:text-green-300" : "text-foreground/80")}>
+                        <span className="text-base leading-none">{emoji}</span>
+                        <span className={cn("text-xs font-medium leading-tight truncate", active ? "text-green-700 dark:text-green-300" : "text-foreground/80")}>
                           {label}
                         </span>
                       </button>
