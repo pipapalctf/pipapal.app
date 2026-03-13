@@ -2801,19 +2801,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.getUser(userId);
       if (!user) return res.status(404).json({ error: 'User not found' });
 
-      const allCollections = await storage.getCollectionsByUser(userId);
+      // Pull role-appropriate collection data (mirrors /api/impact/monthly logic)
+      let allCollections: Awaited<ReturnType<typeof storage.getCollectionsByUser>>;
+      switch (user.role) {
+        case UserRole.COLLECTOR:
+          allCollections = await storage.getCompletedCollectionsByCollector(userId);
+          break;
+        case UserRole.RECYCLER:
+          allCollections = await storage.getAllCompletedCollections();
+          break;
+        default:
+          allCollections = await storage.getCollectionsByUser(userId);
+      }
+
+      // Also pull aggregated impact totals for richer context
+      let totalImpact: { waterSaved: number; co2Reduced: number; wasteCollected?: number; treesEquivalent?: number } = { waterSaved: 0, co2Reduced: 0 };
+      try {
+        switch (user.role) {
+          case UserRole.COLLECTOR:
+            totalImpact = await storage.getTotalImpactByCollector(userId);
+            break;
+          case UserRole.RECYCLER:
+            totalImpact = await storage.getTotalImpactByRecycler(userId);
+            break;
+          default:
+            totalImpact = await storage.getTotalImpactByUser(userId);
+        }
+      } catch (_) { /* non-fatal */ }
+
       const now = new Date();
       const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
       const fourWeeksAgo = new Date(now.getTime() - 28 * 24 * 60 * 60 * 1000);
 
-      const recentCollections = allCollections.filter(c => new Date(c.scheduledDate) >= twoWeeksAgo);
+      // Use completedDate when available (collectors), fall back to scheduledDate
+      const dateOf = (c: { completedDate?: Date | null; scheduledDate: Date | string }) =>
+        new Date(c.completedDate || c.scheduledDate);
+
+      const recentCollections = allCollections.filter(c => dateOf(c) >= twoWeeksAgo);
       const previousCollections = allCollections.filter(c => {
-        const d = new Date(c.scheduledDate);
+        const d = dateOf(c);
         return d >= fourWeeksAgo && d < twoWeeksAgo;
       });
 
       const completedRecent = recentCollections.filter(c => c.status === CollectionStatus.COMPLETED);
       const completedPrevious = previousCollections.filter(c => c.status === CollectionStatus.COMPLETED);
+      // For collectors/recyclers COMPLETED is the only status returned, so cancelled = 0 is fine
       const cancelledRecent = recentCollections.filter(c => c.status === CollectionStatus.CANCELLED);
 
       const wasteByType = (cols: typeof allCollections) => {
@@ -2859,6 +2891,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sustainabilityScore: user.sustainabilityScore || 0,
         cohortSize,
         role: user.role,
+        totalWaterSaved: totalImpact.waterSaved,
+        totalCo2Reduced: totalImpact.co2Reduced,
+        totalKgAllTime: (totalImpact as any).wasteAmount ?? 0,
       });
 
       res.json(insights);

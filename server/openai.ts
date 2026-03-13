@@ -284,6 +284,10 @@ interface EcoBuddyContext {
   sustainabilityScore: number;
   cohortSize: number;
   role: string;
+  // Cumulative all-time impact (from /api/impact data, role-aware)
+  totalWaterSaved?: number;
+  totalCo2Reduced?: number;
+  totalKgAllTime?: number;
 }
 
 export async function generateEcoBuddyInsights(ctx: EcoBuddyContext): Promise<EcoBuddyInsights> {
@@ -293,6 +297,15 @@ export async function generateEcoBuddyInsights(ctx: EcoBuddyContext): Promise<Ec
     ? ctx.typeChanges.map(c => `${c.type}: ${c.recentKg.toFixed(1)}kg this period vs ${c.previousKg.toFixed(1)}kg previous (${c.pct > 0 ? '+' : ''}${c.pct}%)`).join('; ')
     : 'No recent collections to compare';
 
+  const roleLabel = ctx.role === 'collector' ? 'Waste Collector (accepts and completes pickup jobs)'
+    : ctx.role === 'recycler' ? 'Recycler (processes drop-offs from collectors)'
+    : ctx.role === 'organization' ? 'Organization / Business'
+    : 'Household';
+
+  const allTimeDesc = (ctx.totalKgAllTime ?? 0) > 0
+    ? `All-time: ${(ctx.totalKgAllTime ?? 0).toFixed(0)}kg diverted, ${(ctx.totalCo2Reduced ?? 0).toFixed(0)}kg CO₂ saved, ${(ctx.totalWaterSaved ?? 0).toFixed(0)}L water saved`
+    : 'No all-time data yet';
+
   if (hasApiKey) {
     try {
       const prompt = `You are Eco Buddy, a friendly and insightful eco-behavior companion for PipaPal, a Kenyan waste management platform.
@@ -301,13 +314,14 @@ Analyze this user's waste recycling behavior and generate personalized insights:
 
 User: ${ctx.name}
 City: ${ctx.city}, Kenya
-Role: ${ctx.role}
+Role: ${roleLabel}
 Sustainability Score: ${ctx.sustainabilityScore} points
 Recent period (last 2 weeks): ${ctx.recentCompletedCount} completed pickups, ${ctx.totalRecentKg.toFixed(1)}kg total
 Previous period (2-4 weeks ago): ${ctx.previousCompletedCount} completed pickups, ${ctx.totalPreviousKg.toFixed(1)}kg total
 Cancelled this period: ${ctx.cancelledCount}
 Waste type changes: ${changeDesc}
-Similar users in ${ctx.city}: ${ctx.cohortSize} households
+${allTimeDesc}
+Similar users in ${ctx.city}: ${ctx.cohortSize} people with the same role
 
 Generate a JSON response with this exact structure:
 {
@@ -340,7 +354,9 @@ Generate a JSON response with this exact structure:
 Rules:
 - Be specific to Kenya, Nairobi/Kenyan context (mention actual recyclers, organizations if helpful)
 - 2-4 insights max, prioritize the most significant behavioral changes
-- If they have no collections, focus on getting started
+- Tailor advice to the user's role: collectors should accept more jobs & expand routes; recyclers should focus on processing volume & waste types; households should schedule pickups more consistently
+- If they have no recent activity, reference their all-time stats to show their overall contribution before suggesting next steps
+- If all-time stats are also zero, encourage them to take their first action relevant to their role
 - Tone: encouraging, honest, like a knowledgeable friend not a corporate bot
 - Mention real impact numbers when possible (e.g., "3kg of plastic saves 150 liters of water")`;
 
@@ -369,22 +385,59 @@ function getFallbackEcoBuddyInsights(ctx: EcoBuddyContext): EcoBuddyInsights {
   const dropTypes = ctx.typeChanges.filter(c => c.pct < -10).sort((a, b) => a.pct - b.pct);
   const riseTypes = ctx.typeChanges.filter(c => c.pct > 10).sort((a, b) => b.pct - a.pct);
   const hasCollections = ctx.recentCompletedCount > 0;
+  const isCollector = ctx.role === 'collector';
+  const isRecycler = ctx.role === 'recycler';
+  const allTimeKg = ctx.totalKgAllTime ?? 0;
+  const allTimeCo2 = ctx.totalCo2Reduced ?? 0;
+  const allTimeWater = ctx.totalWaterSaved ?? 0;
 
   const insights: EcoBuddyInsight[] = [];
 
   if (!hasCollections) {
-    insights.push({
-      id: 'no-activity',
-      type: 'neutral',
-      emoji: '📦',
-      title: "No pickups recorded yet this period",
-      explanation: "Getting started with regular pickups is the most impactful thing you can do. Even one scheduled pickup per week significantly reduces your landfill contribution.",
-      actions: [
-        "Schedule your first pickup this week — it takes under 2 minutes",
-        "Start with plastic or paper — easy to separate and high value",
-        "Set a recurring weekly reminder for waste sorting"
-      ]
-    });
+    if (isCollector) {
+      insights.push({
+        id: 'no-recent-activity',
+        type: 'neutral',
+        emoji: '🚛',
+        title: allTimeKg > 0 ? `No jobs completed this period — but you've moved ${allTimeKg.toFixed(0)}kg all-time!` : "No pickups completed yet this period",
+        explanation: allTimeKg > 0
+          ? `Your all-time impact of ${allTimeKg.toFixed(0)}kg collected has saved ${allTimeCo2.toFixed(0)}kg of CO₂ and ${allTimeWater.toFixed(0)}L of water. The last 2 weeks show a quiet stretch — check for new jobs near you.`
+          : "Accepting and completing pickup jobs is how you build your eco score and earnings. More activity means more impact data to track here.",
+        actions: [
+          "Check available pickups in your area on the Collections page",
+          "Expand your route to nearby neighbourhoods for more job variety",
+          "Complete at least 2 jobs this week to maintain your collector rating"
+        ]
+      });
+    } else if (isRecycler) {
+      insights.push({
+        id: 'no-recent-activity',
+        type: 'neutral',
+        emoji: '♻️',
+        title: allTimeKg > 0 ? `Quiet period — but you've processed ${allTimeKg.toFixed(0)}kg all-time!` : "No drop-offs processed yet this period",
+        explanation: allTimeKg > 0
+          ? `Your cumulative processing of ${allTimeKg.toFixed(0)}kg has saved ${allTimeCo2.toFixed(0)}kg of CO₂. Keep accepting drop-off deliveries to keep that number climbing.`
+          : "Processing drop-offs from collectors is how your impact is tracked. Each kg you process saves roughly 2kg of CO₂ compared to landfill.",
+        actions: [
+          "Confirm pending drop-off requests to encourage more deliveries",
+          "Ensure your accepted waste types are up to date",
+          "Share your drop-off code with collectors in your area"
+        ]
+      });
+    } else {
+      insights.push({
+        id: 'no-activity',
+        type: 'neutral',
+        emoji: '📦',
+        title: "No pickups scheduled yet this period",
+        explanation: "Getting started with regular pickups is the most impactful thing you can do. Even one scheduled pickup per week significantly reduces your landfill contribution.",
+        actions: [
+          "Schedule your first pickup this week — it takes under 2 minutes",
+          "Start with plastic or paper — easy to separate and high value",
+          "Set a recurring weekly reminder for waste sorting"
+        ]
+      });
+    }
   } else {
     if (dropTypes.length > 0) {
       const drop = dropTypes[0];
@@ -449,24 +502,45 @@ function getFallbackEcoBuddyInsights(ctx: EcoBuddyContext): EcoBuddyInsights {
     });
   }
 
+  const greetingActivity = hasCollections
+    ? (isCollector ? `You've completed ${ctx.recentCompletedCount} job${ctx.recentCompletedCount !== 1 ? 's' : ''} this period (${ctx.totalRecentKg.toFixed(1)}kg) — here's what your data is telling me.`
+      : isRecycler ? `You've processed ${ctx.totalRecentKg.toFixed(1)}kg of materials this period — here's your impact breakdown.`
+      : `You've recycled ${ctx.totalRecentKg.toFixed(1)}kg this period — here's what your data is telling me.`)
+    : (allTimeKg > 0
+      ? `Your all-time contribution of ${allTimeKg.toFixed(0)}kg is making a real difference — let's keep that momentum going.`
+      : isCollector ? "Ready for your next pickup job? Let's get you on the road." : isRecycler ? "Let's track your first drop-off and start building your impact." : "Let's get your eco journey started!");
+
+  const cohortRole = isCollector ? 'collectors' : isRecycler ? 'recyclers' : 'households';
+  const cohortActions = isCollector
+    ? ["Accept at least 3 jobs per week for a steady income", "Expand routes to cover more neighbourhoods", "Rate completions promptly to boost your collector score"]
+    : isRecycler
+    ? ["Confirm drop-off requests within 24 hours", "Update accepted waste types to attract more deliveries", "Share your drop-off code on PipaPal to increase volume"]
+    : ["Schedule pickups at least twice per month", "Separate plastic and paper waste before collection day", "Track progress weekly to stay motivated"];
+
+  const challengeTitle = isCollector ? (hasCollections ? "Push for 5 jobs this week" : "First job challenge")
+    : isRecycler ? (hasCollections ? "Process a new waste type this week" : "First drop-off challenge")
+    : (hasCollections ? "Double your plastic this week" : "First pickup challenge");
+
+  const challengeDesc = isCollector
+    ? (hasCollections ? `You completed ${ctx.recentCompletedCount} job${ctx.recentCompletedCount !== 1 ? 's' : ''} recently. Push to 5 this week to boost your earnings and eco score.` : "Accept and complete your first pickup job this week to kickstart your collector journey.")
+    : isRecycler
+    ? (hasCollections ? `You processed ${ctx.totalRecentKg.toFixed(1)}kg recently. Try processing a waste type you haven't handled before to diversify your impact.` : "Accept your first drop-off delivery this week to start building your processing record.")
+    : (hasCollections ? `You recycled ${(ctx.totalRecentKg / 2).toFixed(1)}kg of plastic last period. Try to reach ${ctx.totalRecentKg.toFixed(1)}kg this week by separating more consistently.` : "Schedule and complete your first pickup this week to kickstart your sustainability score.");
+
   return {
-    greeting: `Hey ${ctx.name}! ${hasCollections ? `You've recycled ${ctx.totalRecentKg.toFixed(1)}kg this period — here's what your data is telling me.` : "Let's get your eco journey started!"}`,
-    behaviorSummary: trend === 'up' ? `Your recycling volume is trending up — ${((ctx.totalRecentKg - ctx.totalPreviousKg) / Math.max(ctx.totalPreviousKg, 1) * 100).toFixed(0)}% more than last period.` : trend === 'down' ? "Your recycling dropped a bit — but we've got a clear plan to turn that around." : "Your recycling is holding steady — let's push it further.",
+    greeting: `Hey ${ctx.name}! ${greetingActivity}`,
+    behaviorSummary: trend === 'up' ? `Your ${isCollector ? 'collection' : 'recycling'} volume is trending up — ${((ctx.totalRecentKg - ctx.totalPreviousKg) / Math.max(ctx.totalPreviousKg, 1) * 100).toFixed(0)}% more than last period.` : trend === 'down' ? `Your ${isCollector ? 'collection' : 'recycling'} volume dropped a bit — but we've got a clear plan to turn that around.` : `Your ${isCollector ? 'collection' : 'recycling'} activity is holding steady — let's push it further.`,
     insights,
     cohortInsight: {
       city: ctx.city,
       cohortSize: ctx.cohortSize,
-      message: ctx.cohortSize > 5 ? `${ctx.cohortSize} households in ${ctx.city} with similar waste patterns improved their scores by focusing on consistent scheduling and plastic separation.` : `Households who recycle consistently in Nairobi save an average of 200kg of waste from landfills per year.`,
-      topActions: [
-        "Schedule pickups at least twice per month",
-        "Separate plastic and paper waste before collection day",
-        "Track progress weekly to stay motivated"
-      ]
+      message: ctx.cohortSize > 5 ? `${ctx.cohortSize} ${cohortRole} in ${ctx.city} with similar patterns improved their scores by staying consistent and expanding their coverage.` : `Active ${cohortRole} in Nairobi collectively divert an average of 200kg from landfills per month — every job counts.`,
+      topActions: cohortActions,
     },
     weeklyChallenge: {
-      title: hasCollections ? "Double your plastic this week" : "First pickup challenge",
-      description: hasCollections ? `You recycled ${(ctx.totalRecentKg / 2).toFixed(1)}kg of plastic last period. Try to reach ${ctx.totalRecentKg.toFixed(1)}kg this week by separating more consistently.` : "Schedule and complete your first pickup this week to kickstart your sustainability score.",
-      reward: hasCollections ? "+50 eco points and a badge upgrade" : "+100 eco points for your first pickup"
+      title: challengeTitle,
+      description: challengeDesc,
+      reward: hasCollections ? "+50 eco points and a badge upgrade" : "+100 eco points for your first action"
     },
     overallTrend: trend,
   };
