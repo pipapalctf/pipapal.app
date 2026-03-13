@@ -189,8 +189,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     requirePermission(Permissions.VIEW_PICKUP_HISTORY),
     async (req, res) => {
       if (!req.user) return res.sendStatus(401);
-      const collections = await storage.getUpcomingCollectionsByUser(req.user.id);
-      res.json(collections);
+      const cols = await storage.getUpcomingCollectionsByUser(req.user.id);
+
+      // Auto-generate missing verification codes for any IN_PROGRESS collection
+      const fixed = await Promise.all(cols.map(async (col) => {
+        if (col.status === CollectionStatus.IN_PROGRESS && !col.verificationCode) {
+          const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+          const updated = await storage.updateCollection(col.id, { verificationCode });
+          return updated || col;
+        }
+        return col;
+      }));
+
+      res.json(fixed);
     }
   );
   

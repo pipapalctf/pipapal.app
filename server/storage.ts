@@ -1321,6 +1321,10 @@ export class DatabaseStorage implements IStorage {
     if (updates.dropoffConfirmed !== undefined) {
       updateValues.dropoffConfirmed = updates.dropoffConfirmed;
     }
+
+    if (updates.verificationCode !== undefined) {
+      updateValues.verificationCode = updates.verificationCode;
+    }
     
     // Handle completedDate separately
     if (updates.status === CollectionStatus.COMPLETED && !collection.completedDate) {
