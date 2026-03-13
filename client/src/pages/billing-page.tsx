@@ -323,6 +323,16 @@ export default function BillingPage() {
     .filter((t) => t.type === WalletTransactionType.REFUND)
     .reduce((sum, t) => sum + t.amount, 0);
 
+  // Service fee deductions for households (PAYMENT type = service fees charged on completion)
+  const totalServiceFees = !isCollector
+    ? walletTransactions
+        .filter((t) => t.type === WalletTransactionType.PAYMENT)
+        .reduce((sum, t) => sum + t.amount, 0)
+    : 0;
+
+  const walletBalance = wallet?.balance ?? 0;
+  const isNegativeBalance = walletBalance < 0;
+
   const sortedPayments = [...filteredPayments].sort((a, b) => {
     const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
     const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
@@ -356,26 +366,30 @@ export default function BillingPage() {
         ) : (
           <>
             <Card className="mb-6 overflow-hidden">
-              <div className="bg-gradient-to-r from-green-600 to-emerald-600 p-6 text-white">
+              <div className={`bg-gradient-to-r ${isNegativeBalance ? 'from-red-600 to-rose-600' : 'from-green-600 to-emerald-600'} p-6 text-white`}>
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                   <div>
-                    <p className="text-green-100 text-sm font-medium flex items-center gap-1.5">
+                    <p className={`${isNegativeBalance ? 'text-red-100' : 'text-green-100'} text-sm font-medium flex items-center gap-1.5`}>
                       <WalletIcon className="h-4 w-4" />
                       {isCollector ? "Earnings Wallet" : "PipaPal Wallet"}
                     </p>
                     <p className="text-4xl font-bold mt-1">
-                      {formatAmount(wallet?.balance || 0)}
+                      {formatAmount(walletBalance)}
                     </p>
-                    <p className="text-green-200 text-sm mt-1">
-                      {isCollector ? "Available to withdraw" : (wallet?.balance || 0) > 0 ? "Available · includes cashbacks" : "Available balance"}
+                    <p className={`${isNegativeBalance ? 'text-red-200' : 'text-green-200'} text-sm mt-1`}>
+                      {isNegativeBalance
+                        ? "Balance owed — top up to clear"
+                        : isCollector
+                        ? "Available to withdraw"
+                        : walletBalance > 0 ? "Available · includes cashbacks" : "Available balance"}
                     </p>
                   </div>
                   {isCollector ? (
-                    <WithdrawDialog balance={wallet?.balance || 0} />
+                    <WithdrawDialog balance={walletBalance} />
                   ) : (
                     <div className="flex gap-2">
                       <TopUpDialog />
-                      {(wallet?.balance || 0) > 0 && <WithdrawDialog balance={wallet?.balance || 0} />}
+                      {walletBalance > 0 && <WithdrawDialog balance={walletBalance} />}
                     </div>
                   )}
                 </div>
@@ -396,12 +410,12 @@ export default function BillingPage() {
                   ) : (
                     <>
                       <div>
-                        <p className="text-xs text-muted-foreground">Total Paid</p>
-                        <p className="text-lg font-semibold text-green-600">{formatAmount(totalPaid)}</p>
-                      </div>
-                      <div>
                         <p className="text-xs text-muted-foreground">Cashbacks</p>
                         <p className="text-lg font-semibold text-emerald-600">{formatAmount(totalCashbacks)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Service Fees</p>
+                        <p className="text-lg font-semibold text-red-600">-{formatAmount(totalServiceFees)}</p>
                       </div>
                     </>
                   )}
@@ -440,7 +454,7 @@ export default function BillingPage() {
                     Wallet Transactions
                   </CardTitle>
                   <CardDescription>
-                    {isCollector ? "Earnings and withdrawals" : "Top-ups, cashbacks, and payments"}
+                    {isCollector ? "Earnings and withdrawals" : "Top-ups, cashbacks, and service fee deductions"}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -455,7 +469,7 @@ export default function BillingPage() {
                       <p className="text-sm text-muted-foreground mt-1">
                         {isCollector
                           ? "Complete pickups to start earning into your wallet."
-                          : "Top up via M-Pesa, or recycle high-value waste (metal, plastic, e-waste) to earn cashbacks."}
+                          : "Cashbacks from recyclables, service fee deductions, and M-Pesa top-ups will all appear here."}
                       </p>
                     </div>
                   ) : (
@@ -472,7 +486,7 @@ export default function BillingPage() {
                               ? 'bg-emerald-100'
                               : tx.type === WalletTransactionType.REFUND
                               ? 'bg-blue-100'
-                              : 'bg-orange-100'
+                              : 'bg-red-100'
                           }`}>
                             {tx.type === WalletTransactionType.TOPUP ? (
                               <ArrowDownCircle className="h-5 w-5 text-green-600" />
@@ -481,13 +495,17 @@ export default function BillingPage() {
                             ) : tx.type === WalletTransactionType.REFUND ? (
                               <ArrowDownCircle className="h-5 w-5 text-blue-600" />
                             ) : (
-                              <ArrowUpCircle className="h-5 w-5 text-orange-600" />
+                              <ArrowUpCircle className="h-5 w-5 text-red-600" />
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium capitalize">
-                                {tx.type === WalletTransactionType.REFUND ? "Cashback" : tx.type}
+                              <span className="text-sm font-medium">
+                                {tx.type === WalletTransactionType.TOPUP ? "Top-up"
+                                  : tx.type === WalletTransactionType.EARNING ? "Earning"
+                                  : tx.type === WalletTransactionType.REFUND ? "Cashback"
+                                  : tx.referenceId?.startsWith('MAT_') ? "Materials purchase"
+                                  : "Service fee"}
                               </span>
                               {tx.referenceId && (
                                 <span className="text-[10px] font-mono bg-muted px-1.5 py-0.5 rounded hidden sm:inline">
@@ -502,12 +520,12 @@ export default function BillingPage() {
                           <div className="text-right shrink-0">
                             <div className={`text-sm font-semibold ${
                               tx.type === WalletTransactionType.PAYMENT
-                                ? 'text-orange-600'
+                                ? 'text-red-600'
                                 : 'text-green-600'
                             }`}>
                               {tx.type === WalletTransactionType.PAYMENT ? '-' : '+'}{formatAmount(tx.amount)}
                             </div>
-                            <div className="text-[10px] text-muted-foreground">
+                            <div className={`text-[10px] ${tx.balanceAfter < 0 ? 'text-red-500 font-medium' : 'text-muted-foreground'}`}>
                               Bal: {formatAmount(tx.balanceAfter)}
                             </div>
                           </div>
