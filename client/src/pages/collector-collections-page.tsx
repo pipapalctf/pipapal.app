@@ -22,7 +22,6 @@ import { format } from 'date-fns';
 import Navbar from '@/components/shared/navbar';
 import Footer from '@/components/shared/footer';
 import { Separator } from '@/components/ui/separator';
-import { MaterialInterestsTab } from '@/components/material-interests-tab';
 import { RouteOptimizationMap } from '@/components/maps/route-optimization-map';
 import { useLocation } from 'wouter';
 import { ClaimPickupDialog } from '@/components/claim-pickup-dialog';
@@ -77,15 +76,6 @@ export default function CollectorCollectionsPage() {
     queryKey: ['/api/collections'],
   });
   
-  const { data: materialInterests = [] } = useQuery({
-    queryKey: ['/api/material-interests/collector', user.id],
-    queryFn: async () => {
-      const res = await fetch(`/api/material-interests/collector/${user.id}`);
-      if (!res.ok) throw new Error('Failed to fetch material interests');
-      return res.json();
-    },
-    enabled: !!user.id
-  });
 
   const handleSort = (field: string) => {
     if (sortField === field) {
@@ -410,12 +400,6 @@ export default function CollectorCollectionsPage() {
     return users.find((u: any) => u.id === userId);
   };
   
-  const hasInterests = (collectionId: number) => {
-    return materialInterests.some((interest: any) => 
-      interest.collectionId === collectionId && 
-      ['pending', 'expressed', 'accepted'].includes(interest.status)
-    );
-  };
 
   const toggleSelection = (id: number) => {
     setSelectedIds(prev => {
@@ -571,10 +555,9 @@ export default function CollectorCollectionsPage() {
           </div>
           
           <Tabs defaultValue={activeTab} value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-6">
+            <TabsList className="grid w-full grid-cols-2 mb-6">
               <TabsTrigger value="collections">Collection Assignments</TabsTrigger>
               <TabsTrigger value="routes">Route Optimization</TabsTrigger>
-              <TabsTrigger value="interests">Material Interests</TabsTrigger>
             </TabsList>
             
             <TabsContent value="collections" className="mt-0">
@@ -825,19 +808,6 @@ export default function CollectorCollectionsPage() {
               </Card>
             </TabsContent>
             
-            <TabsContent value="interests" className="mt-0">
-              <Card className="overflow-hidden">
-                <CardHeader className="bg-muted/30 pb-4">
-                  <CardTitle>Material Interests from Recyclers</CardTitle>
-                  <CardDescription>
-                    View recyclers who expressed interest in materials from your active collections
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <MaterialInterestsTab collectorId={user.id} />
-                </CardContent>
-              </Card>
-            </TabsContent>
           </Tabs>
         </div>
       </main>
