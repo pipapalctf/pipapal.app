@@ -273,6 +273,7 @@ export interface EcoBuddyInsights {
     steps: string[];
   };
   sustainabilityLevel: string;
+  sustainabilityScore: number;
   overallTrend: 'up' | 'down' | 'stable';
 }
 
@@ -385,7 +386,10 @@ Rules:
       });
 
       const content = response.choices[0].message.content || '{}';
-      return JSON.parse(content) as EcoBuddyInsights;
+      const parsed = JSON.parse(content) as EcoBuddyInsights;
+      // Always use the fresh DB score — don't rely on AI to echo it back correctly
+      parsed.sustainabilityScore = ctx.sustainabilityScore;
+      return parsed;
     } catch (error) {
       console.error("Error generating eco buddy insights:", error);
     }
@@ -582,6 +586,7 @@ function getFallbackEcoBuddyInsights(ctx: EcoBuddyContext): EcoBuddyInsights {
       steps: challengeSteps,
     },
     sustainabilityLevel,
+    sustainabilityScore: ctx.sustainabilityScore,
     overallTrend: trend,
   };
 }

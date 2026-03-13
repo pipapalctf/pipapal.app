@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useAuth } from "@/hooks/use-auth";
 import Navbar from "@/components/shared/navbar";
 import MobileNavigation from "@/components/shared/mobile-navigation";
 import { Card, CardContent } from "@/components/ui/card";
@@ -229,7 +228,6 @@ function EcoBuddySkeleton() {
 }
 
 export default function EcoTipsPage() {
-  const { user } = useAuth();
   const { data: insights, isLoading, isError, refetch, isFetching } = useQuery<EcoBuddyInsights>({
     queryKey: ["/api/eco-buddy/tips"],
     staleTime: 0,
@@ -294,7 +292,7 @@ export default function EcoTipsPage() {
                 <div className="mt-4 pt-4 border-t border-white/20 flex items-center justify-between flex-wrap gap-3">
                   <div className="flex items-center gap-2 text-sm text-green-100">
                     <Star className="h-4 w-4 text-yellow-300" />
-                    <span className="font-medium text-white">{user?.sustainabilityScore ?? 0} pts</span>
+                    <span className="font-medium text-white">{insights.sustainabilityScore ?? 0} pts</span>
                   </div>
                   {insights.sustainabilityLevel && (
                     <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${getLevelColor(insights.sustainabilityLevel)}`}>
